@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07090f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="InsulinCalc">
+  <title>InsulinCalc - Calculateur d'insuline</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'IBM Plex Mono', monospace;
+      background: #07090f;
+      color: #c8d6e5;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React & Babel from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ─── QUANTITY PROFILES ─────────────────────────────────────────────────────
+    const QTY_PROFILES = {
+      pain:    [{l:"½ tr.",m:0.5},{l:"1 tr.",m:1},{l:"2 tr.",m:2},{l:"3 tr.",m:3},{l:"4 tr.",m:4}],
+      piece:   [{l:"½ pc",m:0.5},{l:"1 pc",m:1},{l:"2 pc",m:2},{l:"3 pc",m:3}],
+      plat:    [{l:"¼ plat",m:0.25},{l:"½ plat",m:0.5},{l:"¾ plat",m:0.75},{l:"1 plat",m:1},{l:"1½ plat",m:1.5},{l:"2 plats",m:2}],
+      soupe:   [{l:"½ bol",m:0.5},{l:"1 bol",m:1},{l:"1½ bol",m:1.5},{l:"2 bols",m:2}],
+      feculent:[{l:"½ port.",m:0.5},{l:"1 port.",m:1},{l:"1½ port.",m:1.5},{l:"2 port.",m:2},{l:"3 port.",m:3}],
+      fruit_u: [{l:"½ fruit",m:0.5},{l:"1 fruit",m:1},{l:"1½ fruit",m:1.5},{l:"2 fruits",m:2},{l:"3 fruits",m:3}],
+      fruit_v: [{l:"¼ bol",m:0.25},{l:"½ bol",m:0.5},{l:"1 bol",m:1},{l:"1½ bol",m:1.5},{l:"2 bols",m:2}],
+      boisson: [{l:"½ verre",m:0.5},{l:"1 verre",m:1},{l:"2 verres",m:2},{l:"3 verres",m:3}],
+      sucre:   [{l:"½ pc",m:0.5},{l:"1 pc",m:1},{l:"2 pc",m:2},{l:"3 pc",m:3},{l:"4 pc",m:4}],
+      grasse:  [{l:"½ c.",m:0.5},{l:"1 c.",m:1},{l:"2 c.",m:2},{l:"3 c.",m:3}],
+      legume:  [{l:"½ port.",m:0.5},{l:"1 port.",m:1},{l:"2 port.",m:2},{l:"3 port.",m:3}],
+      viande:  [{l:"½ port.",m:0.5},{l:"1 port.",m:1},{l:"1½ port.",m:1.5},{l:"2 port.",m:2}],
+      oeuf:    [{l:"1 œuf",m:1},{l:"2 œufs",m:2},{l:"3 œufs",m:3},{l:"4 œufs",m:4}],
+      laitage: [{l:"½ pot",m:0.5},{l:"1 pot",m:1},{l:"2 pots",m:2}],
+    };
+
+    // ─── DIGESTION PROFILES ─────────────────────────────────────────────────────
+    const DIGESTION_PROFILES = {
+      rapide:   {label:"Rapide",   desc:"Estomac vide, liquides, sucres simples", icon:"⚡", peakMin:30,  tail:120, fatDelay:0  },
+      normal:   {label:"Normal",   desc:"Repas standard équilibré",               icon:"🔄", peakMin:60,  tail:180, fatDelay:30 },
+      lent:     {label:"Lent",     desc:"Repas riche, gras, fibres ++",           icon:"🐢", peakMin:90,  tail:240, fatDelay:60 },
+    };
+
+    // ─── INSULIN ACTION ─────────────────────────────────────────────────────────
+    const calcIOB=(units,minElapsed,tailMin)=>{const absorptionFactor=Math.max(0,1-(minElapsed/tailMin));return parseFloat((units*absorptionFactor).toFixed(1));};
+
+    // ─── WEIGHT-BASED SUGGESTIONS ───────────────────────────────────────────────
+    const calcWeightSuggestions = (kg) => {
+      const tdd = Math.round(kg * 0.5 * 2) / 2;
+      const basal = Math.round(tdd * 0.5 * 2) / 2;
+      const icr = Math.round(500 / tdd);
+      const isfMg = Math.round(1700 / tdd);
+      return { tdd, basal, icr, isfMg };
+    };
+
+    // ─── POST-MEAL CORRECTION ───────────────────────────────────────────────────
+    const calcPostMealCorrection = (pmG, targetG, isf, iob) => {
+      const ecartGL = Math.max(0, pmG - targetG);
+      const rawUnits = (ecartGL * 10) / isf;
+      if (pmG >= 3.0) {
+        return { status: "urgent_override", units: Math.round((rawUnits * 0.5) * 2) / 2, rawUnits: Math.round(rawUnits * 2) / 2, iob: iob, ecartGL };
+      }
+      if (pmG >= 2.5) {
+        return { status: "high_override", units: Math.round((rawUnits * 0.4) * 2) / 2, rawUnits: Math.round(rawUnits * 2) / 2, iob, ecartGL };
+      }
+      if (pmG >= 2.0) {
+        return { status: "warn_override", units: Math.round((rawUnits * 0.3) * 2) / 2, rawUnits: Math.round(rawUnits * 2) / 2, iob, ecartGL };
+      }
+      const netUnits = Math.max(0, rawUnits - iob);
+      return { status: "ok_low", units: Math.round(netUnits * 2) / 2, rawUnits: Math.round(rawUnits * 2) / 2, iob, ecartGL };
+    };
+
+    // ─── FAT FACTOR ─────────────────────────────────────────────────────────────
+    const FAT_FACTOR = { élevé: 0.25, moyen: 0.12, faible: 0 };
+
+    // ─── GI & FAT ANALYSIS ──────────────────────────────────────────────────────
+    const GI_COLOR = { élevé: "#f97316", moyen: "#f59e0b", faible: "#22c55e" };
+    const GI_ICON = { élevé: "🔴", moyen: "🟡", faible: "🟢" };
+    const getOverallFat = (selections) => {
+      const fats = selections.map(s => s.food.fat).filter(Boolean);
+      if (!fats.length) return "faible";
+      if (fats.some(f => f === "élevé")) return "élevé";
+      if (fats.some(f => f === "moyen")) return "moyen";
+      return "faible";
+    };
+    const getDominantGI = (selections) => {
+      const gis = selections.map(s => s.food.gi).filter(Boolean);
+      if (!gis.length) return "moyen";
+      if (gis.some(g => g === "élevé")) return "élevé";
+      if (gis.some(g => g === "moyen")) return "moyen";
+      return "faible";
+    };
+
+    // ─── SCHEDULE BUILDING ──────────────────────────────────────────────────────
+    const round05 = (v) => Math.round(v * 2) / 2;
+    const buildSchedule = (totalCarbs, bolusRepas, correction, fatBonus, gVal, targetG, digestionKey, bolusType, dominantGI) => {
+      const dp = DIGESTION_PROFILES[digestionKey];
+      const schedule = [];
+      const hasCorrection = gVal > targetG;
+      const hasFat = fatBonus > 0;
+      const hasSlowGI = dominantGI === "élevé";
+      if (hasCorrection && gVal >= 1.8 && gVal <= 2.5) {
+        schedule.push({ time: "-10 min", icon: "💉", color: "#a78bfa", units: Math.round(correction * 2) / 2, label: "Correction", note: `Baisse glycémie de ${gVal.toFixed(1)} à ${targetG.toFixed(1)} g/L` });
+      }
+      if (bolusType === "standard") {
+        schedule.push({ time: "0 min (immédiat)", icon: "💉", color: "#0ea5e9", units: Math.round((bolusRepas + correction + fatBonus) * 2) / 2, label: "Injection", note: `1 injection unique · Repas ${totalCarbs}g` });
+      } else {
+        schedule.push({ time: "0 min (immédiat)", icon: "💉", color: "#0ea5e9", units: Math.round(bolusRepas * 2) / 2, label: "Bolus rapide", note: "Partie rapide pour glucides immédiaTs" });
+        schedule.push({ time: "+20 min", icon: "⏱️", color: "#f59e0b", units: null, label: "Pause", note: "Attendre avant injection lente" });
+        const dualDose = Math.round((correction + fatBonus) * 2) / 2;
+        schedule.push({ time: "+20 min", icon: "💉", color: "#f59e0b", units: dualDose > 0 ? dualDose : null, label: "Bolus lent", note: dualDose > 0 ? `Correction + gâce pour graisses (${(Math.round(dualDose * 2) / 2)} U)` : "Graisses couvertes par bolus rapide" });
+      }
+      schedule.push({ time: `+${dp.peakMin} min`, icon: dp.icon, color: "#7dd3fc", units: null, label: "Pic d'absorption", note: `Glycémie au plus haut · Contrôlez si faisable` });
+      schedule.push({ time: `+${Math.round(dp.tail / 60)}h`, icon: "✓", color: "#22c55e", units: null, label: "Fin d'action", note: "Insuline presque complètement absorbée" });
+      return schedule;
+    };
+
+    // ─── FOOD DATABASE ──────────────────────────────────────────────────────────
+    const FOOD_DB = {
+      "🥘 Tajines": [
+        {id:"tajine_agneau_pruneaux",name:"Tajine d'agneau aux pruneaux",unit:"1 plat · 250g",carbs:35,fat:"moyen",gi:"moyen",qty:"plat",note:"Cuisine traditionnelle"},
+        {id:"tajine_poulet_citron",name:"Tajine de poulet au citron confit",unit:"1 plat · 280g",carbs:28,fat:"moyen",gi:"moyen",qty:"plat",note:"Huile d'argan"},
+        {id:"tajine_agneau_oignon",name:"Tajine d'agneau aux oignons & raisins secs",unit:"1 plat · 260g",carbs:42,fat:"moyen",gi:"moyen",qty:"plat",note:"Sucres naturels"},
+        {id:"tajine_poisson_tomate",name:"Tajine de poisson à la tomate",unit:"1 plat · 240g",carbs:18,fat:"faible",gi:"moyen",qty:"plat",note:"Préféré pour diabète"},
+        {id:"tajine_boeuf_champignons",name:"Tajine de bœuf aux champignons",unit:"1 plat · 270g",carbs:22,fat:"moyen",gi:"moyen",qty:"plat"},
+        {id:"tajine_dinde_amandes",name:"Tajine de dinde aux amandes",unit:"1 plat · 260g",carbs:32,fat:"élevé",gi:"moyen",qty:"plat",note:"Riche en protéines"},
+      ],
+      "🍞 Pains & féculents": [
+        {id:"pain_blanc",name:"Pain blanc standard",unit:"1 tranche · 30g",carbs:15,fat:"faible",gi:"élevé",qty:"pain"},
+        {id:"pain_complet",name:"Pain complet / blé entier",unit:"1 tranche · 35g",carbs:12,fat:"faible",gi:"moyen",qty:"pain",note:"Meilleur pour glycémie"},
+        {id:"pain_seigle",name:"Pain de seigle",unit:"1 tranche · 30g",carbs:11,fat:"faible",gi:"moyen",qty:"pain"},
+        {id:"riz_blanc",name:"Riz blanc cuit",unit:"1 portion · 150g",carbs:43,fat:"faible",gi:"élevé",qty:"feculent"},
+        {id:"riz_complet",name:"Riz complet cuit",unit:"1 portion · 150g",carbs:35,fat:"faible",gi:"moyen",qty:"feculent",note:"Plus lent que riz blanc"},
+        {id:"couscous",name:"Couscous cuit",unit:"1 portion · 150g",carbs:42,fat:"faible",gi:"élevé",qty:"feculent"},
+        {id:"pates_blanches",name:"Pâtes blanches cuites",unit:"1 portion · 150g",carbs:38,fat:"faible",gi:"moyen",qty:"feculent"},
+        {id:"pates_completes",name:"Pâtes complètes cuites",unit:"1 portion · 150g",carbs:30,fat:"faible",gi:"moyen",qty:"feculent"},
+        {id:"pommes_terre",name:"Pommes de terre cuites",unit:"1 portion · 150g",carbs:26,fat:"faible",gi:"moyen",qty:"feculent"},
+        {id:"patate_douce",name:"Patate douce cuite",unit:"1 portion · 150g",carbs:20,fat:"faible",gi:"moyen",qty:"feculent"},
+      ],
+      "🍗 Viandes & protéines": [
+        {id:"poulet_grill",name:"Poulet grillé / rôti",unit:"1 portion · 120g",carbs:0,fat:"moyen",gi:"faible",qty:"viande"},
+        {id:"agneau_cuit",name:"Agneau cuit",unit:"1 portion · 120g",carbs:0,fat:"élevé",gi:"faible",qty:"viande"},
+        {id:"boeuf_grill",name:"Bœuf grillé / rôti",unit:"1 portion · 120g",carbs:0,fat:"moyen",gi:"faible",qty:"viande"},
+        {id:"dinde",name:"Dinde rôtie",unit:"1 portion · 120g",carbs:0,fat:"faible",gi:"faible",qty:"viande"},
+        {id:"veau",name:"Veau cuit",unit:"1 portion · 120g",carbs:0,fat:"moyen",gi:"faible",qty:"viande"},
+        {id:"poisson_blanc",name:"Poisson blanc (daurade, bar, sole)",unit:"1 portion · 120g",carbs:0,fat:"faible",gi:"faible",qty:"viande"},
+        {id:"saumon",name:"Saumon cuit",unit:"1 portion · 120g",carbs:0,fat:"élevé",gi:"faible",qty:"viande",note:"Oméga 3"},
+        {id:"oeuf",name:"Œuf cuit (entier)",unit:"1 œuf · 50g",carbs:0.5,fat:"moyen",gi:"faible",qty:"oeuf"},
+      ],
+      "🥬 Légumes": [
+        {id:"salade_verte",name:"Salade verte / laitue",unit:"1 portion · 100g",carbs:2,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"tomate",name:"Tomate",unit:"1 portion · 100g",carbs:3.5,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"concombre",name:"Concombre",unit:"1 portion · 100g",carbs:2,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"courgette",name:"Courgette cuite",unit:"1 portion · 100g",carbs:3,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"aubergine",name:"Aubergine cuite",unit:"1 portion · 100g",carbs:3,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"carotte_cuite",name:"Carotte cuite",unit:"1 portion · 100g",carbs:8,fat:"faible",gi:"moyen",qty:"legume"},
+        {id:"champignon",name:"Champignon de Paris",unit:"1 portion · 100g",carbs:2,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"poivron",name:"Poivron (toutes couleurs)",unit:"1 portion · 100g",carbs:4,fat:"faible",gi:"faible",qty:"legume"},
+        {id:"oignon",name:"Oignon cuit",unit:"1 portion · 80g",carbs:8,fat:"faible",gi:"moyen",qty:"legume"},
+        {id:"ail",name:"Ail cuit",unit:"1 portion · 30g",carbs:7,fat:"faible",gi:"faible",qty:"legume"},
+      ],
+      "🍎 Fruits frais": [
+        {id:"pomme",name:"Pomme moyenne",unit:"1 fruit · 150g",carbs:18,fat:"faible",gi:"moyen",qty:"fruit_u",note:"Idéal pour diabétiques"},
+        {id:"poire",name:"Poire moyenne",unit:"1 fruit · 170g",carbs:17,fat:"faible",gi:"moyen",qty:"fruit_u"},
+        {id:"orange",name:"Orange moyenne",unit:"1 fruit · 150g",carbs:12,fat:"faible",gi:"moyen",qty:"fruit_u"},
+        {id:"banane",name:"Banane moyenne",unit:"1 fruit · 120g",carbs:27,fat:"faible",gi:"élevé",qty:"fruit_u"},
+        {id:"raisin",name:"Raisin blanc / noir",unit:"1 bol · 150g",carbs:25,fat:"faible",gi:"élevé",qty:"fruit_v"},
+        {id:"fraise",name:"Fraise",unit:"1 bol · 150g",carbs:11,fat:"faible",gi:"faible",qty:"fruit_v"},
+        {id:"myrtille",name:"Myrtille",unit:"1 bol · 150g",carbs:14,fat:"faible",gi:"moyen",qty:"fruit_v"},
+        {id:"cerise",name:"Cerise",unit:"1 bol · 150g",carbs:18,fat:"faible",gi:"moyen",qty:"fruit_v"},
+        {id:"abricot",name:"Abricot frais",unit:"2-3 fruits · 100g",carbs:9,fat:"faible",gi:"moyen",qty:"fruit_u"},
+        {id:"pêche",name:"Pêche moyenne",unit:"1 fruit · 150g",carbs:13,fat:"faible",gi:"moyen",qty:"fruit_u"},
+        {id:"kiwi",name:"Kiwi",unit:"2 fruits · 100g",carbs:11,fat:"faible",gi:"moyen",qty:"fruit_u"},
+        {id:"pastèque",name:"Pastèque",unit:"1 bol · 150g",carbs:11,fat:"faible",gi:"élevé",qty:"fruit_v"},
+      ],
+      "🥛 Laitages & fromages": [
+        {id:"lait_entier",name:"Lait entier",unit:"1 verre · 200ml",carbs:9,fat:"moyen",gi:"moyen",qty:"boisson"},
+        {id:"lait_demi_ecreme",name:"Lait demi-écrémé",unit:"1 verre · 200ml",carbs:9,fat:"faible",gi:"moyen",qty:"boisson"},
+        {id:"yaourt_nature",name:"Yaourt nature (sans sucre)",unit:"1 pot · 125g",carbs:5,fat:"moyen",gi:"faible",qty:"laitage"},
+        {id:"yaourt_sucre",name:"Yaourt sucré",unit:"1 pot · 125g",carbs:20,fat:"moyen",gi:"moyen",qty:"laitage"},
+        {id:"fromage_blanc",name:"Fromage blanc",unit:"1 pot · 150g",carbs:7,fat:"moyen",gi:"faible",qty:"laitage"},
+        {id:"fromage_dur",name:"Fromage dur (Emmental, Comté)",unit:"1 tranche · 30g",carbs:0.5,fat:"élevé",gi:"faible",qty:"piece"},
+        {id:"fromage_frais",name:"Fromage frais / chèvre",unit:"1 portion · 60g",carbs:2,fat:"moyen",gi:"faible",qty:"piece"},
+      ],
+      "🍌 Sucres & collations": [
+        {id:"miel",name:"Miel",unit:"1 cuillère à soupe · 20g",carbs:17,fat:"faible",gi:"élevé",qty:"sucre",note:"Sucres simples"},
+        {id:"confiture",name:"Confiture",unit:"1 cuillère à soupe · 15g",carbs:12,fat:"faible",gi:"élevé",qty:"sucre"},
+        {id:"sucre_blanc",name:"Sucre blanc",unit:"1 cuillère à café · 5g",carbs:5,fat:"faible",gi:"élevé",qty:"sucre"},
+        {id:"biscuit_sec",name:"Biscuit sec (Type Petit-Beurre)",unit:"1 biscuit · 10g",carbs:7,fat:"faible",gi:"moyen",qty:"piece"},
+        {id:"chocolat_noir",name:"Chocolat noir 70%+",unit:"1 carré · 10g",carbs:6,fat:"moyen",gi:"moyen",qty:"piece"},
+        {id:"noisette",name:"Noisette / noix",unit:"10 noisettes · 20g",carbs:3,fat:"élevé",gi:"faible",qty:"piece"},
+        {id:"amande",name:"Amande",unit:"20 amandes · 25g",carbs:3,fat:"élevé",gi:"faible",qty:"piece"},
+      ],
+      "🥤 Boissons": [
+        {id:"eau",name:"Eau plate / gazeuse",unit:"1 verre · 250ml",carbs:0,fat:"faible",gi:"faible",qty:"boisson",note:"À privilégier"},
+        {id:"cafe",name:"Café noir",unit:"1 tasse · 150ml",carbs:0.5,fat:"faible",gi:"faible",qty:"boisson"},
+        {id:"the",name:"Thé noir / vert",unit:"1 tasse · 200ml",carbs:0,fat:"faible",gi:"faible",qty:"boisson"},
+        {id:"jus_orange_sucre",name:"Jus d'orange (sucres rapides)",unit:"1 petit verre · 150ml",carbs:16,fat:"faible",gi:"élevé",qty:"boisson",note:"Hypoglycémie urgente"},
+        {id:"jus_pomme",name:"Jus de pomme",unit:"1 verre · 200ml",carbs:28,fat:"faible",gi:"élevé",qty:"boisson"},
+        {id:"soda_sucre",name:"Soda sucré (Coca, Fanta...)",unit:"1 canette · 330ml",carbs:35,fat:"faible",gi:"élevé",qty:"boisson",note:"À éviter"},
+        {id:"soda_light",name:"Soda light / zéro",unit:"1 canette · 330ml",carbs:0,fat:"faible",gi:"faible",qty:"boisson"},
+      ],
+      "🫒 Huiles & matières grasses": [
+        {id:"huile_olive",name:"Huile d'olive (à cru surtout)",unit:"1 cuillère à soupe · 15ml",carbs:0,fat:"élevé",gi:"faible",qty:"grasse",note:"Monoinsaturée"},
+        {id:"huile_argan",name:"Huile d'argan",unit:"1 cuillère à soupe · 15ml",carbs:0,fat:"élevé",gi:"faible",qty:"grasse",note:"Spécialité marocaine"},
+        {id:"beurre",name:"Beurre",unit:"1 noix · 12g",carbs:0.5,fat:"élevé",gi:"faible",qty:"grasse"},
+        {id:"fromage_creme",name:"Fromage à tartiner / crème",unit:"1 cuillère à soupe · 20g",carbs:1,fat:"élevé",gi:"faible",qty:"grasse"},
+      ],
+      "🫘 Légumineuses": [
+        {id:"lentilles_cuites",name:"Lentilles corail cuites",unit:"1 portion · 150g",carbs:20,fat:"faible",gi:"moyen",qty:"feculent",note:"Protéines végétales"},
+        {id:"pois_chiches",name:"Pois chiches cuits",unit:"1 portion · 150g",carbs:27,fat:"faible",gi:"moyen",qty:"feculent"},
+        {id:"haricots_rouges",name:"Haricots rouges cuits",unit:"1 portion · 150g",carbs:25,fat:"faible",gi:"moyen",qty:"feculent"},
+      ],
+      "🍲 Soupes & bouillons": [
+        {id:"bouillon_legume",name:"Bouillon de légumes",unit:"1 bol · 250ml",carbs:3,fat:"faible",gi:"faible",qty:"soupe"},
+        {id:"soupe_legume",name:"Soupe de légumes maison",unit:"1 bol · 250ml",carbs:8,fat:"faible",gi:"faible",qty:"soupe"},
+        {id:"harira",name:"Harira (soupe marocaine)",unit:"1 bol · 280ml",carbs:35,fat:"moyen",gi:"moyen",qty:"soupe",note:"Pois chiches, viande"},
+      ],
+      "🛞 Spécialités marocaines": [
+        {id:"pastilla",name:"Pastilla (pigeon / poulet)",unit:"1 pièce · 180g",carbs:28,fat:"élevé",gi:"moyen",qty:"piece",note:"Pâte filo + noix"},
+        {id:"kefte",name:"Kefta (boulettes de viande)",unit:"3-4 pièces · 150g",carbs:5,fat:"élevé",gi:"faible",qty:"piece"},
+        {id:"merguez",name:"Merguez (saucisse épicée)",unit:"2 pièces · 100g",carbs:2,fat:"élevé",gi:"faible",qty:"piece"},
+        {id:"tapenade",name:"Tapenade (olives noires broyées)",unit:"1 c. à soupe · 15g",carbs:1,fat:"élevé",gi:"faible",qty:"sucre"},
+        {id:"msemen",name:"Msemen (pâte feuilletée fourrée)",unit:"1 pièce · 60g",carbs:22,fat:"élevé",gi:"élevé",qty:"piece"},
+        {id:"briouate",name:"Briouate (brick aux amandes)",unit:"1 pièce · 50g",carbs:12,fat:"élevé",gi:"moyen",qty:"piece"},
+        {id:"amlou",name:"Amlou (amandes-argan-miel)",unit:"1 c. à soupe · 20g",carbs:8,fat:"élevé",gi:"moyen",qty:"grasse",note:"Spécialité Souss"},
+      ],
+    };
+
+    // ─── QTY STEPPER ─────────────────────────────────────────────────────────────
+    function QtyStepper({food,mult,onChange}){
+      const profile=QTY_PROFILES[food.qty]||QTY_PROFILES["plat"];
+      const ai=profile.findIndex(s=>Math.abs(s.m-mult)<0.01);
+      const rc=Math.round(food.carbs*mult);
+      return(
+        <div style={{background:"#070c12",border:"1px solid #1c2a38",borderRadius:12,padding:"12px 14px",marginTop:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div><span style={{fontSize:10,color:"#4a6070",letterSpacing:1}}>QUANTITÉ · </span><span style={{fontSize:12,color:"#7dd3fc",fontWeight:700}}>{ai>=0?profile[ai].l:`×${mult}`}</span><span style={{fontSize:10,color:"#4a6070"}}> · {food.unit}</span></div>
+            <div><span style={{fontSize:10,color:"#4a6070"}}>glucides : </span><span style={{fontSize:16,color:"#0ea5e9",fontWeight:700}}>{rc}g</span></div>
+          </div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {profile.map((step,i)=>{const isA=i===ai;return(<button key={i} onClick={()=>onChange(step.m)} style={{flex:1,minWidth:36,padding:"9px 3px",border:`1px solid ${isA?"#0ea5e9":"#1c2a38"}`,borderRadius:8,background:isA?"rgba(14,165,233,0.2)":"#0d1117",color:isA?"#7dd3fc":"#2d3f50",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer",fontWeight:isA?700:400,transition:"all 0.12s"}}>{step.l}</button>);})}
+          </div>
+          <div style={{marginTop:8}}>
+            <div style={{background:"#1c2a38",borderRadius:99,height:4,overflow:"hidden"}}><div style={{width:`${Math.min((mult/3)*100,100)}%`,height:"100%",borderRadius:99,background:"linear-gradient(90deg,#0ea5e9,#38bdf8)",transition:"width 0.25s"}}/></div>
+            <div style={{fontSize:10,color:"#2d3f50",marginTop:4}}>{food.unit} × {mult} = <strong style={{color:"#3d7fa0"}}>{rc}g</strong> glucides{food.note?<span style={{color:"#1a3040"}}> · {food.note}</span>:""}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── INJECTION STEP CARD ─────────────────────────────────────────────────────
+    function InjectionStep({step,index,total}){
+      const isInj=step.units!==null;
+      return(
+        <div style={{display:"flex",gap:12}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:36,flexShrink:0}}>
+            <div style={{width:34,height:34,borderRadius:"50%",background:isInj?`${step.color}22`:"rgba(74,96,112,0.12)",border:`2px solid ${isInj?step.color:"#2d3f50"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{step.icon}</div>
+            {index<total-1&&<div style={{width:2,flex:1,minHeight:18,background:"linear-gradient(180deg,#1c2a38,transparent)",marginTop:4}}/>}
+          </div>
+          <div style={{flex:1,paddingBottom:index<total-1?18:0}}>
+            <div style={{fontSize:9,color:"#3d5a73",letterSpacing:1.5,marginBottom:3,textTransform:"uppercase"}}>{step.time}</div>
+            {isInj?(
+              <>
+                <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:3}}>
+                  <span style={{fontSize:32,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:step.color,lineHeight:1}}>{step.units}</span>
+                  <span style={{fontSize:14,color:"#4a6070"}}>unités</span>
+                </div>
+                <div style={{fontSize:11,color:"#4a6070",marginBottom:3}}>{step.label}</div>
+              </>
+            ):(
+              <div style={{fontSize:13,fontWeight:600,color:step.color,marginBottom:3}}>{step.label}</div>
+            )}
+            <div style={{fontSize:10,color:"#2d3f50",fontStyle:"italic"}}>{step.note}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── POST-MEAL CORRECTOR ─────────────────────────────────────────────────────
+    function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
+      const [pmGlycemia, setPmGlycemia] = useState("");
+      const [pmTime, setPmTime] = useState("90");
+      const dp = DIGESTION_PROFILES[digestionKey];
+      const timeOptions = [
+        {v:"60",  l:"1h après"},
+        {v:"90",  l:"1h30 après"},
+        {v:"120", l:"2h après"},
+        {v:"180", l:"3h après"},
+        {v:"240", l:"4h après"},
+      ];
+
+      const pmG = parseFloat(pmGlycemia);
+      const tMin = parseInt(pmTime);
+      const iob = calcIOB(initialDose, tMin, dp.tail);
+
+      const corr = !isNaN(pmG) && pmG > 0
+        ? calcPostMealCorrection(pmG, targetG, isf, iob)
+        : null;
+
+      const glycColor=v=>{if(!v||isNaN(v))return"#2d3f50";if(v<0.7)return"#ef4444";if(v<1.0)return"#f97316";if(v<=1.8)return"#22c55e";if(v<=2.0)return"#f59e0b";if(v<=2.5)return"#f97316";if(v<=3.0)return"#ef4444";return"#dc2626";};
+      const C={accent:"#0ea5e9",green:"#22c55e",yellow:"#f59e0b",red:"#ef4444",muted:"#4a6070",faint:"#0f161e",border:"#1c2a38",card:"#0d1117"};
+
+      return(
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:12}}>
+          <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Calculateur post-repas</div>
+          <div style={{fontSize:11,color:"#3d5a73",marginBottom:14}}>Saisissez votre glycémie mesurée après le repas pour obtenir la dose de correction éventuelle.</div>
+
+          {/* Time selector */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:10,color:C.muted,letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>Temps écoulé depuis le repas</div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              {timeOptions.map(opt=>(
+                <button key={opt.v} onClick={()=>setPmTime(opt.v)} style={{flex:1,minWidth:50,padding:"8px 4px",border:`1px solid ${pmTime===opt.v?"#0ea5e9":C.border}`,borderRadius:8,background:pmTime===opt.v?"rgba(14,165,233,0.15)":"#070c12",color:pmTime===opt.v?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:10,cursor:"pointer",fontWeight:pmTime===opt.v?700:400,transition:"all 0.12s"}}>
+                  {opt.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Glycemia input */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:10,color:C.muted,letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>Glycémie mesurée (g/L)</div>
+            <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 2.10" value={pmGlycemia} onChange={e=>setPmGlycemia(e.target.value)}
+              style={{width:"100%",background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,color:pmG?glycColor(pmG):"#c8d6e5",padding:"12px 14px",fontSize:22,fontFamily:"'IBM Plex Mono',monospace",outline:"none",boxSizing:"border-box",fontWeight:700,textAlign:"center"}}/>
+          </div>
+
+          {/* IOB display */}
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <div style={{flex:1,background:"#070c12",borderRadius:8,padding:"8px 10px",border:`1px solid ${C.faint}`}}>
+              <div style={{fontSize:9,color:C.muted,letterSpacing:1,marginBottom:3}}>INSULINE ENCORE ACTIVE (IOB)</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#a78bfa"}}>{iob} U</div>
+              <div style={{fontSize:9,color:"#2d3f50",marginTop:2}}>à {tMin} min après injection</div>
+            </div>
+            <div style={{flex:1,background:"#070c12",borderRadius:8,padding:"8px 10px",border:`1px solid ${C.faint}`}}>
+              <div style={{fontSize:9,color:C.muted,letterSpacing:1,marginBottom:3}}>CIBLE</div>
+              <div style={{fontSize:16,fontWeight:700,color:C.green}}>{targetG.toFixed(1)} g/L</div>
+              <div style={{fontSize:9,color:"#2d3f50",marginTop:2}}>glycémie souhaitée</div>
+            </div>
+          </div>
+
+          {/* Result */}
+          {corr && (() => {
+            // ── HYPOGLYCÉMIE ──
+            if (corr.status === "ok_low" && pmG < 0.8) return (
+              <div style={{padding:"14px 16px",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"2px solid rgba(239,68,68,0.5)"}}>
+                <div style={{fontSize:15,fontWeight:700,color:C.red,marginBottom:6}}>🚨 HYPOGLYCÉMIE — Agir immédiatement</div>
+                <div style={{fontSize:12,color:"#fca5a5",lineHeight:1.7}}>
+                  Glycémie critique : <strong>{pmG.toFixed(1)} g/L</strong><br/>
+                  → Prendre 15g de sucres rapides (3 sucres, 150ml jus d'orange)<br/>
+                  → Contrôler à nouveau dans 15 minutes<br/>
+                  → Ne pas injecter d'insuline
+                </div>
+              </div>
+            );
+
+            // ── ZONE CIBLE ou LÉGÈREMENT BAS ──
+            if (corr.status === "ok_low") return (
+              <div style={{padding:"14px 16px",borderRadius:10,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)"}}>
+                <div style={{fontSize:14,fontWeight:700,color:C.green,marginBottom:6}}>✅ Aucune correction nécessaire</div>
+                <div style={{fontSize:11,color:"#3d6b4a",lineHeight:1.6}}>
+                  Glycémie à <strong>{pmG.toFixed(1)} g/L</strong> — en dessous ou dans la cible ({targetG.toFixed(1)} g/L)<br/>
+                  IOB encore actif : {iob} U<br/>
+                  Pas d'injection supplémentaire.
+                </div>
+              </div>
+            );
+
+            // ── URGENCE — glycémie ≥ 3.0 g/L malgré IOB ──
+            if (corr.status === "urgent_override") return (
+              <div style={{padding:"14px 16px",borderRadius:10,background:"rgba(220,38,38,0.15)",border:"2px solid rgba(220,38,38,0.6)"}}>
+                <div style={{fontSize:12,letterSpacing:1,color:"#dc2626",marginBottom:8,textTransform:"uppercase"}}>🏥 URGENCE — Correction immédiate obligatoire</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:48,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:"#dc2626",lineHeight:1}}>{corr.units}</span>
+                  <span style={{fontSize:16,color:C.muted}}>unités à injecter</span>
+                </div>
+                <div style={{fontSize:10,color:"#fca5a5",lineHeight:1.7,marginBottom:8}}>
+                  Glycémie : <strong style={{color:"#dc2626"}}>{pmG.toFixed(1)} g/L</strong> — seuil critique ≥ 3.0 g/L<br/>
+                  Correction brute : {corr.rawUnits} U · IOB estimé : {iob} U<br/>
+                  <strong>Dose de sécurité appliquée : 50% du brut malgré l'IOB</strong><br/>
+                  → Contrôler dans 45 min. Si pas de baisse → re-corriger.
+                </div>
+                <div style={{padding:"8px 10px",background:"rgba(220,38,38,0.1)",borderRadius:7,fontSize:10,color:"#fca5a5",borderLeft:"2px solid rgba(220,38,38,0.5)"}}>
+                  🏥 Consultez immédiatement votre médecin ou urgences si la glycémie persiste au-dessus de 3.0 g/L.
+                </div>
+              </div>
+            );
+
+            // ── HYPERGLYCÉMIE SÉVÈRE — glycémie 2.5–3.0 g/L, injection malgré IOB ──
+            if (corr.status === "high_override") return (
+              <div style={{padding:"14px 16px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"2px solid rgba(239,68,68,0.5)"}}>
+                <div style={{fontSize:12,letterSpacing:1,color:C.red,marginBottom:8,textTransform:"uppercase"}}>🚨 Hyperglycémie sévère — Injection recommandée</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:48,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:C.red,lineHeight:1}}>{corr.units}</span>
+                  <span style={{fontSize:16,color:C.muted}}>unités à injecter</span>
+                </div>
+                <div style={{fontSize:10,color:"#fca5a5",lineHeight:1.7,marginBottom:8}}>
+                  Glycémie : <strong style={{color:C.red}}>{pmG.toFixed(1)} g/L</strong> — seuil sévère 2.5–3.0 g/L<br/>
+                  Correction brute : {corr.rawUnits} U · IOB estimé : {iob} U<br/>
+                  <strong>Dose de sécurité : 40% du brut malgré l'IOB</strong><br/>
+                  → Contrôler dans 45–60 min.
+                </div>
+                <div style={{padding:"8px 10px",background:"rgba(239,68,68,0.08)",borderRadius:7,fontSize:10,color:"#fca5a5",borderLeft:"2px solid rgba(239,68,68,0.4)"}}>
+                  Si la glycémie ne baisse pas dans 1h → consulter votre médecin.
+                </div>
+              </div>
+            );
+
+            // ── HYPERGLYCÉMIE — glycémie 2.0–2.5 g/L, injection malgré IOB ──
+            if (corr.status === "warn_override") return (
+              <div style={{padding:"14px 16px",borderRadius:10,background:"rgba(249,115,22,0.10)",border:"1px solid rgba(249,115,22,0.5)"}}>
+                <div style={{fontSize:12,letterSpacing:1,color:"#f97316",marginBottom:8,textTransform:"uppercase"}}>⚠️ Hyperglycémie — Injection recommandée</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:48,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:"#f97316",lineHeight:1}}>{corr.units}</span>
+                  <span style={{fontSize:16,color:C.muted}}>unités à injecter</span>
+                </div>
+                <div style={{fontSize:11,color:"#fdba74",lineHeight:1.7,marginBottom:8}}>
+                  Glycémie : <strong>{pmG.toFixed(1)} g/L</strong> — au-dessus de 2.0 g/L<br/>
+                  Correction brute : {corr.rawUnits} U · IOB estimé : {iob} U<br/>
+                  <strong>Dose prudente : 30% du brut malgré l'IOB</strong><br/>
+                  → Contrôler dans 1h. Si pas de baisse significative → re-corriger.
+                </div>
+                <div style={{padding:"8px 10px",background:"rgba(249,115,22,0.08)",borderRadius:7,fontSize:10,color:"#fdba74",borderLeft:"2px solid rgba(249,115,22,0.4)"}}>
+                  ⚕️ À 2.0+ g/L, une correction s'impose même avec de l'insuline encore active.
+                </div>
+              </div>
+            );
+
+            // ── CORRECTION NORMALE ──
+            return (
+              <div style={{padding:"14px 16px",borderRadius:10,background:`${glycColor(pmG)}12`,border:`1px solid ${glycColor(pmG)}44`}}>
+                <div style={{fontSize:10,color:C.muted,letterSpacing:1,marginBottom:6,textTransform:"uppercase"}}>Dose de correction recommandée</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
+                  <span style={{fontSize:52,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:glycColor(pmG),lineHeight:1}}>{corr.units}</span>
+                  <span style={{fontSize:16,color:C.muted}}>unités</span>
+                </div>
+                {/* Calculation detail */}
+                <div style={{background:"#070c12",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+                  <div style={{fontSize:9,color:"#2d3f50",letterSpacing:1,marginBottom:6}}>DÉTAIL DU CALCUL</div>
+                  {[
+                    {label:`Glycémie mesurée`,      val:`${pmG.toFixed(1)} g/L`},
+                    {label:`Cible`,                 val:`${targetG.toFixed(1)} g/L`},
+                    {label:`Écart`,                 val:`+${corr.ecartGL} g/L (+${Math.round(corr.ecartGL*100)} mg/dL)`},
+                    {label:`Correction brute`,      val:`${corr.rawUnits} U`},
+                    {label:`IOB déduit (${tMin}min)`,val:`−${corr.iob} U`},
+                    {label:`Correction nette`,      val:`${corr.units} U`, bold:true},
+                  ].map((row,i,arr)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,padding:"3px 0",color:row.bold?glycColor(pmG):"#4a6070",fontWeight:row.bold?700:400,borderTop:i===arr.length-1?"1px solid #1c2a38":"none",marginTop:i===arr.length-1?4:0,paddingTop:i===arr.length-1?7:3}}>
+                      <span>{row.label}</span><span>{row.val}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:10,color:"#2d3f50",padding:"6px 10px",background:"rgba(0,0,0,0.15)",borderRadius:7,borderLeft:`2px solid ${glycColor(pmG)}44`}}>
+                  ⚕️ Vérifiez toujours avec votre médecin avant de corriger.
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      );
+    }
+
+    // ─── MAIN APP ─────────────────────────────────────────────────────────────────
+    function App(){
+      const [tab,        setTab]        = useState("repas");
+      const [glycemia,   setGlycemia]   = useState("");
+      const [search,     setSearch]     = useState("");
+      const [openCat,    setOpenCat]    = useState("🥘 Tajines");
+      const [expandedId, setExpandedId] = useState(null);
+      const [selections, setSelections] = useState([]);
+      const [ratio,      setRatio]      = useState(10);
+      const [isf,        setIsf]        = useState(50);
+      const [targetG,    setTargetG]    = useState(1.2);
+      const [digestion,  setDigestion]  = useState("normal");
+      const [weight,     setWeight]     = useState("");
+      const [result,     setResult]     = useState(null);
+
+      const weightKg  = parseFloat(weight);
+      const weightOk  = !isNaN(weightKg) && weightKg >= 20 && weightKg <= 200;
+      const wSugg     = weightOk ? calcWeightSuggestions(weightKg) : null;
+
+      const filteredDB=useMemo(()=>{
+        if(!search.trim())return FOOD_DB;
+        const q=search.toLowerCase();
+        const out={};
+        for(const [cat,foods] of Object.entries(FOOD_DB)){
+          const f=foods.filter(fd=>fd.name.toLowerCase().includes(q)||(fd.note&&fd.note.toLowerCase().includes(q)));
+          if(f.length)out[cat]=f;
+        }
+        return out;
+      },[search]);
+
+      const totalCarbs  = useMemo(()=>Math.round(selections.reduce((s,sel)=>s+sel.food.carbs*sel.mult,0)),[selections]);
+      const dominantFat = useMemo(()=>getOverallFat(selections),[selections]);
+      const dominantGI  = useMemo(()=>getDominantGI(selections),[selections]);
+
+      const gVal   = parseFloat(glycemia);
+      const glycOk = !isNaN(gVal)&&gVal>0;
+      const canCalc= glycOk&&totalCarbs>0;
+
+      const glycColor=v=>{if(!v||isNaN(v))return"#2d3f50";if(v<0.7)return"#ef4444";if(v<1.0)return"#f97316";if(v<=1.8)return"#22c55e";if(v<=2.0)return"#f59e0b";if(v<=2.5)return"#f97316";if(v<=3.0)return"#ef4444";return"#dc2626";};
+      const glycLabel=v=>{if(!v||isNaN(v))return"—";if(v<0.7)return"⚠ Hypoglycémie sévère";if(v<1.0)return"Limite basse";if(v<=1.8)return"✓ Zone cible";if(v<=2.0)return"Élevée";if(v<=2.5)return"⚠ Hyperglycémie";if(v<=3.0)return"🚨 Hyper sévère";return"🚨 URGENCE MÉDICALE";};
+
+      const toggleFood=food=>{
+        setSelections(prev=>{
+          const ex=prev.find(s=>s.food.id===food.id);
+          if(ex){setExpandedId(null);return prev.filter(s=>s.food.id!==food.id);}
+          const profile=QTY_PROFILES[food.qty]||QTY_PROFILES["plat"];
+          const defaultM=profile.find(s=>Math.abs(s.m-1)<0.01)?.m||profile[Math.floor(profile.length/2)].m;
+          setExpandedId(food.id);
+          return[...prev,{food,mult:defaultM}];
+        });
+      };
+      const updateMult=(id,mult)=>setSelections(prev=>prev.map(s=>s.food.id===id?{...s,mult}:s));
+
+      const calculate=()=>{
+        if(!canCalc)return;
+        const bolusRepas=totalCarbs/ratio;
+        const ecart=gVal-targetG;
+        const correction=ecart>0?(ecart*10)/isf:0;
+        const fatBonus=(totalCarbs/ratio)*FAT_FACTOR[dominantFat];
+        const total=round05(bolusRepas+correction+fatBonus);
+        const hasFat=dominantFat==="élevé"||dominantFat==="moyen";
+        const bolusType=hasFat?"dual":"standard";
+        const schedule=buildSchedule(totalCarbs,bolusRepas,correction,fatBonus,gVal,targetG,digestion,bolusType,dominantGI);
+        const warnings=[];
+        if(gVal<1.0)warnings.push({t:"w",txt:"Glycémie basse → adapter le délai"});
+        if(gVal>2.0)warnings.push({t:"w",txt:"Glycémie élevée → contrôler dans 2h"});
+        if(bolusType==="dual")warnings.push({t:"i",txt:"Repas gras → bolus en 2 phases"});
+        if(dominantGI==="élevé")warnings.push({t:"c",txt:"IG élevé → pic glycémique rapide (30–45 min)"});
+        if(total>20)warnings.push({t:"w",txt:"Dose élevée → consultez votre médecin"});
+        setResult({total,bolusType,warnings,schedule,bolusRepas:+bolusRepas.toFixed(1),correction:+correction.toFixed(1),fatBonus:+fatBonus.toFixed(1)});
+        setTab("resultat");
+      };
+
+      const C={bg:"#07090f",card:"#0d1117",border:"#1c2a38",accent:"#0ea5e9",adim:"rgba(14,165,233,0.12)",text:"#c8d6e5",muted:"#4a6070",faint:"#0f161e",green:"#22c55e",yellow:"#f59e0b",red:"#ef4444"};
+      const card={background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:12};
+      const lbl={fontSize:10,letterSpacing:2,color:C.muted,textTransform:"uppercase",marginBottom:8,display:"block"};
+      const inp={width:"100%",background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"11px 14px",fontSize:15,fontFamily:"'IBM Plex Mono',monospace",outline:"none",boxSizing:"border-box"};
+
+      return(
+        <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace",color:C.text}}>
+          <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+            *{box-sizing:border-box;margin:0;padding:0;}
+            input:focus{border-color:#0ea5e9!important;box-shadow:0 0 0 2px rgba(14,165,233,0.1);}
+            .fr:hover{background:rgba(14,165,233,0.04)!important;}
+            .cb:hover{color:#7dd3fc!important;}
+            .tb:hover{color:#7dd3fc!important;}
+            ::-webkit-scrollbar{width:3px;}
+            ::-webkit-scrollbar-thumb{background:#1c2a38;border-radius:99px;}
+          `}</style>
+
+          {/* HEADER */}
+          <div style={{background:"linear-gradient(180deg,#0d1117,transparent)",padding:"24px 20px 14px",borderBottom:`1px solid ${C.faint}`}}>
+            <div style={{maxWidth:520,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div>
+                <div style={{fontSize:21,fontWeight:700,fontFamily:"'Syne Mono',monospace",color:"#e2edf5",letterSpacing:-0.5}}>InsulinCalc</div>
+                <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginTop:3}}>Diabète Type 1 · Cuisine marocaine</div>
+              </div>
+              <div style={{background:C.adim,border:"1px solid rgba(14,165,233,0.25)",borderRadius:10,padding:"8px 14px",textAlign:"right"}}>
+                <div style={{fontSize:9,color:C.muted,letterSpacing:1}}>GLUCIDES</div>
+                <div style={{fontSize:22,fontWeight:700,color:C.accent,fontFamily:"'Syne Mono',monospace",lineHeight:1.1}}>{totalCarbs}g</div>
+                {selections.length>0&&<div style={{fontSize:9,color:C.muted}}>{selections.length} aliment{selections.length>1?"s":""}</div>}
+              </div>
+            </div>
+          </div>
+
+          {/* TABS */}
+          <div style={{maxWidth:520,margin:"10px auto 0",padding:"0 20px"}}>
+            <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:3}}>
+              {[{id:"repas",label:"🍽 Repas",badge:selections.length},{id:"saisie",label:"🩸 Saisie"},{id:"resultat",label:"⚡ Résultat"},{id:"params",label:"⚙ Params"}].map(t=>(
+                <button key={t.id} className="tb" onClick={()=>setTab(t.id)} style={{flex:1,padding:"9px 2px",border:"none",borderRadius:8,background:tab===t.id?"#131d2b":"transparent",color:tab===t.id?C.accent:C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:10,cursor:"pointer",position:"relative",transition:"all 0.15s"}}>
+                  {t.label}
+                  {t.badge>0&&<span style={{position:"absolute",top:4,right:8,background:C.accent,color:"#fff",borderRadius:99,fontSize:8,padding:"1px 5px",fontWeight:700}}>✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{maxWidth:520,margin:"0 auto",padding:"14px 20px 100px"}}>
+
+            {/* ═══ REPAS ═══ */}
+            {tab==="repas"&&(<>
+              {/* ── SAISIE RAPIDE : Poids + Glycémie ── */}
+              <div style={{...card,borderColor:"rgba(14,165,233,0.25)",padding:"14px 16px"}}>
+                <div style={{display:"flex",gap:10}}>
+                  {/* Poids */}
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:9,letterSpacing:1.5,color:"#22c55e",marginBottom:6,textTransform:"uppercase"}}>⚖ Poids (kg)</div>
+                    <input type="number" step="0.5" min="20" max="200" placeholder="68"
+                      value={weight} onChange={e=>setWeight(e.target.value)}
+                      style={{...inp,fontSize:20,padding:"10px 8px",fontWeight:700,color:weightOk?"#22c55e":"#c8d6e5",textAlign:"center",borderRadius:10}}/>
+                    {wSugg&&<div style={{fontSize:8,color:"#22c55e",marginTop:4,textAlign:"center"}}>TDD ~{wSugg.tdd}U/j · ICR 1U/{wSugg.icr}g · ISF {wSugg.isfMg}</div>}
+                  </div>
+                  {/* Glycémie */}
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:9,letterSpacing:1.5,color:C.accent,marginBottom:6,textTransform:"uppercase"}}>🩸 Glycémie (g/L)</div>
+                    <input type="number" step="0.1" min="0.1" max="6" placeholder="1.40"
+                      value={glycemia} onChange={e=>setGlycemia(e.target.value)}
+                      style={{...inp,fontSize:20,padding:"10px 8px",fontWeight:700,color:glycColor(gVal),textAlign:"center",borderRadius:10}}/>
+                    {glycOk&&<div style={{fontSize:8,color:glycColor(gVal),marginTop:4,textAlign:"center"}}>{glycLabel(gVal)} · écart {gVal>targetG?"+":""}{(gVal-targetG).toFixed(2)}</div>}
+                  </div>
+                </div>
+                {/* Boutons appliquer si poids saisi */}
+                {wSugg&&(
+                  <div style={{display:"flex",gap:6,marginTop:10}}>
+                    <button onClick={()=>setRatio(wSugg.icr)} style={{flex:1,padding:"6px",border:"1px solid rgba(14,165,233,0.3)",borderRadius:8,background:"rgba(14,165,233,0.06)",color:"#7dd3fc",fontFamily:"'IBM Plex Mono',monospace",fontSize:9,cursor:"pointer"}}>
+                      ✓ Ratio 1U/{wSugg.icr}g
+                    </button>
+                    <button onClick={()=>setIsf(wSugg.isfMg)} style={{flex:1,padding:"6px",border:"1px solid rgba(245,158,11,0.3)",borderRadius:8,background:"rgba(245,158,11,0.06)",color:"#fcd34d",fontFamily:"'IBM Plex Mono',monospace",fontSize:9,cursor:"pointer"}}>
+                      ✓ ISF {wSugg.isfMg}mg/dL
+                    </button>
+                  </div>
+                )}
+                {/* Alertes glycémie */}
+                {glycOk&&gVal>2.0&&(
+                  <div style={{marginTop:8,padding:"6px 10px",borderRadius:8,background:gVal>3.0?"rgba(220,38,38,0.15)":gVal>2.5?"rgba(239,68,68,0.12)":"rgba(249,115,22,0.1)",border:`1px solid ${gVal>3.0?"rgba(220,38,38,0.5)":gVal>2.5?"rgba(239,68,68,0.4)":"rgba(249,115,22,0.3)"}`,fontSize:10,color:gVal>2.5?"#fca5a5":"#fdba74"}}>
+                    {gVal>3.0?"🏥":"🚨"} Glycémie {gVal.toFixed(1)} g/L — {gVal>3.0?"URGENCE MÉDICALE":"correction nécessaire"}
+                  </div>
+                )}
+                {glycOk&&gVal<0.8&&(
+                  <div style={{marginTop:8,padding:"6px 10px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",fontSize:10,color:"#fca5a5"}}>
+                    🚨 Hypoglycémie — Prendre du sucre immédiatement
+                  </div>
+                )}
+              </div>
+
+              {selections.length>0&&(
+                <div style={{...card,borderColor:"rgba(14,165,233,0.3)"}}>
+                  <div style={{...lbl,color:C.accent}}>🧺 Mon repas ({selections.length} aliment{selections.length>1?"s":""})</div>
+                  {selections.map((s,i)=>(
+                    <div key={s.food.id}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:`1px solid ${C.faint}`}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,color:"#9ab8cc",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.food.name}</div>
+                          <div style={{fontSize:10,color:C.muted,marginTop:1}}>{GI_ICON[s.food.gi]} IG {s.food.gi}{s.mult!==1&&<span style={{color:"#0ea5e9"}}> · {(QTY_PROFILES[s.food.qty]||QTY_PROFILES["plat"]).find(p=>Math.abs(p.m-s.mult)<0.01)?.l||`×${s.mult}`}</span>}</div>
+                        </div>
+                        <button onClick={()=>setExpandedId(expandedId===s.food.id?null:s.food.id)} style={{background:expandedId===s.food.id?"rgba(14,165,233,0.15)":"#131d2b",border:`1px solid ${expandedId===s.food.id?"#0ea5e9":C.border}`,borderRadius:7,color:expandedId===s.food.id?C.accent:C.muted,fontSize:10,padding:"5px 9px",cursor:"pointer",whiteSpace:"nowrap"}}>
+                          {(QTY_PROFILES[s.food.qty]||QTY_PROFILES["plat"]).find(p=>Math.abs(p.m-s.mult)<0.01)?.l||`×${s.mult}`} ✎
+                        </button>
+                        <div style={{fontSize:13,color:C.accent,minWidth:40,textAlign:"right",fontWeight:700}}>{Math.round(s.food.carbs*s.mult)}g</div>
+                        <button onClick={()=>toggleFood(s.food)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:"0 2px",lineHeight:1}}>×</button>
+                      </div>
+                      {expandedId===s.food.id&&<QtyStepper food={s.food} mult={s.mult} onChange={m=>updateMult(s.food.id,m)}/>}
+                    </div>
+                  ))}
+                  <div style={{display:"flex",justifyContent:"space-between",paddingTop:10,borderTop:`1px solid ${C.border}`,marginTop:4}}>
+                    <span style={{fontSize:11,color:C.muted}}>Total glucides</span>
+                    <span style={{fontSize:14,fontWeight:700,color:C.accent}}>{totalCarbs}g</span>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginTop:10}}>
+                    {[{label:"INDEX GLYCÉMIQUE",val:dominantGI,color:GI_COLOR[dominantGI],icon:GI_ICON[dominantGI]},{label:"GRAISSES",val:dominantFat,color:dominantFat==="élevé"?C.yellow:dominantFat==="moyen"?"#a78bfa":C.green,icon:dominantFat==="élevé"?"🔶":dominantFat==="moyen"?"🟣":"🟢"}].map((it,i)=>(
+                      <div key={i} style={{flex:1,background:"#070c12",borderRadius:8,padding:"8px 10px"}}>
+                        <div style={{fontSize:9,color:C.muted,marginBottom:3}}>{it.label}</div>
+                        <div style={{fontSize:12,color:it.color,fontWeight:600}}>{it.icon} {it.val.charAt(0).toUpperCase()+it.val.slice(1)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Digestion */}
+              <div style={{...card,marginBottom:12}}>
+                <div style={lbl}>Vitesse de digestion estimée</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                  {Object.entries(DIGESTION_PROFILES).map(([key,dp])=>(
+                    <button key={key} onClick={()=>setDigestion(key)} style={{padding:"10px",border:`1px solid ${digestion===key?"#0ea5e9":C.border}`,borderRadius:10,background:digestion===key?"rgba(14,165,233,0.12)":"#070c12",color:digestion===key?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                      <div style={{fontSize:16,marginBottom:4}}>{dp.icon}</div>
+                      <div style={{fontWeight:digestion===key?700:400,marginBottom:2}}>{dp.label}</div>
+                      <div style={{fontSize:9,color:digestion===key?"#4a8fa8":"#2d3f50",lineHeight:1.3}}>Pic {dp.peakMin}min · Fin {Math.round(dp.tail/60*10)/10}h</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Search + food list */}
+              <div style={{position:"relative",marginBottom:12}}>
+                <input type="text" placeholder="🔍  Rechercher un aliment ou un plat..." value={search} onChange={e=>setSearch(e.target.value)} style={inp}/>
+                {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:18}}>×</button>}
+              </div>
+              {Object.entries(filteredDB).map(([cat,foods])=>{
+                const isOpen=openCat===cat||!!search.trim();
+                const selCount=foods.filter(f=>selections.find(s=>s.food.id===f.id)).length;
+                return(
+                  <div key={cat} style={{marginBottom:6}}>
+                    <button className="cb" onClick={()=>setOpenCat(isOpen&&!search?null:cat)} style={{width:"100%",background:C.card,border:`1px solid ${selCount>0?"rgba(14,165,233,0.35)":C.border}`,borderRadius:isOpen?"10px 10px 0 0":10,padding:"11px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",color:isOpen?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer",transition:"color 0.15s"}}>
+                      <span>{cat}<span style={{fontSize:10,color:"#2d3f50",marginLeft:6}}>({foods.length})</span>{selCount>0&&<span style={{marginLeft:8,background:C.accent,color:"#fff",borderRadius:99,fontSize:9,padding:"1px 6px"}}>{selCount}</span>}</span>
+                      <span style={{fontSize:10,color:C.muted}}>{isOpen?"▲":"▼"}</span>
+                    </button>
+                    {isOpen&&(
+                      <div style={{background:"#070c12",border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+                        <div style={{display:"flex",padding:"5px 14px",borderBottom:`1px solid ${C.faint}`}}>
+                          <div style={{flex:1,fontSize:9,color:"#2d3f50",letterSpacing:1}}>ALIMENT · PORTION DE BASE</div>
+                          <div style={{fontSize:9,color:"#2d3f50",letterSpacing:1,minWidth:80,textAlign:"right"}}>IG · GLUCIDES</div>
+                        </div>
+                        {foods.map((food,i)=>{
+                          const sel=selections.find(s=>s.food.id===food.id);
+                          const isExp=expandedId===food.id&&sel;
+                          return(
+                            <div key={food.id}>
+                              <div className="fr" onClick={()=>toggleFood(food)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",borderBottom:(!isExp&&i<foods.length-1)?`1px solid ${C.faint}`:"none",background:sel?"rgba(14,165,233,0.06)":"transparent",transition:"background 0.12s"}}>
+                                <div style={{width:18,height:18,borderRadius:4,flexShrink:0,border:`1.5px solid ${sel?C.accent:C.border}`,background:sel?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",transition:"all 0.12s"}}>{sel?"✓":""}</div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,color:sel?"#7dd3fc":"#8aa8bd",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{food.name}</div>
+                                  <div style={{fontSize:10,color:"#2d3f50",marginTop:1}}>{food.unit}{food.note?<span style={{color:"#1a3040"}}> · {food.note}</span>:""}</div>
+                                </div>
+                                <div style={{textAlign:"right",flexShrink:0}}>
+                                  <div style={{fontSize:11}}>{GI_ICON[food.gi]}</div>
+                                  <div style={{fontSize:13,color:sel?C.accent:"#4a6070",fontWeight:sel?700:400}}>{food.carbs}g</div>
+                                </div>
+                              </div>
+                              {isExp&&<div style={{padding:"0 14px 12px",background:"rgba(14,165,233,0.03)",borderBottom:i<foods.length-1?`1px solid ${C.faint}`:"none"}}><QtyStepper food={food} mult={sel.mult} onChange={m=>updateMult(food.id,m)}/></div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>)}
+
+            {/* ═══ SAISIE — Glycémie + Poids ═══ */}
+            {tab==="saisie"&&(<>
+              {/* ── GLYCÉMIE ── */}
+              <div style={card}>
+                <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Glycémie actuelle</div>
+                <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 1.40"
+                  value={glycemia} onChange={e=>setGlycemia(e.target.value)}
+                  style={{...inp,fontSize:34,padding:14,fontWeight:700,color:glycColor(gVal),textAlign:"center",borderRadius:12}}/>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#2d3f50"}}>
+                  <span>min : 0.5</span><span>unité : g/L</span><span>max : 6.0</span>
+                </div>
+                {glycOk&&(<>
+                  <div style={{marginTop:12}}>
+                    <div style={{background:C.faint,borderRadius:99,height:8,overflow:"hidden"}}>
+                      <div style={{width:`${Math.min((gVal/5)*100,100)}%`,height:"100%",borderRadius:99,background:`linear-gradient(90deg,${C.green},${glycColor(gVal)})`,transition:"all 0.4s"}}/>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:5,fontSize:9,color:C.muted}}>
+                      <span>0.5</span>
+                      <span style={{color:C.green}}>cible : {targetG.toFixed(1)} g/L</span>
+                      <span>5.0</span>
+                    </div>
+                  </div>
+                  <div style={{marginTop:10,display:"flex",gap:8}}>
+                    <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:`${glycColor(gVal)}18`,border:`1px solid ${glycColor(gVal)}44`,textAlign:"center"}}>
+                      <div style={{fontSize:9,color:C.muted,marginBottom:3}}>STATUT</div>
+                      <div style={{fontSize:12,fontWeight:700,color:glycColor(gVal)}}>{glycLabel(gVal)}</div>
+                    </div>
+                    <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:"#070c12",border:`1px solid ${C.faint}`,textAlign:"center"}}>
+                      <div style={{fontSize:9,color:C.muted,marginBottom:3}}>ÉCART / CIBLE</div>
+                      <div style={{fontSize:12,fontWeight:700,color:gVal>targetG?C.red:gVal<targetG?C.yellow:C.green}}>
+                        {gVal>targetG?"+":""}{(gVal-targetG).toFixed(2)} g/L
+                      </div>
+                    </div>
+                  </div>
+                  {/* Alerte visuelle si hors zone */}
+                  {gVal>2.0&&gVal<=2.5&&(
+                    <div style={{marginTop:10,padding:"10px 12px",borderRadius:10,background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.4)",fontSize:11,color:"#fdba74"}}>
+                      ⚠️ Glycémie {gVal.toFixed(1)} g/L — hyperglycémie. Correction nécessaire.
+                    </div>
+                  )}
+                  {gVal>2.5&&gVal<=3.0&&(
+                    <div style={{marginTop:10,padding:"10px 12px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",fontSize:11,color:"#fca5a5"}}>
+                      🚨 Glycémie {gVal.toFixed(1)} g/L — hyperglycémie sévère. Correction urgente + contrôle dans 1h.
+                    </div>
+                  )}
+                  {gVal>3.0&&(
+                    <div style={{marginTop:10,padding:"12px 14px",borderRadius:10,background:"rgba(220,38,38,0.15)",border:"2px solid rgba(220,38,38,0.6)",fontSize:12,color:"#fca5a5",fontWeight:700}}>
+                      🏥 Glycémie {gVal.toFixed(1)} g/L — URGENCE MÉDICALE. Correction immédiate + consultez votre médecin / urgences si elle persiste.
+                    </div>
+                  )}
+                  {gVal<0.8&&(
+                    <div style={{marginTop:10,padding:"10px 12px",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",fontSize:11,color:"#fca5a5"}}>
+                      🚨 Glycémie &lt; 0.8 g/L — hypoglycémie. Prendre du sucre immédiatement.
+                    </div>
+                  )}
+                </>)}
+              </div>
+
+              {/* ── POIDS ── */}
+              <div style={card}>
+                <div style={{fontSize:10,letterSpacing:2,color:"#22c55e",marginBottom:14,textTransform:"uppercase"}}>⚖ Poids corporel</div>
+                <input type="number" step="0.5" min="20" max="200" placeholder="ex : 68"
+                  value={weight} onChange={e=>setWeight(e.target.value)}
+                  style={{...inp,fontSize:34,padding:14,fontWeight:700,color:weightOk?"#22c55e":"#c8d6e5",textAlign:"center",borderRadius:12}}/>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#2d3f50"}}>
+                  <span>min : 20 kg</span><span>unité : kg</span><span>max : 200 kg</span>
+                </div>
+                {wSugg&&(
+                  <div style={{marginTop:12}}>
+                    <div style={{fontSize:9,color:"#22c55e",letterSpacing:1,marginBottom:8}}>DOSES SUGGÉRÉES POUR {weightKg} KG</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                      {[
+                        {label:"TDD total/jour",val:`~${wSugg.tdd} U/j`,color:"#7dd3fc",note:"0.5 U × kg"},
+                        {label:"Basale / jour",  val:`~${wSugg.basal} U/j`,color:"#a78bfa",note:"~50% TDD"},
+                        {label:"Ratio ICR",       val:`1U/${wSugg.icr}g`,  color:C.accent, note:"Règle des 500"},
+                        {label:"ISF correction",  val:`${wSugg.isfMg}mg/dL`,color:C.yellow,note:"Règle des 1700"},
+                      ].map((it,i)=>(
+                        <div key={i} style={{background:"#070c12",borderRadius:10,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                          <div style={{fontSize:9,color:C.muted,marginBottom:3}}>{it.label}</div>
+                          <div style={{fontSize:16,fontWeight:700,color:it.color}}>{it.val}</div>
+                          <div style={{fontSize:8,color:"#2d3f50",marginTop:2}}>{it.note}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                      <button onClick={()=>setRatio(wSugg.icr)} style={{padding:"10px",border:"1px solid rgba(14,165,233,0.4)",borderRadius:10,background:"rgba(14,165,233,0.08)",color:"#7dd3fc",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer"}}>
+                        ✓ Appliquer ratio<br/><strong>1 U / {wSugg.icr}g</strong>
+                      </button>
+                      <button onClick={()=>setIsf(wSugg.isfMg)} style={{padding:"10px",border:"1px solid rgba(245,158,11,0.4)",borderRadius:10,background:"rgba(245,158,11,0.08)",color:"#fcd34d",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer"}}>
+                        ✓ Appliquer ISF<br/><strong>{wSugg.isfMg} mg/dL</strong>
+                      </button>
+                    </div>
+                    <div style={{marginTop:8,fontSize:9,color:"#2d3f50",padding:"7px 10px",background:"rgba(239,68,68,0.04)",borderRadius:7,borderLeft:"2px solid rgba(239,68,68,0.2)"}}>
+                      ⚕️ Valeurs estimatives — à valider avec votre endocrinologue.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── ZONES DE RÉFÉRENCE compactes ── */}
+              <div style={{...card,padding:"14px 16px"}}>
+                <div style={{fontSize:10,letterSpacing:2,color:C.muted,marginBottom:10,textTransform:"uppercase"}}>Zones glycémiques (g/L)</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
+                  {[
+                    {zone:"< 0.7",label:"Hypo",color:C.red},
+                    {zone:"0.7–1.0",label:"Bas",color:"#f97316"},
+                    {zone:"1.0–1.8",label:"✓ Cible",color:C.green},
+                    {zone:"1.8–2.0",label:"Élevé",color:C.yellow},
+                    {zone:"2.0–2.5",label:"Hyper",color:"#f97316"},
+                    {zone:"2.5–3.0",label:"Sévère",color:C.red},
+                    {zone:"> 3.0",label:"Urgence",color:"#dc2626"},
+                  ].map((z,i)=>{
+                    const isActive = glycOk && (
+                      (i===0&&gVal<0.7)||(i===1&&gVal>=0.7&&gVal<1.0)||(i===2&&gVal>=1.0&&gVal<=1.8)||(i===3&&gVal>1.8&&gVal<=2.0)||(i===4&&gVal>2.0&&gVal<=2.5)||(i===5&&gVal>2.5&&gVal<=3.0)||(i===6&&gVal>3.0)
+                    );
+                    return(
+                      <div key={i} style={{padding:"8px 4px",borderRadius:8,textAlign:"center",background:isActive?`${z.color}22`:"#070c12",border:`1px solid ${isActive?z.color:C.faint}`,transition:"all 0.3s"}}>
+                        <div style={{fontSize:9,color:z.color,fontWeight:isActive?700:400,marginBottom:2}}>{z.zone}</div>
+                        <div style={{fontSize:8,color:isActive?z.color:"#2d3f50"}}>{z.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── BOUTON CALCULER ── */}
+              <button onClick={calculate} style={{width:"100%",padding:16,borderRadius:12,cursor:canCalc?"pointer":"not-allowed",background:canCalc?"linear-gradient(135deg,#0ea5e9,#0284c7)":C.card,border:canCalc?"none":`1px solid ${C.border}`,color:canCalc?"#fff":C.muted,fontSize:14,fontWeight:700,fontFamily:"'Syne Mono',monospace",marginBottom:4}}>
+                {canCalc
+                  ? `⚡ Calculer — ${totalCarbs}g glucides · glycémie ${gVal.toFixed(1)} g/L`
+                  : `⚠ ${!glycOk && !selections.length ? "Saisissez glycémie + sélectionnez des aliments" : !glycOk ? "Saisissez votre glycémie" : "Sélectionnez des aliments (onglet Repas)"}`
+                }
+              </button>
+            </>)}
+
+            {/* ═══ RÉSULTAT ═══ */}
+            {tab==="resultat"&&(<>
+              {!result?(
+                <div style={{...card,textAlign:"center",padding:48}}>
+                  <div style={{fontSize:36,marginBottom:14}}>⚡</div>
+                  <div style={{color:C.muted,fontSize:13,lineHeight:1.7}}>Sélectionnez vos aliments,<br/>saisissez votre glycémie,<br/>puis lancez le calcul</div>
+                  <button onClick={()=>setTab("repas")} style={{marginTop:18,background:C.adim,border:"1px solid rgba(14,165,233,0.3)",color:C.accent,borderRadius:8,padding:"10px 20px",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer"}}>→ Sélectionner les aliments</button>
+                </div>
+              ):(<>
+                {/* Total */}
+                <div style={{...card,borderColor:"rgba(14,165,233,0.3)",background:"linear-gradient(135deg,#0d1117,#0a1520)"}}>
+                  <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:10,textTransform:"uppercase"}}>Dose totale calculée</div>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:8}}>
+                    <div style={{fontSize:72,fontWeight:700,lineHeight:1,fontFamily:"'Syne Mono',monospace",background:"linear-gradient(135deg,#7dd3fc,#0ea5e9)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{result.total}</div>
+                    <div style={{color:C.muted,fontSize:18,marginBottom:10}}>unités totales</div>
+                  </div>
+                  <div style={{display:"inline-block",marginBottom:14,background:result.bolusType==="dual"?"rgba(245,158,11,0.12)":"rgba(14,165,233,0.12)",border:`1px solid ${result.bolusType==="dual"?"rgba(245,158,11,0.4)":"rgba(14,165,233,0.35)"}`,color:result.bolusType==="dual"?C.yellow:C.accent,borderRadius:99,padding:"4px 14px",fontSize:11}}>
+                    {result.bolusType==="dual"?"⚡ Bolus DUAL — 2 injections":"💉 Bolus STANDARD — 1 injection"}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    {[{label:"Repas",val:`${result.bolusRepas} U`,color:C.accent},{label:"Correction",val:result.correction>0?`+${result.correction} U`:"—",color:result.correction>0?C.yellow:"#2d3f50"},{label:"Graisses",val:result.fatBonus>0?`+${result.fatBonus} U`:"—",color:result.fatBonus>0?"#a78bfa":"#2d3f50"}].map((it,i)=>(
+                      <div key={i} style={{background:"#070c12",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                        <div style={{fontSize:9,color:C.muted,marginBottom:3}}>{it.label.toUpperCase()}</div>
+                        <div style={{fontSize:14,color:it.color,fontWeight:700}}>{it.val}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div style={{...card,borderColor:"rgba(14,165,233,0.2)"}}>
+                  <div style={{...lbl,color:C.accent}}>📅 Calendrier d'injections</div>
+                  <div style={{marginBottom:12,padding:"8px 12px",background:"rgba(14,165,233,0.05)",borderRadius:8,fontSize:10,color:C.muted,display:"flex",gap:6,alignItems:"center"}}>
+                    <span>{DIGESTION_PROFILES[digestion].icon}</span>
+                    <span>Digestion <strong style={{color:C.accent}}>{DIGESTION_PROFILES[digestion].label}</strong> · Pic {DIGESTION_PROFILES[digestion].peakMin}min · Fin d'action {Math.round(DIGESTION_PROFILES[digestion].tail/60*10)/10}h</span>
+                  </div>
+                  <div style={{padding:"4px 0"}}>
+                    {result.schedule.map((step,i)=>(
+                      <InjectionStep key={i} step={step} index={i} total={result.schedule.length}/>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Post-meal corrector */}
+                <PostMealCorrector
+                  initialDose={result.total}
+                  isf={isf}
+                  targetG={targetG}
+                  digestionKey={digestion}
+                />
+
+                {/* Warnings */}
+                {result.warnings.length>0&&(
+                  <div style={card}>
+                    {result.warnings.map((w,i)=>(
+                      <div key={i} style={{borderRadius:8,padding:"9px 12px",marginBottom:i<result.warnings.length-1?8:0,fontSize:11,background:w.t==="w"?"rgba(239,68,68,0.08)":w.t==="c"?"rgba(245,158,11,0.08)":"rgba(34,197,94,0.08)",border:`1px solid ${w.t==="w"?"rgba(239,68,68,0.3)":w.t==="c"?"rgba(245,158,11,0.3)":"rgba(34,197,94,0.3)"}`,color:w.t==="w"?"#fca5a5":w.t==="c"?"#fcd34d":"#86efac"}}>
+                        {w.t==="w"?"⚠️":w.t==="c"?"🔔":"✅"} {w.txt}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Meal recap */}
+                <div style={card}>
+                  <div style={lbl}>Récapitulatif du repas</div>
+                  {selections.map((s,i)=>{
+                    const profile=QTY_PROFILES[s.food.qty]||QTY_PROFILES["plat"];
+                    const qLabel=profile.find(p=>Math.abs(p.m-s.mult)<0.01)?.l||`×${s.mult}`;
+                    return(<div key={s.food.id} style={{display:"flex",justifyContent:"space-between",fontSize:11,padding:"6px 0",borderBottom:i<selections.length-1?`1px solid ${C.faint}`:"none"}}><span style={{color:"#7aa0b8"}}>{s.food.name} <span style={{color:"#3d5a73"}}>{qLabel}</span></span><span style={{color:C.accent}}>{Math.round(s.food.carbs*s.mult)}g</span></div>);
+                  })}
+                  <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,borderTop:`1px solid ${C.border}`,marginTop:4,fontWeight:700}}>
+                    <span style={{color:C.muted,fontSize:12}}>Total</span>
+                    <span style={{color:C.accent,fontSize:14}}>{totalCarbs}g glucides</span>
+                  </div>
+                </div>
+
+                <div style={{fontSize:10,color:"#2d3f50",padding:"10px 14px",background:"rgba(14,165,233,0.03)",borderRadius:10,borderLeft:`2px solid ${C.accent}`}}>
+                  ⚕️ Ces calculs sont indicatifs. Ne modifiez jamais votre traitement sans l'accord de votre endocrinologue.
+                </div>
+              </>)}
+            </>)}
+
+            {/* ═══ PARAMÈTRES ═══ */}
+            {tab==="params"&&(
+              <div>
+
+                {/* Poids saisi dans l'onglet Saisie */}
+                {/* MANUAL PARAMS */}
+                <div style={card}>
+                  <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>Paramètres manuels</div>
+
+                  {[{label:"Ratio insuline / glucides (ICR)",val:ratio,set:setRatio,min:5,max:25,step:1,display:`1 U / ${ratio}g`,note:`1 unité couvre ${ratio}g de glucides`,color:C.accent},{label:"Facteur de correction (ISF)",val:isf,set:setIsf,min:20,max:100,step:5,display:`${isf} mg/dL`,note:`1 unité baisse de ${isf} mg/dL (${(isf/100).toFixed(2)} g/L)`,color:"#a78bfa"}].map((p,i)=>(
+                    <div key={i} style={{marginBottom:20}}>
+                      <label style={lbl}>{p.label}</label>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <input type="range" min={p.min} max={p.max} step={p.step} value={p.val} onChange={e=>p.set(Number(e.target.value))} style={{flex:1,accentColor:p.color}}/>
+                        <div style={{background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,padding:"6px 12px",color:p.color,fontFamily:"'IBM Plex Mono',monospace",fontSize:13,minWidth:90,textAlign:"center"}}>{p.display}</div>
+                      </div>
+                      <div style={{color:"#2d3f50",fontSize:10,marginTop:4}}>{p.note}</div>
+                    </div>
+                  ))}
+
+                  <div style={{marginBottom:20}}>
+                    <label style={lbl}>Glycémie cible</label>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <input type="range" min={1.0} max={1.8} step={0.1} value={targetG} onChange={e=>setTargetG(Number(e.target.value))} style={{flex:1,accentColor:C.green}}/>
+                      <div style={{background:"#070c12",border:`1px solid ${C.green}44`,borderRadius:8,padding:"6px 12px",color:C.green,fontFamily:"'IBM Plex Mono',monospace",fontSize:13,minWidth:90,textAlign:"center",fontWeight:700}}>{targetG.toFixed(1)} g/L</div>
+                    </div>
+                    <div style={{marginTop:10,position:"relative",height:6,background:"#1c2a38",borderRadius:99}}>
+                      <div style={{position:"absolute",left:0,width:"25%",height:"100%",borderRadius:"99px 0 0 99px",background:"rgba(239,68,68,0.3)"}}/>
+                      <div style={{position:"absolute",left:"25%",width:"50%",height:"100%",background:"rgba(34,197,94,0.25)"}}/>
+                      <div style={{position:"absolute",left:"75%",right:0,height:"100%",borderRadius:"0 99px 99px 0",background:"rgba(245,158,11,0.3)"}}/>
+                      <div style={{position:"absolute",top:-4,left:`${Math.min(Math.max(((targetG-1.0)/0.8)*50+25,0),100)}%`,width:14,height:14,borderRadius:"50%",background:C.green,border:"2px solid #07090f",transform:"translateX(-50%)",transition:"left 0.3s"}}/>
+                    </div>
+                    <div style={{fontSize:10,color:C.green,marginTop:6,fontWeight:700}}>Votre cible : {targetG.toFixed(1)} g/L</div>
+                  </div>
+
+                  <div style={{marginBottom:8}}>
+                    <label style={lbl}>Vitesse de digestion par défaut</label>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                      {Object.entries(DIGESTION_PROFILES).map(([key,dp])=>(
+                        <button key={key} onClick={()=>setDigestion(key)} style={{padding:"10px",border:`1px solid ${digestion===key?"#0ea5e9":C.border}`,borderRadius:10,background:digestion===key?"rgba(14,165,233,0.12)":"#070c12",color:digestion===key?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                          <div style={{fontSize:16,marginBottom:3}}>{dp.icon}</div>
+                          <div style={{fontWeight:digestion===key?700:400,marginBottom:2}}>{dp.label}</div>
+                          <div style={{fontSize:9,color:digestion===key?"#4a8fa8":"#2d3f50"}}>Pic {dp.peakMin}min · Fin {Math.round(dp.tail/60*10)/10}h</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* FLOATING CTA */}
+          {tab==="repas"&&(
+            <div style={{position:"fixed",bottom:0,left:0,right:0,padding:"10px 20px 16px",background:"linear-gradient(0deg,#07090f 60%,transparent)",maxWidth:520,margin:"0 auto"}}>
+              <button onClick={()=>{if(canCalc){calculate();}else if(selections.length>0){setTab("saisie");}}} style={{width:"100%",padding:15,borderRadius:12,cursor:"pointer",background:canCalc?"linear-gradient(135deg,#0ea5e9,#0284c7)":selections.length>0?"linear-gradient(135deg,#1c3a50,#0d2233)":C.card,border:canCalc?"none":`1px solid ${C.border}`,color:canCalc?"#fff":selections.length>0?"#7dd3fc":C.muted,fontSize:13,fontWeight:700,fontFamily:"'Syne Mono',monospace"}}>
+                {canCalc?`⚡ Calculer le calendrier — ${totalCarbs}g glucides`:selections.length>0?`→ Saisir glycémie + poids (${totalCarbs}g sélectionnés)`:"← Sélectionner des aliments"}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Render the app
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <script>
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Service worker registration failed, app will still work offline to limited extent
+      });
+    }
+
+    // Add to home screen prompt for Android
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+  </script>
+</body>
+</html>

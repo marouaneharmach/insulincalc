@@ -1,0 +1,49 @@
+{
+  "name": "InsulinCalc",
+  "short_name": "InsulinCalc",
+  "description": "Calculateur d'insuline pour diabète de type 1 - Cuisine marocaine",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07090f",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%2307090f' width='192' height='192'/><path d='M96 20c-8 0-12 8-12 16v60h-40c-8 0-16 4-16 12s8 12 16 12h40v40c0 8 4 16 12 16s12-8 12-16v-40h40c8 0 16-4 16-12s-8-12-16-12h-40v-60c0-8-4-16-12-16z' fill='%230ea5e9'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%2307090f' width='512' height='512'/><path d='M256 40c-24 0-40 16-40 40v160h-120c-24 0-40 16-40 40s16 40 40 40h120v120c0 24 16 40 40 40s40-16 40-40v-120h120c24 0 40-16 40-40s-16-40-40-40h-120v-160c0-24-16-40-40-40z' fill='%230ea5e9'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%2307090f' width='540' height='720'/><text x='270' y='100' font-size='24' fill='%230ea5e9' text-anchor='middle' font-family='monospace' font-weight='bold'>InsulinCalc</text><rect x='20' y='150' width='500' height='500' rx='10' fill='%230d1117' stroke='%231c2a38' stroke-width='1'/></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["health", "medical"],
+  "shortcuts": [
+    {
+      "name": "Calculer la dose",
+      "short_name": "Calculer",
+      "description": "Calculer la dose d'insuline",
+      "url": "./index.html?tab=repas",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230ea5e9' width='192' height='192'/><path d='M96 20c-8 0-12 8-12 16v60h-40c-8 0-16 4-16 12s8 12 16 12h40v40c0 8 4 16 12 16s12-8 12-16v-40h40c8 0 16-4 16-12s-8-12-16-12h-40v-60c0-8-4-16-12-16z' fill='%2307090f'/></svg>",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
