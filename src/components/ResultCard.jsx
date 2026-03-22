@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { SPACE, FONT } from '../utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants.js';
 import InjectionStep from './InjectionStep.jsx';
@@ -10,10 +10,16 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
   const card = { background: cc.card, border: `1px solid ${cc.border}`, borderRadius: 14, padding: SPACE.xl, marginBottom: SPACE.md };
   const lbl = { fontSize: FONT.xs, letterSpacing: 2, color: cc.muted, textTransform: "uppercase", marginBottom: SPACE.sm, display: "block" };
 
-  // Auto-save to journal when result is shown
-  useEffect(() => {
-    if (result && onSaveJournal) onSaveJournal();
-  }, []);
+  // Dose réelle modifiable avant enregistrement
+  const [actualDose, setActualDose] = useState(result ? String(result.total) : '');
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    if (!result || !onSaveJournal) return;
+    const dose = parseFloat(actualDose);
+    onSaveJournal(isNaN(dose) ? result.total : dose);
+    setSaved(true);
+  };
 
   if (!result) {
     return (
@@ -96,6 +102,53 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
           <span style={{ color: cc.muted, fontSize: 12 }}>{t("total")}</span>
           <span style={{ color: cc.accent, fontSize: 14 }}>{totalCarbs}g {t("glucidesUnit")}</span>
         </div>
+      </div>
+
+      {/* Bloc enregistrement explicite */}
+      <div style={{ ...card, borderColor: saved ? 'rgba(34,197,94,0.4)' : `${cc.accent}30`, background: saved ? (isDark ? 'rgba(34,197,94,0.06)' : 'rgba(34,197,94,0.04)') : (isDark ? 'rgba(14,165,233,0.04)' : 'rgba(14,165,233,0.02)') }}>
+        <div style={{ fontSize: 12, letterSpacing: 2, color: saved ? '#22c55e' : cc.accent, marginBottom: 12, textTransform: 'uppercase' }}>
+          {saved ? `✅ ${t("enregistre")}` : `💾 ${t("enregistrerDonnees")}`}
+        </div>
+        {!saved ? (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, color: cc.muted, display: 'block', marginBottom: 4 }}>{t("doseReellePrise")}</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  value={actualDose}
+                  onChange={e => setActualDose(e.target.value)}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    background: isDark ? '#0a1520' : '#f8fafc',
+                    border: `1px solid ${cc.border}`,
+                    color: cc.text, fontSize: 18, fontWeight: 700,
+                    fontFamily: "'Syne Mono',monospace", textAlign: 'center',
+                  }}
+                />
+                <span style={{ fontSize: 14, color: cc.muted, fontWeight: 600 }}>U</span>
+              </div>
+              <div style={{ fontSize: 10, color: cc.muted, marginTop: 4 }}>
+                {t("doseSuggereePar")} : {result.total}U — {t("modifierSiBesoin")}
+              </div>
+            </div>
+            <button onClick={handleSave} style={{
+              width: '100%', padding: 14, borderRadius: 12, cursor: 'pointer',
+              background: `linear-gradient(135deg,${cc.accent},#0a9e8e)`,
+              border: 'none', color: '#fff', fontSize: 14, fontWeight: 700,
+              fontFamily: "'Syne Mono',monospace",
+              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+            }}>
+              💾 {t("enregistrerDonnees")}
+            </button>
+          </>
+        ) : (
+          <div style={{ fontSize: 12, color: cc.muted, lineHeight: 1.6 }}>
+            {t("donneesSauvegardees")} · {t("glycPostRappel")}
+          </div>
+        )}
       </div>
 
       <div style={{ fontSize: 12, color: cc.muted, padding: "10px 14px", background: `${cc.accent}06`, borderRadius: 10, borderLeft: `2px solid ${cc.accent}` }}>

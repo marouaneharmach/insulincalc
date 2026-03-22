@@ -251,6 +251,20 @@ const fr = {
   resumeEvolution: "Évolution",
   enCible: "En cible",
   doseMoyenne: "Dose moy.",
+  dosesChart: "Doses",
+  cibleChart: "Cible",
+
+  // Enregistrement explicite
+  enregistre: "Enregistré",
+  enregistrerDonnees: "Enregistrer les données",
+  doseReellePrise: "Dose réellement prise",
+  doseSuggereePar: "Dose suggérée",
+  modifierSiBesoin: "modifiez si besoin",
+  donneesSauvegardees: "Données sauvegardées dans le journal",
+  glycPostRappel: "Pensez à mesurer votre glycémie ~2h après le repas",
+  saisirGlycPost: "Glycémie post-repas",
+  ajouter: "Ajouter",
+  saisirDoseReelle: "Saisir dose réelle",
 
   // Greeting
   bonjour: "Bonjour",

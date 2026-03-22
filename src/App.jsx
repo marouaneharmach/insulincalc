@@ -189,8 +189,8 @@ export default function App() {
     return { total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) };
   }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t]);
 
-  // Save to journal when viewing result (Fix #6)
-  const saveToJournal = useCallback(() => {
+  // Save to journal — explicit via bouton Enregistrer (accepts actual dose)
+  const saveToJournal = useCallback((doseActual) => {
     if (!result) return;
     const entry = {
       id: Date.now(),
@@ -200,7 +200,7 @@ export default function App() {
       glycPre: gVal.toFixed(2),
       glycPost: '',
       doseSuggested: result.total,
-      doseActual: null,
+      doseActual: doseActual != null ? doseActual : result.total,
       aliments: selections.map(s => s.food.name).join(', '),
       alimentIds: selections.map(s => s.food.id),
     };
@@ -254,6 +254,10 @@ export default function App() {
 
   const updateJournalDoseActual = (entryId, dose) => {
     setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: dose } : e));
+  };
+
+  const updateJournalGlycPost = (entryId, glycPost) => {
+    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, glycPost: glycPost } : e));
   };
 
   if (!onboarded) {
@@ -481,7 +485,7 @@ export default function App() {
               )}
             </div>
 
-            {/* STATS SUMMARY */}
+            {/* STATS SUMMARY + CHART */}
             {journal.length >= 2 && (() => {
               const glycVals = journal.map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
               const doseVals = journal.map(e => e.doseActual || e.doseSuggested || e.dose).filter(v => v != null && !isNaN(v));
@@ -489,6 +493,11 @@ export default function App() {
               const inRange = glycVals.filter(v => v >= targetGMin && v <= targetGMax).length;
               const tirPct = glycVals.length > 0 ? Math.round((inRange / glycVals.length) * 100) : 0;
               const avgDose = doseVals.length > 0 ? (doseVals.reduce((a, b) => a + Number(b), 0) / doseVals.length) : 0;
+
+              // Chart data: last 30 entries reversed (chronological)
+              const chartEntries = journal.slice(0, 30).reverse();
+              const hasChart = chartEntries.length >= 2;
+
               return (
                 <div style={{ ...card, borderColor: `${cc.accent}30` }}>
                   <div style={{ fontSize: 12, letterSpacing: 2, color: cc.accent, textTransform: 'uppercase', marginBottom: 10 }}>
@@ -511,25 +520,119 @@ export default function App() {
                       <div style={{ fontSize: 10, color: cc.muted }}>U</div>
                     </div>
                   </div>
-                  {/* Mini sparkline */}
-                  {glycVals.length >= 3 && (() => {
-                    const pts = journal.slice(0, 20).reverse().map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
-                    const minV = Math.min(0.5, ...pts);
-                    const maxV = Math.max(2.5, ...pts);
-                    const w = 300, h = 60, pad = 4;
-                    const xStep = (w - pad * 2) / (pts.length - 1);
-                    const yScale = (v) => pad + (h - pad * 2) - ((v - minV) / (maxV - minV)) * (h - pad * 2);
-                    const path = pts.map((v, i) => `${i === 0 ? 'M' : 'L'}${(pad + i * xStep).toFixed(1)},${yScale(v).toFixed(1)}`).join(' ');
-                    const yMin = yScale(targetGMin);
-                    const yMax = yScale(targetGMax);
+
+                  {/* Interactive Evolution Chart */}
+                  {hasChart && (() => {
+                    const w = 320, h = 160, padL = 32, padR = 8, padT = 16, padB = 28;
+                    const chartW = w - padL - padR;
+                    const chartH = h - padT - padB;
+
+                    // Glycemia data
+                    const glycPrePts = chartEntries.map(e => parseFloat(e.glycPre)).map(v => isNaN(v) ? null : v);
+                    const glycPostPts = chartEntries.map(e => e.glycPost ? parseFloat(e.glycPost) : null).map(v => isNaN(v) ? null : v);
+                    const allGlyc = [...glycPrePts, ...glycPostPts].filter(v => v != null);
+                    const minG = Math.min(0.4, ...allGlyc);
+                    const maxG = Math.max(2.5, ...allGlyc);
+
+                    // Dose data (secondary axis)
+                    const dosePts = chartEntries.map(e => {
+                      const d = e.doseActual != null ? e.doseActual : (e.doseSuggested || e.dose);
+                      return d != null && !isNaN(Number(d)) ? Number(d) : null;
+                    });
+                    const allDose = dosePts.filter(v => v != null);
+                    const maxD = allDose.length > 0 ? Math.max(5, ...allDose) : 10;
+
+                    const xStep = chartEntries.length > 1 ? chartW / (chartEntries.length - 1) : chartW;
+                    const yG = (v) => padT + chartH - ((v - minG) / (maxG - minG)) * chartH;
+                    const yD = (v) => padT + chartH - (v / maxD) * chartH;
+
+                    // Build paths
+                    const buildPath = (pts, yFn) => {
+                      let d = '';
+                      pts.forEach((v, i) => {
+                        if (v == null) return;
+                        const x = padL + i * xStep;
+                        const y = yFn(v);
+                        d += d === '' ? `M${x.toFixed(1)},${y.toFixed(1)}` : ` L${x.toFixed(1)},${y.toFixed(1)}`;
+                      });
+                      return d;
+                    };
+
+                    const pathPre = buildPath(glycPrePts, yG);
+                    const pathPost = buildPath(glycPostPts, yG);
+
+                    // Date labels (show first, middle, last)
+                    const dateLabels = chartEntries.map(e => {
+                      const d = e.dateDisplay || e.date || '';
+                      return d.substring(0, 5); // DD/MM
+                    });
+
+                    const yTargetMin = yG(targetGMin);
+                    const yTargetMax = yG(targetGMax);
+
                     return (
-                      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', marginTop: 6 }}>
-                        <rect x={pad} y={Math.min(yMin, yMax)} width={w - pad * 2} height={Math.abs(yMin - yMax)} fill="rgba(34,197,94,0.08)" rx={3} />
-                        <path d={path} fill="none" stroke={cc.accent} strokeWidth={2} opacity={0.6} />
-                        {pts.map((v, i) => (
-                          <circle key={i} cx={pad + i * xStep} cy={yScale(v)} r={3} fill={glycColor(v)} stroke={isDark ? '#0A1928' : '#fff'} strokeWidth={1.5} />
-                        ))}
-                      </svg>
+                      <div style={{ marginTop: 8 }}>
+                        {/* Legend */}
+                        <div style={{ display: 'flex', gap: 12, marginBottom: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 10, height: 3, background: cc.accent, borderRadius: 2, display: 'inline-block' }}></span>
+                            <span style={{ color: cc.muted }}>{t("glycPre")}</span>
+                          </span>
+                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 10, height: 3, background: '#f59e0b', borderRadius: 2, display: 'inline-block' }}></span>
+                            <span style={{ color: cc.muted }}>{t("glycPost")}</span>
+                          </span>
+                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 10, height: 3, background: '#a78bfa', borderRadius: 2, display: 'inline-block' }}></span>
+                            <span style={{ color: cc.muted }}>{t("dosesChart")}</span>
+                          </span>
+                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 10, height: 6, background: 'rgba(34,197,94,0.15)', borderRadius: 1, display: 'inline-block' }}></span>
+                            <span style={{ color: cc.muted }}>{t("cibleChart")}</span>
+                          </span>
+                        </div>
+                        <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }}>
+                          {/* Target range band */}
+                          <rect x={padL} y={Math.min(yTargetMin, yTargetMax)} width={chartW} height={Math.abs(yTargetMin - yTargetMax)} fill="rgba(34,197,94,0.1)" rx={3} />
+                          <line x1={padL} x2={padL + chartW} y1={yTargetMin} y2={yTargetMin} stroke="rgba(34,197,94,0.25)" strokeDasharray="4 3" strokeWidth={1} />
+                          <line x1={padL} x2={padL + chartW} y1={yTargetMax} y2={yTargetMax} stroke="rgba(34,197,94,0.25)" strokeDasharray="4 3" strokeWidth={1} />
+
+                          {/* Y-axis labels glycemia */}
+                          <text x={padL - 4} y={yG(targetGMin) + 3} textAnchor="end" fill={cc.muted} fontSize={8}>{targetGMin.toFixed(1)}</text>
+                          <text x={padL - 4} y={yG(targetGMax) + 3} textAnchor="end" fill={cc.muted} fontSize={8}>{targetGMax.toFixed(1)}</text>
+                          <text x={padL - 4} y={yG(maxG) + 3} textAnchor="end" fill={cc.muted} fontSize={8}>{maxG.toFixed(1)}</text>
+
+                          {/* Dose bars (background) */}
+                          {dosePts.map((v, i) => v != null && (
+                            <rect key={`d${i}`} x={padL + i * xStep - 3} y={yD(v)} width={6} height={padT + chartH - yD(v)} fill="rgba(167,139,250,0.18)" rx={2} />
+                          ))}
+
+                          {/* Glyc pré line */}
+                          {pathPre && <path d={pathPre} fill="none" stroke={cc.accent} strokeWidth={2} strokeLinejoin="round" />}
+                          {/* Glyc post line */}
+                          {pathPost && <path d={pathPost} fill="none" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3" strokeLinejoin="round" />}
+
+                          {/* Data points - glyc pré */}
+                          {glycPrePts.map((v, i) => v != null && (
+                            <circle key={`gp${i}`} cx={padL + i * xStep} cy={yG(v)} r={3.5} fill={glycColor(v)} stroke={isDark ? '#0A1928' : '#fff'} strokeWidth={1.5} />
+                          ))}
+                          {/* Data points - glyc post */}
+                          {glycPostPts.map((v, i) => v != null && (
+                            <circle key={`gpo${i}`} cx={padL + i * xStep} cy={yG(v)} r={2.5} fill="#f59e0b" stroke={isDark ? '#0A1928' : '#fff'} strokeWidth={1} />
+                          ))}
+
+                          {/* X-axis date labels */}
+                          {chartEntries.length <= 10 ? (
+                            chartEntries.map((_, i) => (
+                              <text key={`xl${i}`} x={padL + i * xStep} y={h - 4} textAnchor="middle" fill={cc.muted} fontSize={7}>{dateLabels[i]}</text>
+                            ))
+                          ) : (
+                            [0, Math.floor(chartEntries.length / 2), chartEntries.length - 1].map(i => (
+                              <text key={`xl${i}`} x={padL + i * xStep} y={h - 4} textAnchor="middle" fill={cc.muted} fontSize={7}>{dateLabels[i]}</text>
+                            ))
+                          )}
+                        </svg>
+                      </div>
                     );
                   })()}
                 </div>
@@ -543,19 +646,60 @@ export default function App() {
                 <div style={{ fontSize: 12, color: cc.muted, marginTop: 4, opacity: 0.6 }}>{t("calculsAutoSave")}</div>
               </div>
             ) : (
-              journal.map((e, i) => (
+              journal.map((e, i) => {
+                const glycPreVal = parseFloat(e.glycPre);
+                const glycPostVal = parseFloat(e.glycPost);
+                const doseVal = e.doseActual != null ? e.doseActual : (e.doseSuggested || e.dose);
+                const hasGlycPost = e.glycPost && !isNaN(glycPostVal);
+                const delta = hasGlycPost ? (glycPostVal - glycPreVal) : null;
+                return (
                 <div key={e.id || i} style={{ ...card, padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  {/* Header: date + dose */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 12, color: cc.muted }}>{e.dateDisplay || e.date}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: cc.accent, fontFamily: "'IBM Plex Mono',monospace" }}>{e.doseSuggested || e.dose}U</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: cc.accent, fontFamily: "'IBM Plex Mono',monospace" }}>{doseVal}U</span>
                   </div>
-                  <div style={{ fontSize: 12, color: cc.text, marginBottom: 4 }}>
-                    {t("glycPre")} : <span style={{ color: glycColor(parseFloat(e.glycPre)), fontWeight: 600 }}>{e.glycPre} {t("uniteGL")}</span>
-                    {e.glycPost && <> → {t("glycPost")} : <span style={{ color: glycColor(parseFloat(e.glycPost)), fontWeight: 600 }}>{e.glycPost} {t("uniteGL")}</span></>}
+
+                  {/* Glycémie pré + post côte à côte */}
+                  <div style={{ display: 'grid', gridTemplateColumns: hasGlycPost ? '1fr auto 1fr' : '1fr 1fr', gap: 6, marginBottom: 8 }}>
+                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 8, padding: '6px 10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 9, color: cc.muted, textTransform: 'uppercase', marginBottom: 2 }}>{t("glycPre")}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: glycColor(glycPreVal), fontFamily: "'Syne Mono',monospace" }}>{e.glycPre}</div>
+                    </div>
+                    {hasGlycPost && (
+                      <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: delta <= 0 ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
+                        {delta <= 0 ? '↘' : '↗'} {delta > 0 ? '+' : ''}{delta.toFixed(2)}
+                      </div>
+                    )}
+                    {hasGlycPost ? (
+                      <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 8, padding: '6px 10px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, color: cc.muted, textTransform: 'uppercase', marginBottom: 2 }}>{t("glycPost")}</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: glycColor(glycPostVal), fontFamily: "'Syne Mono',monospace" }}>{e.glycPost}</div>
+                      </div>
+                    ) : (
+                      <button onClick={() => {
+                        const val = prompt(t("saisirGlycPost") + " (g/L) :", '');
+                        if (val !== null && !isNaN(parseFloat(val))) {
+                          updateJournalGlycPost(e.id, parseFloat(val).toFixed(2));
+                        }
+                      }} style={{
+                        background: isDark ? 'rgba(14,165,233,0.06)' : 'rgba(14,165,233,0.04)',
+                        border: `1px dashed ${cc.accent}50`, borderRadius: 8, padding: '6px 10px',
+                        textAlign: 'center', cursor: 'pointer', color: cc.accent, fontSize: 11,
+                        fontFamily: "'IBM Plex Mono',monospace",
+                      }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 2, opacity: 0.7 }}>{t("glycPost")}</div>
+                        <div>+ {t("ajouter")}</div>
+                      </button>
+                    )}
                   </div>
-                  <div style={{ fontSize: 12, color: cc.muted, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {t("doseEffective")} : {e.doseActual != null ? (
-                      <span style={{ color: cc.accent, fontWeight: 600 }}>{e.doseActual}U</span>
+
+                  {/* Dose: suggérée vs effective */}
+                  <div style={{ fontSize: 11, color: cc.muted, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span>{t("doseSuggeree")} : {e.doseSuggested || e.dose}U</span>
+                    <span>·</span>
+                    {e.doseActual != null ? (
+                      <span>{t("doseEffective")} : <span style={{ color: cc.accent, fontWeight: 600 }}>{e.doseActual}U</span></span>
                     ) : (
                       <button onClick={() => {
                         const dose = prompt(t("doseEffective") + " (U) :", String(e.doseSuggested || e.dose || ''));
@@ -563,15 +707,18 @@ export default function App() {
                           updateJournalDoseActual(e.id, parseFloat(dose));
                         }
                       }} style={{ background: `${cc.accent}12`, border: `1px solid ${cc.accent}40`, borderRadius: 4, padding: '2px 8px', color: cc.accent, fontSize: 11, cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace" }}>
-                        {t("modifierDose")}
+                        {t("saisirDoseReelle")}
                       </button>
                     )}
                   </div>
+
+                  {/* Aliments */}
                   <div style={{ fontSize: 11, color: cc.muted, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {e.aliments || t("pasAliments")}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
 
             {/* Disclaimer en bas du journal */}
@@ -614,7 +761,7 @@ export default function App() {
       {tab === "repas" && (
         <div className="no-print" style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "10px 20px 16px", background: `linear-gradient(0deg,${cc.bg} 60%,transparent)`, maxWidth: 520, margin: "0 auto" }}>
           {result ? (
-            <button onClick={() => { saveToJournal(); setTab("resultat"); }} style={{ width: "100%", padding: 15, borderRadius: 12, cursor: "pointer", background: `linear-gradient(135deg,${cc.accent},#0a9e8e)`, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Syne Mono',monospace", display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+            <button onClick={() => { setTab("resultat"); }} style={{ width: "100%", padding: 15, borderRadius: 12, cursor: "pointer", background: `linear-gradient(135deg,${cc.accent},#0a9e8e)`, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Syne Mono',monospace", display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 24, fontWeight: 900 }}>{result.total}U</span>
               <span>· {result.bolusType === "dual" ? t("bolusDual") : t("bolusStandard")}</span>
             </button>

@@ -251,6 +251,20 @@ const ar = {
   resumeEvolution: "التطور",
   enCible: "في النطاق",
   doseMoyenne: "متوسط الجرعة",
+  dosesChart: "الجرعات",
+  cibleChart: "النطاق المستهدف",
+
+  // Enregistrement explicite
+  enregistre: "تم الحفظ",
+  enregistrerDonnees: "حفظ البيانات",
+  doseReellePrise: "الجرعة المأخوذة فعلياً",
+  doseSuggereePar: "الجرعة المقترحة",
+  modifierSiBesoin: "عدّل إذا لزم الأمر",
+  donneesSauvegardees: "تم حفظ البيانات في السجل",
+  glycPostRappel: "تذكّر قياس السكر بعد ~ساعتين من الوجبة",
+  saisirGlycPost: "سكر الدم بعد الوجبة",
+  ajouter: "إضافة",
+  saisirDoseReelle: "إدخال الجرعة الفعلية",
 
   // Greeting
   bonjour: "مرحباً",
