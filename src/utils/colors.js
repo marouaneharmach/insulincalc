@@ -1,3 +1,6 @@
+export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 };
+export const FONT = { xs: 12, sm: 13, md: 14, lg: 16, xl: 20, xxl: 24, display: 34, hero: 48 };
+
 export const C = {
   bg: "#07090f", card: "#0d1117", border: "#1c2a38", accent: "#0ea5e9",
   adim: "rgba(14,165,233,0.12)", text: "#c8d6e5", muted: "#4a6070",
