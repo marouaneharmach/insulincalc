@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build cache
+.vite/
+
+# Work documents (moved to ../calc-glycemie-docs/)
+*.docx
+*.pdf
+*.xlsx
+~$*
+docs/superpowers/
+direction-artistique-insulincalc.html
+design-philosophy.md
+
+# Legacy / backup files
+*-backup.html
+insulin-calculator-v7.jsx
+DEPLOYMENT_GUIDE.md
+QUICKSTART.txt
