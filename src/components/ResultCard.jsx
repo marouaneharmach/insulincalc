@@ -1,11 +1,11 @@
-import { C } from '../utils/colors.js';
+import { C, SPACE, FONT } from '../utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants.js';
 import InjectionStep from './InjectionStep.jsx';
 import PostMealCorrector from './PostMealCorrector.jsx';
 
 export default function ResultCard({ result, selections, totalCarbs, digestion, isf, targetG, maxDose, setTab }) {
-  const card = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 12 };
-  const lbl = { fontSize: 12, letterSpacing: 2, color: C.muted, textTransform: "uppercase", marginBottom: 8, display: "block" };
+  const card = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: SPACE.xl, marginBottom: SPACE.md };
+  const lbl = { fontSize: FONT.xs, letterSpacing: 2, color: C.muted, textTransform: "uppercase", marginBottom: SPACE.sm, display: "block" };
 
   if (!result) {
     return (
@@ -94,6 +94,10 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
       <div style={{ fontSize: 12, color: "#2d3f50", padding: "10px 14px", background: "rgba(14,165,233,0.03)", borderRadius: 10, borderLeft: `2px solid ${C.accent}` }}>
         {"\u2695\ufe0f"} Ces calculs sont indicatifs. Ne modifiez jamais votre traitement sans l'accord de votre endocrinologue.
       </div>
+
+      <button className="no-print" onClick={() => window.print()} style={{width:"100%",padding:14,borderRadius:10,cursor:"pointer",background:C.adim,border:`1px solid ${C.accent}44`,color:C.accent,fontFamily:"'IBM Plex Mono',monospace",fontSize:13,marginTop:12}}>
+        🖨 Imprimer / Exporter
+      </button>
     </>
   );
 }

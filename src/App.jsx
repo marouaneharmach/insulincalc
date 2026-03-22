@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule } from './utils/calculations.js';
-import { C, GI_ICON, GI_COLOR, glycColor, glycLabel, stripDiacritics } from './utils/colors.js';
+import { C, SPACE, FONT, GI_ICON, GI_COLOR, glycColor, glycLabel, stripDiacritics } from './utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants.js';
 import FOOD_DB from './data/foods.js';
 
@@ -133,9 +133,9 @@ export default function App() {
     setTab("resultat");
   };
 
-  const card = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 12 };
-  const lbl = { fontSize: 12, letterSpacing: 2, color: C.muted, textTransform: "uppercase", marginBottom: 8, display: "block" };
-  const inp = { width: "100%", background: "#070c12", border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, padding: "11px 14px", fontSize: 15, fontFamily: "'IBM Plex Mono',monospace", outline: "none", boxSizing: "border-box" };
+  const card = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: SPACE.xl, marginBottom: SPACE.md };
+  const lbl = { fontSize: FONT.xs, letterSpacing: 2, color: C.muted, textTransform: "uppercase", marginBottom: SPACE.sm, display: "block" };
+  const inp = { width: "100%", background: "#070c12", border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, padding: "11px 14px", fontSize: FONT.md, fontFamily: "'IBM Plex Mono',monospace", outline: "none", boxSizing: "border-box" };
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'IBM Plex Mono',monospace", color: C.text }}>
@@ -165,7 +165,7 @@ export default function App() {
       </div>
 
       {/* TABS */}
-      <TabNav tab={tab} setTab={setTab} selections={selections} />
+      <TabNav tab={tab} setTab={setTab} selections={selections} className="no-print" />
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 20px 100px" }}>
 
@@ -492,7 +492,7 @@ export default function App() {
 
       {/* FLOATING CTA */}
       {tab === "repas" && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "10px 20px 16px", background: "linear-gradient(0deg,#07090f 60%,transparent)", maxWidth: 520, margin: "0 auto" }}>
+        <div className="no-print" style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "10px 20px 16px", background: "linear-gradient(0deg,#07090f 60%,transparent)", maxWidth: 520, margin: "0 auto" }}>
           <button onClick={() => { if (canCalc) { calculate(); } else if (selections.length > 0) { setTab("saisie"); } }} aria-label="Lancer le calcul de dose" style={{ width: "100%", padding: 15, borderRadius: 12, cursor: "pointer", background: canCalc ? "linear-gradient(135deg,#0ea5e9,#0284c7)" : selections.length > 0 ? "linear-gradient(135deg,#1c3a50,#0d2233)" : C.card, border: canCalc ? "none" : `1px solid ${C.border}`, color: canCalc ? "#fff" : selections.length > 0 ? "#7dd3fc" : C.muted, fontSize: 13, fontWeight: 700, fontFamily: "'Syne Mono',monospace" }}>
             {canCalc ? `\u26a1 Calculer le calendrier \u2014 ${totalCarbs}g glucides` : selections.length > 0 ? `\u2192 Saisir glyc\u00e9mie + poids (${totalCarbs}g s\u00e9lectionn\u00e9s)` : "\u2190 S\u00e9lectionner des aliments"}
           </button>
