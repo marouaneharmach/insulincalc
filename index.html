@@ -779,6 +779,7 @@ function App(){
   const [digestion,  setDigestion]  = useLocalStorage("digestion", "normal");
   const [weight,     setWeight]     = useLocalStorage("weight", "");
   const [result,     setResult]     = useState(null);
+  const [maxDose,    setMaxDose]    = useLocalStorage("maxDose", 20);
 
   const [selData, setSelData] = useLocalStorage("selections", []);
 
@@ -823,7 +824,8 @@ function App(){
   const dominantGI  = useMemo(()=>getDominantGI(selections),[selections]);
 
   const gVal   = parseFloat(glycemia);
-  const glycOk = !isNaN(gVal)&&gVal>0;
+  const glycOk = !isNaN(gVal) && gVal >= 0.3 && gVal <= 6.0;
+  const glycOutOfBounds = glycemia !== "" && !isNaN(gVal) && (gVal < 0.3 || gVal > 6.0);
   const canCalc= glycOk&&totalCarbs>0;
 
 
@@ -837,7 +839,10 @@ function App(){
       return[...prev,{food,mult:defaultM}];
     });
   };
-  const updateMult=(id,mult)=>setSelections(prev=>prev.map(s=>s.food.id===id?{...s,mult}:s));
+  const updateMult = (id, mult) => {
+    const clamped = Math.max(0.25, Math.min(mult, 10));
+    setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: clamped } : s));
+  };
 
   const calculate=()=>{
     if(!canCalc)return;
@@ -913,7 +918,7 @@ function App(){
               {/* Poids */}
               <div style={{flex:1}}>
                 <div style={{fontSize:9,letterSpacing:1.5,color:"#22c55e",marginBottom:6,textTransform:"uppercase"}}>⚖ Poids (kg)</div>
-                <input type="number" step="0.5" min="20" max="200" placeholder="68"
+                <input type="number" step="0.5" min="20" max="200" placeholder="68" inputMode="decimal"
                   value={weight} onChange={e=>setWeight(e.target.value)}
                   style={{...inp,fontSize:20,padding:"10px 8px",fontWeight:700,color:weightOk?"#22c55e":"#c8d6e5",textAlign:"center",borderRadius:10}}/>
                 {wSugg&&<div style={{fontSize:8,color:"#22c55e",marginTop:4,textAlign:"center"}}>TDD ~{wSugg.tdd}U/j · ICR 1U/{wSugg.icr}g · ISF {wSugg.isfMg}</div>}
@@ -921,10 +926,15 @@ function App(){
               {/* Glycémie */}
               <div style={{flex:1}}>
                 <div style={{fontSize:9,letterSpacing:1.5,color:C.accent,marginBottom:6,textTransform:"uppercase"}}>🩸 Glycémie (g/L)</div>
-                <input type="number" step="0.1" min="0.1" max="6" placeholder="1.40"
+                <input type="number" step="0.1" min="0.1" max="6" placeholder="1.40" inputMode="decimal"
                   value={glycemia} onChange={e=>setGlycemia(e.target.value)}
                   style={{...inp,fontSize:20,padding:"10px 8px",fontWeight:700,color:glycColor(gVal),textAlign:"center",borderRadius:10}}/>
                 {glycOk&&<div style={{fontSize:8,color:glycColor(gVal),marginTop:4,textAlign:"center"}}>{glycLabel(gVal)} · écart {gVal>targetG?"+":""}{(gVal-targetG).toFixed(2)}</div>}
+                {glycOutOfBounds && (
+                  <div style={{fontSize:12,color:C.red,marginTop:4,textAlign:"center"}}>
+                    Glycémie hors bornes (0.3 — 6.0 g/L)
+                  </div>
+                )}
               </div>
             </div>
             {/* Boutons appliquer si poids saisi */}
@@ -1051,12 +1061,17 @@ function App(){
           {/* ── GLYCÉMIE ── */}
           <div style={card}>
             <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Glycémie actuelle</div>
-            <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 1.40"
+            <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 1.40" inputMode="decimal"
               value={glycemia} onChange={e=>setGlycemia(e.target.value)}
               style={{...inp,fontSize:34,padding:14,fontWeight:700,color:glycColor(gVal),textAlign:"center",borderRadius:12}}/>
             <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#2d3f50"}}>
               <span>min : 0.5</span><span>unité : g/L</span><span>max : 6.0</span>
             </div>
+            {glycOutOfBounds && (
+              <div style={{fontSize:12,color:C.red,marginTop:4,textAlign:"center"}}>
+                Glycémie hors bornes (0.3 — 6.0 g/L)
+              </div>
+            )}
             {glycOk&&(<>
               <div style={{marginTop:12}}>
                 <div style={{background:C.faint,borderRadius:99,height:8,overflow:"hidden"}}>
@@ -1107,7 +1122,7 @@ function App(){
           {/* ── POIDS ── */}
           <div style={card}>
             <div style={{fontSize:10,letterSpacing:2,color:"#22c55e",marginBottom:14,textTransform:"uppercase"}}>⚖ Poids corporel</div>
-            <input type="number" step="0.5" min="20" max="200" placeholder="ex : 68"
+            <input type="number" step="0.5" min="20" max="200" placeholder="ex : 68" inputMode="decimal"
               value={weight} onChange={e=>setWeight(e.target.value)}
               style={{...inp,fontSize:34,padding:14,fontWeight:700,color:weightOk?"#22c55e":"#c8d6e5",textAlign:"center",borderRadius:12}}/>
             <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#2d3f50"}}>
@@ -1192,6 +1207,11 @@ function App(){
             {/* Total */}
             <div style={{...card,borderColor:"rgba(14,165,233,0.3)",background:"linear-gradient(135deg,#0d1117,#0a1520)"}}>
               <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:10,textTransform:"uppercase"}}>Dose totale calculée</div>
+              {result.total > maxDose && (
+                <div role="alert" style={{padding:"12px 14px",borderRadius:10,background:"rgba(239,68,68,0.15)",border:"2px solid rgba(239,68,68,0.5)",marginBottom:12,fontSize:12,color:"#fca5a5",fontWeight:700}}>
+                  ⚠️ Dose inhabituellement élevée ({result.total} U &gt; seuil {maxDose} U) — Vérifiez vos paramètres ou consultez votre médecin.
+                </div>
+              )}
               <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:8}}>
                 <div style={{fontSize:72,fontWeight:700,lineHeight:1,fontFamily:"'Syne Mono',monospace",background:"linear-gradient(135deg,#7dd3fc,#0ea5e9)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{result.total}</div>
                 <div style={{color:C.muted,fontSize:18,marginBottom:10}}>unités totales</div>
@@ -1308,6 +1328,18 @@ function App(){
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            <div style={{...card,marginTop:12}}>
+              <div style={{fontSize:12,letterSpacing:2,color:C.red,marginBottom:14,textTransform:"uppercase"}}>Sécurité</div>
+              <div style={{marginBottom:8}}>
+                <label style={lbl}>Seuil d'alerte dose maximale</label>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <input type="range" min={5} max={50} step={1} value={maxDose} onChange={e=>setMaxDose(Number(e.target.value))} style={{flex:1,accentColor:C.red}}/>
+                  <div style={{background:"#070c12",border:`1px solid ${C.red}44`,borderRadius:8,padding:"6px 12px",color:C.red,fontFamily:"'IBM Plex Mono',monospace",fontSize:13,minWidth:90,textAlign:"center",fontWeight:700}}>{maxDose} U</div>
+                </div>
+                <div style={{color:"#2d3f50",fontSize:12,marginTop:4}}>Affiche un avertissement si la dose dépasse ce seuil</div>
               </div>
             </div>
           </div>
