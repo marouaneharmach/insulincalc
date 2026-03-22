@@ -10,6 +10,7 @@ import QtyStepper from './components/QtyStepper.jsx';
 import FoodList from './components/FoodList.jsx';
 import ResultCard from './components/ResultCard.jsx';
 import ParamsPanel from './components/ParamsPanel.jsx';
+import FavoriteMeals from './components/FavoriteMeals.jsx';
 
 export default function App() {
   const [tab, setTab] = useState("repas");
@@ -26,6 +27,7 @@ export default function App() {
   const [maxDose, setMaxDose] = useLocalStorage("maxDose", 20);
 
   const [selData, setSelData] = useLocalStorage("selections", []);
+  const [favorites, setFavorites] = useLocalStorage("favorites", []);
 
   // Rehydrate selections from stored IDs
   const allFoods = useMemo(() => {
@@ -90,6 +92,13 @@ export default function App() {
     setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: clamped } : s));
   };
 
+  const loadFavorite = (fav) => {
+    const loaded = fav.items
+      .map(item => ({ food: allFoods[item.foodId], mult: item.mult }))
+      .filter(s => s.food);
+    setSelections(loaded);
+  };
+
   const calculate = () => {
     if (!canCalc) return;
     const bolusRepas = totalCarbs / ratio;
@@ -148,6 +157,13 @@ export default function App() {
 
         {/* === REPAS === */}
         {tab === "repas" && (<>
+          <FavoriteMeals
+            selections={selections}
+            favorites={favorites}
+            setFavorites={setFavorites}
+            onLoadFavorite={loadFavorite}
+          />
+
           {/* Saisie rapide : Poids + Glycemie */}
           <div style={{ ...card, borderColor: "rgba(14,165,233,0.25)", padding: "14px 16px" }}>
             <div style={{ display: "flex", gap: 10 }}>
