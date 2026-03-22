@@ -1,5 +1,104 @@
 import { FAT_SCORE, DIGESTION_PROFILES } from '../data/constants.js';
 
+// ─── HbA1c ESTIMÉE ───────────────────────────────────────────────────────────
+
+export function estimateHbA1c(entries) {
+  // Collect all glycemia values (pre + post) from entries
+  const vals = [];
+  entries.forEach(e => {
+    if (e.preMealGlycemia != null && !isNaN(e.preMealGlycemia)) vals.push(e.preMealGlycemia);
+    if (e.postMealGlycemia != null && !isNaN(e.postMealGlycemia)) vals.push(e.postMealGlycemia);
+  });
+  if (vals.length < 30) return null; // pas assez de mesures
+  const avgGL = vals.reduce((s, v) => s + v, 0) / vals.length;
+  const avgMgDL = avgGL * 100; // conversion g/L → mg/dL
+  // Formule ADAG : HbA1c ≈ (moyenne mg/dL + 46.7) / 28.7
+  const hba1c = (avgMgDL + 46.7) / 28.7;
+  return Math.round(hba1c * 10) / 10;
+}
+
+// ─── DÉTECTION DE PATTERNS ───────────────────────────────────────────────────
+
+export function detectPatterns(entries) {
+  const patterns = [];
+  if (!entries || entries.length < 5) return patterns;
+
+  // 1. Hypos récurrentes à la même heure
+  const hypoByHour = {};
+  entries.forEach(e => {
+    if (e.preMealGlycemia != null && e.preMealGlycemia < 0.7) {
+      const h = new Date(e.date).getHours();
+      const slot = h < 10 ? "matin" : h < 14 ? "midi" : h < 18 ? "après-midi" : "soir";
+      hypoByHour[slot] = (hypoByHour[slot] || 0) + 1;
+    }
+  });
+  Object.entries(hypoByHour).forEach(([slot, count]) => {
+    if (count >= 3) {
+      patterns.push({
+        type: "hypo_recurrent",
+        severity: "warning",
+        icon: "⚠️",
+        message: `${count} hypos récurrentes le ${slot} — envisagez de réduire la dose basale ou le ratio pour ce créneau.`,
+      });
+    }
+  });
+
+  // 2. Glycémies à jeun régulièrement hautes
+  const fastingEntries = entries.filter(e =>
+    e.mealType === "petit-déjeuner" && e.preMealGlycemia != null
+  );
+  if (fastingEntries.length >= 5) {
+    const highFasting = fastingEntries.filter(e => e.preMealGlycemia > 1.5);
+    const pct = (highFasting.length / fastingEntries.length) * 100;
+    if (pct >= 60) {
+      patterns.push({
+        type: "high_fasting",
+        severity: "info",
+        icon: "🌅",
+        message: `${Math.round(pct)}% des glycémies à jeun > 1.5 g/L — possible effet de l'aube. Discutez un ajustement de basale nocturne avec votre médecin.`,
+      });
+    }
+  }
+
+  // 3. Post-repas régulièrement haut pour un type de repas
+  const mealTypes = ["petit-déjeuner", "déjeuner", "dîner", "collation"];
+  mealTypes.forEach(mt => {
+    const mealEntries = entries.filter(e =>
+      e.mealType === mt && e.postMealGlycemia != null
+    );
+    if (mealEntries.length >= 3) {
+      const highPost = mealEntries.filter(e => e.postMealGlycemia > 2.0);
+      const pct = (highPost.length / mealEntries.length) * 100;
+      if (pct >= 60) {
+        patterns.push({
+          type: "high_postmeal",
+          severity: "info",
+          icon: "📈",
+          message: `${Math.round(pct)}% des glycémies post-${mt} > 2.0 g/L — envisagez d'augmenter le ratio ou d'allonger le délai d'injection pour ce repas.`,
+        });
+      }
+    }
+  });
+
+  // 4. Écart dose calculée vs injectée
+  const withDoses = entries.filter(e =>
+    e.doseCalculated > 0 && e.doseInjected > 0
+  );
+  if (withDoses.length >= 5) {
+    const underDosed = withDoses.filter(e => e.doseInjected < e.doseCalculated * 0.8);
+    if (underDosed.length >= 3) {
+      patterns.push({
+        type: "underdosing",
+        severity: "info",
+        icon: "💉",
+        message: `Vous injectez souvent moins que la dose calculée (${underDosed.length}/${withDoses.length} repas). Vérifiez vos paramètres ou consultez votre équipe soignante.`,
+      });
+    }
+  }
+
+  return patterns;
+}
+
 export function round05(v) {
   return Math.round(v * 2) / 2;
 }

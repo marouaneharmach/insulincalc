@@ -1,13 +1,29 @@
 import { C } from '../utils/colors.js';
 
-export default function TabNav({ tab, setTab, selections, className }) {
+export default function TabNav({ tab, setTab, selections, className, colors, theme, journal }) {
+  const cc = colors || C;
+  const isDark = theme === 'dark' || !theme;
+  const journalCount = journal ? journal.length : 0;
+
   return (
     <div className={className} style={{ maxWidth: 520, margin: "10px auto 0", padding: "0 20px" }}>
-      <div style={{ display: "flex", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 3 }}>
-        {[{ id: "repas", label: "\ud83c\udf7d Repas", badge: selections.length }, { id: "saisie", label: "\ud83e\ude78 Saisie" }, { id: "resultat", label: "\u26a1 R\u00e9sultat" }, { id: "params", label: "\u2699 Params" }].map(t => (
-          <button key={t.id} className="tb" aria-label={`Onglet ${t.label}`} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 2px", border: "none", borderRadius: 8, background: tab === t.id ? "#131d2b" : "transparent", color: tab === t.id ? C.accent : C.muted, fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, cursor: "pointer", position: "relative", transition: "all 0.15s" }}>
+      <div style={{ display: "flex", background: cc.card, border: `1px solid ${cc.border}`, borderRadius: 10, padding: 3 }}>
+        {[
+          { id: "repas", label: "\ud83c\udf7d Repas", badge: selections.length },
+          { id: "saisie", label: "\ud83e\ude78 Saisie" },
+          { id: "resultat", label: "\u26a1 R\u00e9sultat" },
+          { id: "journal", label: "\ud83d\udccb Journal", badge: journalCount > 0 ? journalCount : 0 },
+          { id: "params", label: "\u2699 R\u00e9glages" },
+        ].map(t => (
+          <button key={t.id} className="tb" aria-label={`Onglet ${t.label}`} onClick={() => setTab(t.id)} style={{
+            flex: 1, padding: "9px 2px", border: "none", borderRadius: 8,
+            background: tab === t.id ? (isDark ? "#0d1f30" : '#e2e8f0') : "transparent",
+            color: tab === t.id ? cc.accent : cc.muted,
+            fontFamily: "'IBM Plex Mono',monospace", fontSize: 11,
+            cursor: "pointer", position: "relative", transition: "all 0.15s",
+          }}>
             {t.label}
-            {t.badge > 0 && <span style={{ position: "absolute", top: 4, right: 8, background: C.accent, color: "#fff", borderRadius: 99, fontSize: 12, padding: "1px 5px", fontWeight: 700 }}>{"\u2713"}</span>}
+            {t.badge > 0 && <span style={{ position: "absolute", top: 3, right: 2, background: cc.accent, color: "#fff", borderRadius: 99, fontSize: 10, padding: "0px 4px", fontWeight: 700, lineHeight: '16px' }}>{t.badge > 99 ? '99+' : t.badge}</span>}
           </button>
         ))}
       </div>

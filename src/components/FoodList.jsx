@@ -1,7 +1,8 @@
-import { C, GI_ICON, GI_COLOR } from '../utils/colors.js';
+import { C, GI_COLOR } from '../utils/colors.js';
 import FoodCategory from './FoodCategory.jsx';
 import QtyStepper from './QtyStepper.jsx';
-import { QTY_PROFILES } from '../data/constants.js';
+
+const GI_BADGE_LABEL = { faible: "IG Bas", moyen: "IG Moy", "élevé": "IG Haut" };
 
 export default function FoodList({ search, setSearch, filteredDB, selections, openCat, setOpenCat, expandedId, toggleFood, updateMult, inp, customFoods, onDeleteCustomFood }) {
   const MY_CAT = "⭐ Mes aliments";
@@ -31,13 +32,13 @@ export default function FoodList({ search, setSearch, filteredDB, selections, op
             style={{
               width: "100%",
               background: C.card,
-              border: `1px solid ${(filteredCustom.some(f => selections.find(s => s.food.id === f.id))) ? "rgba(14,165,233,0.35)" : "rgba(14,165,233,0.2)"}`,
+              border: `1px solid ${(filteredCustom.some(f => selections.find(s => s.food.id === f.id))) ? "rgba(12,186,166,0.35)" : "rgba(12,186,166,0.2)"}`,
               borderRadius: isOpen ? "10px 10px 0 0" : 10,
-              padding: "11px 14px",
+              padding: "12px 14px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              color: isOpen ? "#7dd3fc" : "#5a8fa8",
+              color: isOpen ? C.accentLight : "#5a8fa8",
               fontFamily: "'IBM Plex Mono',monospace",
               fontSize: 12,
               cursor: "pointer",
@@ -57,14 +58,12 @@ export default function FoodList({ search, setSearch, filteredDB, selections, op
           </button>
 
           {isOpen && (
-            <div style={{ background: "#070c12", border: `1px solid ${C.border}`, borderTop: "none", borderRadius: "0 0 10px 10px", overflow: "hidden" }}>
-              <div style={{ display: "flex", padding: "5px 14px", borderBottom: `1px solid ${C.faint}` }}>
-                <div style={{ flex: 1, fontSize: 12, color: "#2d3f50", letterSpacing: 1 }}>ALIMENT · PORTION DE BASE</div>
-                <div style={{ fontSize: 12, color: "#2d3f50", letterSpacing: 1, minWidth: 80, textAlign: "right" }}>IG · GLUCIDES</div>
-              </div>
+            <div style={{ background: "#070c14", border: `1px solid ${C.border}`, borderTop: "none", borderRadius: "0 0 10px 10px", overflow: "hidden" }}>
               {filteredCustom.map((food, i) => {
                 const sel = selections.find(s => s.food.id === food.id);
                 const isExp = expandedId === food.id && sel;
+                const giColor = GI_COLOR[food.gi] || C.muted;
+
                 return (
                   <div key={food.id}>
                     <div
@@ -73,29 +72,78 @@ export default function FoodList({ search, setSearch, filteredDB, selections, op
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 10,
-                        padding: "10px 14px",
+                        gap: 12,
+                        padding: "13px 14px",
                         cursor: "pointer",
                         borderBottom: (!isExp && i < filteredCustom.length - 1) ? `1px solid ${C.faint}` : "none",
-                        background: sel ? "rgba(14,165,233,0.06)" : "transparent",
+                        background: sel ? "rgba(12,186,166,0.06)" : "transparent",
                         transition: "background 0.12s",
+                        minHeight: 52,
                       }}
                     >
-                      <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${sel ? C.accent : C.border}`, background: sel ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", transition: "all 0.12s" }}>
-                        {sel ? "✓" : ""}
+                      {/* Radio circle */}
+                      <div style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: "50%",
+                        flexShrink: 0,
+                        border: `2px solid ${sel ? C.accent : C.border}`,
+                        background: sel ? C.accent : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.15s",
+                      }}>
+                        {sel && (
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
+                        )}
                       </div>
+
+                      {/* Food info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, color: sel ? "#7dd3fc" : "#8aa8bd", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{
+                          fontSize: 13,
+                          color: sel ? C.accentLight : "#8aa8bd",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          fontWeight: sel ? 600 : 400,
+                        }}>
                           {food.name}
                         </div>
-                        <div style={{ fontSize: 12, color: "#2d3f50", marginTop: 1 }}>
+                        <div style={{ fontSize: 11, color: "#2d3f50", marginTop: 2 }}>
                           {food.unit}{food.note ? <span style={{ color: "#1a3040" }}> · {food.note}</span> : ""}
                         </div>
                       </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: 12 }}>{GI_ICON[food.gi]} <span style={{ fontSize: 12, color: GI_COLOR[food.gi] }}>{food.gi}</span></div>
-                        <div style={{ fontSize: 13, color: sel ? C.accent : "#4a6070", fontWeight: sel ? 700 : 400 }}>{food.carbs}g</div>
+
+                      {/* IG Badge pill */}
+                      <div style={{
+                        padding: "3px 8px",
+                        borderRadius: 99,
+                        background: `${giColor}18`,
+                        border: `1px solid ${giColor}44`,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: giColor,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}>
+                        {GI_BADGE_LABEL[food.gi] || food.gi}
                       </div>
+
+                      {/* Carbs value - big */}
+                      <div style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: sel ? C.accent : "#4a6070",
+                        minWidth: 48,
+                        textAlign: "right",
+                        flexShrink: 0,
+                        fontFamily: "'Syne Mono',monospace",
+                      }}>
+                        {food.carbs}g
+                      </div>
+
                       {/* Delete button */}
                       <button
                         onClick={e => { e.stopPropagation(); onDeleteCustomFood && onDeleteCustomFood(food.id); }}
@@ -116,7 +164,7 @@ export default function FoodList({ search, setSearch, filteredDB, selections, op
                       </button>
                     </div>
                     {isExp && (
-                      <div style={{ padding: "0 14px 12px", background: "rgba(14,165,233,0.03)", borderBottom: i < filteredCustom.length - 1 ? `1px solid ${C.faint}` : "none" }}>
+                      <div style={{ padding: "0 14px 12px", background: "rgba(12,186,166,0.03)", borderBottom: i < filteredCustom.length - 1 ? `1px solid ${C.faint}` : "none" }}>
                         <QtyStepper food={food} mult={sel.mult} onChange={m => updateMult(food.id, m)} />
                       </div>
                     )}

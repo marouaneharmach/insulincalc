@@ -41,7 +41,7 @@ export default function ParamsPanel({ ratio, setRatio, isf, setIsf, targetG, set
           <label style={lbl}>Vitesse de digestion par d\u00e9faut</label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {Object.entries(DIGESTION_PROFILES).map(([key, dp]) => (
-              <button key={key} onClick={() => setDigestion(key)} style={{ padding: "10px", border: `1px solid ${digestion === key ? "#0ea5e9" : C.border}`, borderRadius: 10, background: digestion === key ? "rgba(14,165,233,0.12)" : "#070c12", color: digestion === key ? "#7dd3fc" : C.muted, fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+              <button key={key} onClick={() => setDigestion(key)} style={{ padding: "10px", border: `1px solid ${digestion === key ? C.accent : C.border}`, borderRadius: 10, background: digestion === key ? C.adim : "#070c14", color: digestion === key ? C.accentLight || "#5EECD5" : C.muted, fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
                 <div style={{ fontSize: 16, marginBottom: 3 }}>{dp.icon}</div>
                 <div style={{ fontWeight: digestion === key ? 700 : 400, marginBottom: 2 }}>{dp.label}</div>
                 <div style={{ fontSize: 12, color: digestion === key ? "#4a8fa8" : "#2d3f50" }}>Pic {dp.peakMin}min {"\u00b7"} Fin {Math.round(dp.tail / 60 * 10) / 10}h</div>
