@@ -228,6 +228,10 @@ function glycLabel(v) {
   return "🚨 URGENCE MÉDICALE";
 }
 
+function stripDiacritics(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 // ─── COLOR PALETTE ─────────────────────────────────────────────────────────
 const C = {
   bg: "#07090f",
@@ -844,12 +848,15 @@ function App(){
   const wSugg     = weightOk ? calcWeightSuggestions(weightKg) : null;
 
   const filteredDB=useMemo(()=>{
-    if(!search.trim())return FOOD_DB;
-    const q=search.toLowerCase();
-    const out={};
-    for(const [cat,foods] of Object.entries(FOOD_DB)){
-      const f=foods.filter(fd=>fd.name.toLowerCase().includes(q)||(fd.note&&fd.note.toLowerCase().includes(q)));
-      if(f.length)out[cat]=f;
+    if (!search.trim()) return FOOD_DB;
+    const q = stripDiacritics(search.toLowerCase());
+    const out = {};
+    for (const [cat, foods] of Object.entries(FOOD_DB)) {
+      const f = foods.filter(fd =>
+        stripDiacritics(fd.name.toLowerCase()).includes(q) ||
+        (fd.note && stripDiacritics(fd.note.toLowerCase()).includes(q))
+      );
+      if (f.length) out[cat] = f;
     }
     return out;
   },[search]);
