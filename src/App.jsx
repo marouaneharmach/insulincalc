@@ -11,6 +11,7 @@ import FoodList from './components/FoodList.jsx';
 import ResultCard from './components/ResultCard.jsx';
 import ParamsPanel from './components/ParamsPanel.jsx';
 import FavoriteMeals from './components/FavoriteMeals.jsx';
+import CustomFoodForm from './components/CustomFoodForm.jsx';
 
 export default function App() {
   const [tab, setTab] = useState("repas");
@@ -28,15 +29,18 @@ export default function App() {
 
   const [selData, setSelData] = useLocalStorage("selections", []);
   const [favorites, setFavorites] = useLocalStorage("favorites", []);
+  const [customFoods, setCustomFoods] = useLocalStorage("custom_foods", []);
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  // Rehydrate selections from stored IDs
+  // Rehydrate selections from stored IDs (includes custom foods)
   const allFoods = useMemo(() => {
     const map = {};
     for (const foods of Object.values(FOOD_DB)) {
       for (const f of foods) map[f.id] = f;
     }
+    for (const f of customFoods) map[f.id] = f;
     return map;
-  }, []);
+  }, [customFoods]);
 
   const [selections, setSelectionsRaw] = useState(() =>
     selData.map(s => ({ food: allFoods[s.foodId], mult: s.mult })).filter(s => s.food)
@@ -97,6 +101,16 @@ export default function App() {
       .map(item => ({ food: allFoods[item.foodId], mult: item.mult }))
       .filter(s => s.food);
     setSelections(loaded);
+  };
+
+  const handleAddCustomFood = (food) => {
+    setCustomFoods(prev => [...prev, food]);
+    setShowAddForm(false);
+  };
+
+  const handleDeleteCustomFood = (id) => {
+    setCustomFoods(prev => prev.filter(f => f.id !== id));
+    setSelections(prev => prev.filter(s => s.food.id !== id));
   };
 
   const calculate = () => {
@@ -273,7 +287,37 @@ export default function App() {
             toggleFood={toggleFood}
             updateMult={updateMult}
             inp={inp}
+            customFoods={customFoods}
+            onDeleteCustomFood={handleDeleteCustomFood}
           />
+
+          {/* Custom food form / add button */}
+          {showAddForm ? (
+            <CustomFoodForm
+              onSave={handleAddCustomFood}
+              onCancel={() => setShowAddForm(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowAddForm(true)}
+              style={{
+                width: "100%",
+                padding: "11px 14px",
+                marginBottom: 6,
+                border: `1px dashed rgba(14,165,233,0.3)`,
+                borderRadius: 10,
+                background: "transparent",
+                color: C.muted,
+                fontFamily: "'IBM Plex Mono',monospace",
+                fontSize: 12,
+                cursor: "pointer",
+                textAlign: "center",
+                transition: "all 0.15s",
+              }}
+            >
+              + Ajouter un aliment personnalisé
+            </button>
+          )}
         </>)}
 
         {/* === SAISIE === */}
