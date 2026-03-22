@@ -35,6 +35,28 @@
   <script type="text/babel">
     const { useState, useMemo } = React;
 
+function useLocalStorage(key, defaultValue) {
+  const fullKey = "insulincalc_v1_" + key;
+  const [value, setValue] = useState(() => {
+    try {
+      const stored = localStorage.getItem(fullKey);
+      if (stored === null) return defaultValue;
+      return JSON.parse(stored);
+    } catch {
+      return defaultValue;
+    }
+  });
+  const setAndStore = (newVal) => {
+    setValue(prev => {
+      const resolved = typeof newVal === "function" ? newVal(prev) : newVal;
+      try {
+        localStorage.setItem(fullKey, JSON.stringify(resolved));
+      } catch { /* quota exceeded — ignore silently */ }
+      return resolved;
+    });
+  };
+  return [value, setAndStore];
+}
 
 // ─── QUANTITY PROFILES ─────────────────────────────────────────────────────
 const QTY_PROFILES = {
@@ -747,17 +769,39 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App(){
   const [tab,        setTab]        = useState("repas");
-  const [glycemia,   setGlycemia]   = useState("");
+  const [glycemia,   setGlycemia]   = useLocalStorage("glycemia", "");
   const [search,     setSearch]     = useState("");
   const [openCat,    setOpenCat]    = useState("🥘 Tajines");
   const [expandedId, setExpandedId] = useState(null);
-  const [selections, setSelections] = useState([]);
-  const [ratio,      setRatio]      = useState(10);
-  const [isf,        setIsf]        = useState(50);
-  const [targetG,    setTargetG]    = useState(1.2);
-  const [digestion,  setDigestion]  = useState("normal");
-  const [weight,     setWeight]     = useState("");
+  const [ratio,      setRatio]      = useLocalStorage("ratio", 10);
+  const [isf,        setIsf]        = useLocalStorage("isf", 50);
+  const [targetG,    setTargetG]    = useLocalStorage("targetG", 1.2);
+  const [digestion,  setDigestion]  = useLocalStorage("digestion", "normal");
+  const [weight,     setWeight]     = useLocalStorage("weight", "");
   const [result,     setResult]     = useState(null);
+
+  const [selData, setSelData] = useLocalStorage("selections", []);
+
+  // Rehydrate selections from stored IDs
+  const allFoods = useMemo(() => {
+    const map = {};
+    for (const foods of Object.values(FOOD_DB)) {
+      for (const f of foods) map[f.id] = f;
+    }
+    return map;
+  }, []);
+
+  const [selections, setSelectionsRaw] = useState(() =>
+    selData.map(s => ({ food: allFoods[s.foodId], mult: s.mult })).filter(s => s.food)
+  );
+
+  const setSelections = (updater) => {
+    setSelectionsRaw(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      setSelData(next.map(s => ({ foodId: s.food.id, mult: s.mult })));
+      return next;
+    });
+  };
 
   const weightKg  = parseFloat(weight);
   const weightOk  = !isNaN(weightKg) && weightKg >= 20 && weightKg <= 200;
