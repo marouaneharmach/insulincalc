@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useTheme } from './hooks/useTheme.js';
 import { useI18n } from './i18n/useI18n.js';
-import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR, imcCategory } from './utils/calculations.js';
+import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR } from './utils/calculations.js';
 import { SPACE, FONT, GI_ICON, GI_COLOR, glycColor, glycLabel, stripDiacritics } from './utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants.js';
 import FOOD_DB from './data/foods.js';
@@ -32,10 +32,11 @@ export default function App() {
   const [expandedId, setExpandedId] = useState(null);
   const [ratio, setRatio] = useLocalStorage("ratio", 10);
   const [isf, setIsf] = useLocalStorage("isf", 50);
-  const [targetG, setTargetG] = useLocalStorage("targetG", 1.2);
+  const [targetGMin, setTargetGMin] = useLocalStorage("targetGMin", 0.8);
+  const [targetGMax, setTargetGMax] = useLocalStorage("targetGMax", 1.3);
+  const targetGMid = Math.round(((targetGMin + targetGMax) / 2) * 100) / 100;
   const [digestion, setDigestion] = useLocalStorage("digestion", "normal");
   const [weight, setWeight] = useLocalStorage("weight", "");
-  const [result, setResult] = useState(null);
   const [maxDose, setMaxDose] = useLocalStorage("maxDose", 20);
 
   // Profile fields (Fix #10, #11)
@@ -168,25 +169,25 @@ export default function App() {
     setSelections(prev => prev.filter(s => s.food.id !== id));
   };
 
-  // Auto-calculate (Fix #5)
-  useEffect(() => {
-    if (!canCalc) { setResult(null); return; }
+  // Auto-calculate (Fix #5) — derived state via useMemo
+  const result = useMemo(() => {
+    if (!canCalc) return null;
     const bolusRepas = totalCarbs / ratio;
-    const ecart = gVal - targetG;
-    const correction = ecart > 0 ? (ecart * 10) / isf : 0;
+    const ecart = gVal - targetGMid;
+    const correction = ecart > 0 ? (ecart * 100) / isf : 0;
     const fatBonus = (totalCarbs / ratio) * FAT_FACTOR[dominantFat];
     const total = round05(bolusRepas + correction + fatBonus);
     const hasFat = dominantFat === "élevé" || dominantFat === "moyen";
     const bolusType = hasFat ? "dual" : "standard";
-    const schedule = buildSchedule(totalCarbs, bolusRepas, correction, fatBonus, gVal, targetG, digestion, bolusType, dominantGI);
+    const schedule = buildSchedule(totalCarbs, bolusRepas, correction, fatBonus, gVal, targetGMid, digestion, bolusType, dominantGI);
     const warnings = [];
     if (gVal < 1.0) warnings.push({ t: "w", txt: t("glycemieBasse") });
     if (gVal > 2.0) warnings.push({ t: "w", txt: t("glycemieElevee") });
     if (bolusType === "dual") warnings.push({ t: "i", txt: t("repasGras") });
     if (dominantGI === "élevé") warnings.push({ t: "c", txt: t("igEleve") });
     if (total > 20) warnings.push({ t: "w", txt: t("doseElevee") });
-    setResult({ total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) });
-  }, [canCalc, totalCarbs, ratio, gVal, targetG, isf, dominantFat, dominantGI, digestion, t]);
+    return { total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) };
+  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t]);
 
   // Save to journal when viewing result (Fix #6)
   const saveToJournal = useCallback(() => {
@@ -218,25 +219,30 @@ export default function App() {
   const resetMeal = () => {
     setSelections([]);
     setGlycemia("");
-    setResult(null);
     setExpandedId(null);
     setSearch("");
     setOpenCat(null);
     setTab("repas");
   };
 
-  const handleOnboardingComplete = ({ weight: w, icr, isf: isfVal, targetG: tg }) => {
+  const handleOnboardingComplete = ({ weight: w, icr, isf: isfVal, targetGMin: tgMin, targetGMax: tgMax, patientName: pn, age: a, sex: s, height: h, locale: loc }) => {
     setWeight(String(w));
     setRatio(icr);
     setIsf(isfVal);
-    setTargetG(tg);
+    if (tgMin !== undefined) setTargetGMin(tgMin);
+    if (tgMax !== undefined) setTargetGMax(tgMax);
+    if (pn !== undefined) setPatientName(pn);
+    if (a !== undefined && a !== '') setAge(String(a));
+    if (s !== undefined) setSex(s);
+    if (h !== undefined && h !== '') setHeight(String(h));
+    if (loc !== undefined) setLocale(loc);
     setOnboarded(true);
   };
 
   const handleExportPdf = () => {
     const tirEntries = journal.filter(e => {
       const v = parseFloat(e.glycPre);
-      return !isNaN(v) && v >= 1.0 && v <= 1.8;
+      return !isNaN(v) && v >= targetGMin && v <= targetGMax;
     });
     const glycValues = journal.map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
     const moyenne = glycValues.length > 0 ? (glycValues.reduce((a, b) => a + b, 0) / glycValues.length).toFixed(2) : null;
@@ -251,7 +257,7 @@ export default function App() {
   };
 
   if (!onboarded) {
-    return <Onboarding onComplete={handleOnboardingComplete} t={t} locale={locale} isRTL={isRTL} />;
+    return <Onboarding onComplete={handleOnboardingComplete} t={t} locale={locale} setLocale={setLocale} isRTL={isRTL} />;
   }
 
   const isDark = theme === 'dark';
@@ -271,10 +277,20 @@ export default function App() {
         ::-webkit-scrollbar-thumb{background:${cc.border};border-radius:99px;}
       `}</style>
 
+      {/* DISCLAIMER LEGAL */}
+      <div style={{ background: isDark ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.04)', borderBottom: `1px solid ${isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)'}`, padding: '6px 20px' }}>
+        <div style={{ maxWidth: 520, margin: '0 auto', fontSize: 10, color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 1.5, textAlign: 'center' }}>
+          ⚕️ {t("disclaimerBanner")}
+        </div>
+      </div>
+
       {/* HEADER */}
       <div style={{ background: isDark ? "linear-gradient(180deg,#0d1117,transparent)" : 'linear-gradient(180deg,#fff,transparent)', padding: "24px 20px 14px", borderBottom: `1px solid ${cc.faint}` }}>
         <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
+            {patientName && (
+              <div style={{ fontSize: 13, color: cc.accent, marginBottom: 4 }}>{t("bonjour")} {patientName} 👋</div>
+            )}
             <div style={{ fontSize: 21, fontWeight: 700, fontFamily: "'Syne Mono',monospace", color: isDark ? "#e2edf5" : '#1a202c', letterSpacing: -0.5 }}>{t("appName")}</div>
             <div style={{ fontSize: 12, color: cc.muted, letterSpacing: 2, textTransform: "uppercase", marginTop: 3 }}>{t("appSubtitle")}</div>
           </div>
@@ -316,7 +332,7 @@ export default function App() {
                 <input type="number" step="0.1" min="0.1" max="6" placeholder="1.40" inputMode="decimal" aria-label={t("glycemieGL")}
                   value={glycemia} onChange={e => setGlycemia(e.target.value)}
                   style={{ ...inp, fontSize: 20, padding: "10px 8px", fontWeight: 700, color: glycColor(gVal), textAlign: "center", borderRadius: 10 }} />
-                {glycOk && <div style={{ fontSize: 12, color: glycColor(gVal), marginTop: 4, textAlign: "center" }}>{glycLabel(gVal)} · {t("ecartCible").toLowerCase()} {gVal > targetG ? "+" : ""}{(gVal - targetG).toFixed(2)}</div>}
+                {glycOk && <div style={{ fontSize: 12, color: glycColor(gVal), marginTop: 4, textAlign: "center" }}>{glycLabel(gVal)} · {t("ecartCible").toLowerCase()} {gVal > targetGMid ? "+" : ""}{(gVal - targetGMid).toFixed(2)}</div>}
                 {glycOutOfBounds && (
                   <div style={{ fontSize: 12, color: cc.red, marginTop: 4, textAlign: "center" }}>{t("glycemieHorsBornes")}</div>
                 )}
@@ -438,11 +454,11 @@ export default function App() {
             totalCarbs={totalCarbs}
             digestion={digestion}
             isf={isf}
-            targetG={targetG}
+            targetGMid={targetGMid}
             maxDose={maxDose}
             setTab={setTab}
             onSaveJournal={saveToJournal}
-            t={t} colors={cc} theme={theme} isRTL={isRTL}
+            t={t} colors={cc} theme={theme}
           />
         )}
 
@@ -464,6 +480,62 @@ export default function App() {
                 </button>
               )}
             </div>
+
+            {/* STATS SUMMARY */}
+            {journal.length >= 2 && (() => {
+              const glycVals = journal.map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
+              const doseVals = journal.map(e => e.doseActual || e.doseSuggested || e.dose).filter(v => v != null && !isNaN(v));
+              const avg = glycVals.length > 0 ? (glycVals.reduce((a, b) => a + b, 0) / glycVals.length) : 0;
+              const inRange = glycVals.filter(v => v >= targetGMin && v <= targetGMax).length;
+              const tirPct = glycVals.length > 0 ? Math.round((inRange / glycVals.length) * 100) : 0;
+              const avgDose = doseVals.length > 0 ? (doseVals.reduce((a, b) => a + Number(b), 0) / doseVals.length) : 0;
+              return (
+                <div style={{ ...card, borderColor: `${cc.accent}30` }}>
+                  <div style={{ fontSize: 12, letterSpacing: 2, color: cc.accent, textTransform: 'uppercase', marginBottom: 10 }}>
+                    📊 {t("resumeEvolution")}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textTransform: 'uppercase' }}>{t("moyenne")}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: glycColor(avg), fontFamily: "'Syne Mono',monospace" }}>{avg > 0 ? avg.toFixed(2) : '—'}</div>
+                      <div style={{ fontSize: 10, color: cc.muted }}>g/L</div>
+                    </div>
+                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textTransform: 'uppercase' }}>{t("enCible")}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: tirPct >= 70 ? '#22c55e' : tirPct >= 50 ? '#f59e0b' : '#ef4444', fontFamily: "'Syne Mono',monospace" }}>{glycVals.length > 0 ? `${tirPct}%` : '—'}</div>
+                      <div style={{ fontSize: 10, color: cc.muted }}>{targetGMin.toFixed(1)}–{targetGMax.toFixed(1)}</div>
+                    </div>
+                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textTransform: 'uppercase' }}>{t("doseMoyenne")}</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: cc.accent, fontFamily: "'Syne Mono',monospace" }}>{avgDose > 0 ? avgDose.toFixed(1) : '—'}</div>
+                      <div style={{ fontSize: 10, color: cc.muted }}>U</div>
+                    </div>
+                  </div>
+                  {/* Mini sparkline */}
+                  {glycVals.length >= 3 && (() => {
+                    const pts = journal.slice(0, 20).reverse().map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
+                    const minV = Math.min(0.5, ...pts);
+                    const maxV = Math.max(2.5, ...pts);
+                    const w = 300, h = 60, pad = 4;
+                    const xStep = (w - pad * 2) / (pts.length - 1);
+                    const yScale = (v) => pad + (h - pad * 2) - ((v - minV) / (maxV - minV)) * (h - pad * 2);
+                    const path = pts.map((v, i) => `${i === 0 ? 'M' : 'L'}${(pad + i * xStep).toFixed(1)},${yScale(v).toFixed(1)}`).join(' ');
+                    const yMin = yScale(targetGMin);
+                    const yMax = yScale(targetGMax);
+                    return (
+                      <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', marginTop: 6 }}>
+                        <rect x={pad} y={Math.min(yMin, yMax)} width={w - pad * 2} height={Math.abs(yMin - yMax)} fill="rgba(34,197,94,0.08)" rx={3} />
+                        <path d={path} fill="none" stroke={cc.accent} strokeWidth={2} opacity={0.6} />
+                        {pts.map((v, i) => (
+                          <circle key={i} cx={pad + i * xStep} cy={yScale(v)} r={3} fill={glycColor(v)} stroke={isDark ? '#0A1928' : '#fff'} strokeWidth={1.5} />
+                        ))}
+                      </svg>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
+
             {journal.length === 0 ? (
               <div style={{ ...card, textAlign: 'center', padding: 32 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📓</div>
@@ -481,7 +553,6 @@ export default function App() {
                     {t("glycPre")} : <span style={{ color: glycColor(parseFloat(e.glycPre)), fontWeight: 600 }}>{e.glycPre} {t("uniteGL")}</span>
                     {e.glycPost && <> → {t("glycPost")} : <span style={{ color: glycColor(parseFloat(e.glycPost)), fontWeight: 600 }}>{e.glycPost} {t("uniteGL")}</span></>}
                   </div>
-                  {/* Dose effective (Fix #6) */}
                   <div style={{ fontSize: 12, color: cc.muted, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {t("doseEffective")} : {e.doseActual != null ? (
                       <span style={{ color: cc.accent, fontWeight: 600 }}>{e.doseActual}U</span>
@@ -502,6 +573,16 @@ export default function App() {
                 </div>
               ))
             )}
+
+            {/* Disclaimer en bas du journal */}
+            <div style={{ ...card, marginTop: 8, borderColor: isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)', background: isDark ? 'rgba(239,68,68,0.04)' : 'rgba(239,68,68,0.02)' }}>
+              <div style={{ fontSize: 11, color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 1.6 }}>
+                ⚕️ {t("disclaimerFull")}
+              </div>
+              <div style={{ marginTop: 8, padding: '8px 12px', background: isDark ? 'rgba(14,165,233,0.08)' : 'rgba(14,165,233,0.04)', borderRadius: 8, border: `1px solid ${cc.accent}30`, textAlign: 'center' }}>
+                <span style={{ fontSize: 12, color: cc.accent, fontWeight: 600 }}>📞 {t("contactMedecin")}</span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -510,7 +591,9 @@ export default function App() {
           <ReglagesPanel
             ratio={ratio} setRatio={setRatio}
             isf={isf} setIsf={setIsf}
-            targetG={targetG} setTargetG={setTargetG}
+            targetGMin={targetGMin} setTargetGMin={setTargetGMin}
+            targetGMax={targetGMax} setTargetGMax={setTargetGMax}
+            targetGMid={targetGMid}
             digestion={digestion} setDigestion={setDigestion}
             maxDose={maxDose} setMaxDose={setMaxDose}
             patientName={patientName} setPatientName={setPatientName}

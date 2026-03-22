@@ -3,8 +3,26 @@ import { DIGESTION_PROFILES } from '../data/constants.js';
 import { requestNotificationPermission } from '../utils/notifications.js';
 import { imcCategory } from '../utils/calculations.js';
 
+function ToggleSwitch({ on, onToggle, accentColor, fallbackAccent, isDark }) {
+  return (
+    <button onClick={onToggle} style={{
+      width: 48, height: 26, borderRadius: 13, border: 'none',
+      background: on ? (accentColor || fallbackAccent) : (isDark ? '#1c2a38' : '#cbd5e1'),
+      position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+    }}>
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        position: 'absolute', top: 3,
+        left: on ? 25 : 3, transition: 'left 0.2s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      }} />
+    </button>
+  );
+}
+
 export default function ReglagesPanel({
-  ratio, setRatio, isf, setIsf, targetG, setTargetG,
+  ratio, setRatio, isf, setIsf,
+  targetGMin, setTargetGMin, targetGMax, setTargetGMax, targetGMid,
   digestion, setDigestion, maxDose, setMaxDose,
   patientName, setPatientName,
   theme, toggleTheme, colors,
@@ -45,20 +63,6 @@ export default function ReglagesPanel({
     }
   };
 
-  const ToggleSwitch = ({ on, onToggle, accentColor }) => (
-    <button onClick={onToggle} style={{
-      width: 48, height: 26, borderRadius: 13, border: 'none',
-      background: on ? (accentColor || cc.accent) : (isDark ? '#1c2a38' : '#cbd5e1'),
-      position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
-    }}>
-      <div style={{
-        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-        position: 'absolute', top: 3,
-        left: on ? 25 : 3, transition: 'left 0.2s',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-      }} />
-    </button>
-  );
 
   return (
     <div>
@@ -142,7 +146,7 @@ export default function ReglagesPanel({
             <div style={{ fontSize: 13, color: cc.text, marginBottom: 2 }}>{isDark ? t("modeSombre") : t("modeClair")}</div>
             <div style={{ fontSize: 11, color: cc.muted }}>{t("basculerTheme")}</div>
           </div>
-          <ToggleSwitch on={!isDark} onToggle={toggleTheme} accentColor="#a78bfa" />
+          <ToggleSwitch on={!isDark} onToggle={toggleTheme} accentColor="#a78bfa" fallbackAccent={cc.accent} isDark={isDark} />
         </div>
       </div>
 
@@ -154,7 +158,7 @@ export default function ReglagesPanel({
             <div style={{ fontSize: 13, color: cc.text, marginBottom: 2 }}>{t("rappelPostRepas")}</div>
             <div style={{ fontSize: 11, color: cc.muted }}>{t("rappelMesurer")}</div>
           </div>
-          <ToggleSwitch on={notifEnabled} onToggle={handleNotifToggle} accentColor="#f59e0b" />
+          <ToggleSwitch on={notifEnabled} onToggle={handleNotifToggle} accentColor="#f59e0b" fallbackAccent={cc.accent} isDark={isDark} />
         </div>
         {permStatus === 'denied' && (
           <div style={{ fontSize: 11, color: cc.red, marginBottom: 10, padding: '6px 10px', borderRadius: 6, background: `${cc.red}12` }}>{t("notifBloquees")}</div>
@@ -196,12 +200,34 @@ export default function ReglagesPanel({
         ))}
 
         <div style={{ marginBottom: 20 }}>
-          <label style={lbl}>{t("glycemieCible")}</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <input type="range" min={1.0} max={1.8} step={0.1} value={targetG} onChange={e => setTargetG(Number(e.target.value))} style={{ flex: 1, accentColor: cc.green }} />
-            <div style={{ ...monoBox(cc.green), fontWeight: 700 }}>{targetG.toFixed(1)} g/L</div>
+          <label style={lbl}>{t("glycemieCiblePlage")}</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textAlign: "center" }}>{t("cibleMin")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input type="range" min={0.6} max={1.2} step={0.1} value={targetGMin} onChange={e => {
+                  const v = Number(e.target.value);
+                  setTargetGMin(v);
+                  if (v >= targetGMax) setTargetGMax(Math.min(v + 0.2, 2.0));
+                }} style={{ flex: 1, accentColor: "#22c55e" }} />
+                <div style={{ ...monoBox("#22c55e"), fontWeight: 700, minWidth: 70 }}>{targetGMin.toFixed(1)}</div>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textAlign: "center" }}>{t("cibleMax")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input type="range" min={1.0} max={2.0} step={0.1} value={targetGMax} onChange={e => {
+                  const v = Number(e.target.value);
+                  setTargetGMax(v);
+                  if (v <= targetGMin) setTargetGMin(Math.max(v - 0.2, 0.6));
+                }} style={{ flex: 1, accentColor: "#22c55e" }} />
+                <div style={{ ...monoBox("#22c55e"), fontWeight: 700, minWidth: 70 }}>{targetGMax.toFixed(1)}</div>
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: cc.green, marginTop: 6, fontWeight: 700 }}>{t("votreCible")} : {targetG.toFixed(1)} g/L</div>
+          <div style={{ fontSize: 12, color: cc.green, fontWeight: 700, textAlign: "center", padding: "8px", background: isDark ? "#070c12" : '#f1f5f9', borderRadius: 8, border: `1px solid ${cc.green}33` }}>
+            {t("votreCible")} : {targetGMin.toFixed(1)} — {targetGMax.toFixed(1)} g/L ({t("correctionVers")} {targetGMid.toFixed(2)} g/L)
+          </div>
         </div>
 
         <div style={{ marginBottom: 8 }}>

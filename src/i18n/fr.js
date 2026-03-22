@@ -146,7 +146,11 @@ const fr = {
   ratioInsulineGlucides: "Ratio insuline / glucides (ICR)",
   facteurCorrection: "Facteur de correction (ISF)",
   glycemieCible: "Glycémie cible",
-  votreCible: "Votre cible",
+  glycemieCiblePlage: "Plage glycémique cible",
+  cibleMin: "Min (g/L)",
+  cibleMax: "Max (g/L)",
+  correctionVers: "correction vers",
+  votreCible: "Cible",
   digestionDefaut: "Vitesse de digestion par défaut",
   securite: "Sécurité",
   seuilAlerte: "Seuil d'alerte dose maximale",
@@ -167,8 +171,15 @@ const fr = {
   corpulence: "Corpulence",
 
   // Onboarding
-  bienvenue: "Bienvenue sur InsulinCalc",
-  bienvenueDesc: "Calculez vos doses d'insuline adaptées à la cuisine marocaine. Commençons par votre poids.",
+  choixLangue: "Choisissez votre langue",
+  choixLangueDesc: "Vous pourrez la modifier à tout moment dans les Réglages.",
+  votreProfil: "Votre profil",
+  votreProfilDesc: "Ces informations sont optionnelles mais améliorent la précision des calculs.",
+  nomPlaceholder: "Votre nom ou prénom",
+  optionnelPourPdf: "Optionnel · affiché dans l'export PDF",
+  ans: "ans",
+  bienvenue: "Votre poids",
+  bienvenueDesc: "Le poids permet d'estimer vos doses d'insuline. Commençons par là.",
   votrePoids: "⚖ Votre poids (kg)",
   continuer: "Continuer →",
   ajustezParams: "Ajustez vos paramètres",
@@ -235,6 +246,19 @@ const fr = {
   moyenne: "Moyenne",
   tirLabel: "Temps dans la cible",
   hba1cEstimee: "HbA1c estimée",
+
+  // Journal stats
+  resumeEvolution: "Évolution",
+  enCible: "En cible",
+  doseMoyenne: "Dose moy.",
+
+  // Greeting
+  bonjour: "Bonjour",
+
+  // Legal disclaimer
+  disclaimerBanner: "Outil indicatif uniquement. Ne remplace pas l'avis médical. Consultez votre endocrinologue avant toute modification de traitement.",
+  disclaimerFull: "Les doses et mesures affichées sont strictement à titre indicatif et ne constituent en aucun cas un avis médical. L'utilisateur est seul responsable de l'utilisation de ces informations. En cas de doute, contactez immédiatement votre médecin ou votre équipe soignante. Ne modifiez jamais votre traitement sans l'accord de votre endocrinologue.",
+  contactMedecin: "En cas de doute, consultez votre médecin",
 };
 
 export default fr;

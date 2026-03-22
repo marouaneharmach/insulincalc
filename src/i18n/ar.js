@@ -146,7 +146,11 @@ const ar = {
   ratioInsulineGlucides: "نسبة الأنسولين / الكربوهيدرات (ICR)",
   facteurCorrection: "عامل التصحيح (ISF)",
   glycemieCible: "نسبة السكر المستهدفة",
-  votreCible: "هدفك",
+  glycemieCiblePlage: "نطاق السكر المستهدف",
+  cibleMin: "الحد الأدنى (غ/ل)",
+  cibleMax: "الحد الأقصى (غ/ل)",
+  correctionVers: "تصحيح نحو",
+  votreCible: "الهدف",
   digestionDefaut: "سرعة الهضم الافتراضية",
   securite: "الأمان",
   seuilAlerte: "حد التنبيه للجرعة القصوى",
@@ -167,8 +171,15 @@ const ar = {
   corpulence: "البنية الجسدية",
 
   // Onboarding
-  bienvenue: "مرحباً في InsulinCalc",
-  bienvenueDesc: "احسب جرعات الأنسولين المناسبة للمطبخ المغربي. لنبدأ بوزنك.",
+  choixLangue: "اختر لغتك",
+  choixLangueDesc: "يمكنك تغييرها في أي وقت من الإعدادات.",
+  votreProfil: "ملفك الشخصي",
+  votreProfilDesc: "هذه المعلومات اختيارية لكنها تحسّن دقة الحسابات.",
+  nomPlaceholder: "اسمك أو لقبك",
+  optionnelPourPdf: "اختياري · يظهر في تصدير PDF",
+  ans: "سنة",
+  bienvenue: "وزنك",
+  bienvenueDesc: "يُستخدم الوزن لتقدير جرعات الأنسولين. لنبدأ من هنا.",
   votrePoids: "⚖ وزنك (كغ)",
   continuer: "← متابعة",
   ajustezParams: "اضبط إعداداتك",
@@ -235,6 +246,19 @@ const ar = {
   moyenne: "المتوسط",
   tirLabel: "الوقت في النطاق",
   hba1cEstimee: "HbA1c المقدّرة",
+
+  // Journal stats
+  resumeEvolution: "التطور",
+  enCible: "في النطاق",
+  doseMoyenne: "متوسط الجرعة",
+
+  // Greeting
+  bonjour: "مرحباً",
+
+  // Legal disclaimer
+  disclaimerBanner: "أداة إرشادية فقط. لا تغني عن الاستشارة الطبية. استشر طبيب الغدد قبل أي تعديل في العلاج.",
+  disclaimerFull: "الجرعات والقياسات المعروضة هي لأغراض إرشادية فقط ولا تشكل بأي حال استشارة طبية. المستخدم هو المسؤول الوحيد عن استخدام هذه المعلومات. في حالة الشك، اتصل فوراً بطبيبك أو فريقك الطبي. لا تغيّر علاجك أبداً بدون موافقة طبيب الغدد.",
+  contactMedecin: "في حالة الشك، استشر طبيبك",
 };
 
 export default ar;

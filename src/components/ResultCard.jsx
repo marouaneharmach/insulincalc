@@ -4,7 +4,7 @@ import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants.js';
 import InjectionStep from './InjectionStep.jsx';
 import PostMealCorrector from './PostMealCorrector.jsx';
 
-export default function ResultCard({ result, selections, totalCarbs, digestion, isf, targetG, maxDose, setTab, onSaveJournal, t, colors, theme, isRTL }) {
+export default function ResultCard({ result, selections, totalCarbs, digestion, isf, targetGMid, maxDose, setTab, onSaveJournal, t, colors, theme }) {
   const cc = colors || {};
   const isDark = theme === 'dark' || !theme;
   const card = { background: cc.card, border: `1px solid ${cc.border}`, borderRadius: 14, padding: SPACE.xl, marginBottom: SPACE.md };
@@ -71,7 +71,7 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
       </div>
 
       {/* Post-meal corrector */}
-      <PostMealCorrector initialDose={result.total} isf={isf} targetG={targetG} digestionKey={digestion} t={t} colors={cc} theme={theme} />
+      <PostMealCorrector initialDose={result.total} isf={isf} targetG={targetGMid} digestionKey={digestion} t={t} colors={cc} theme={theme} />
 
       {/* Warnings */}
       {result.warnings.length > 0 && (
