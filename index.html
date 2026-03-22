@@ -543,15 +543,15 @@ function QtyStepper({food,mult,onChange}){
   return(
     <div style={{background:"#070c12",border:"1px solid #1c2a38",borderRadius:12,padding:"12px 14px",marginTop:8}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <div><span style={{fontSize:10,color:"#4a6070",letterSpacing:1}}>QUANTITÉ · </span><span style={{fontSize:12,color:"#7dd3fc",fontWeight:700}}>{ai>=0?profile[ai].l:`×${mult}`}</span><span style={{fontSize:10,color:"#4a6070"}}> · {food.unit}</span></div>
-        <div><span style={{fontSize:10,color:"#4a6070"}}>glucides : </span><span style={{fontSize:16,color:"#0ea5e9",fontWeight:700}}>{rc}g</span></div>
+        <div><span style={{fontSize:12,color:"#4a6070",letterSpacing:1}}>QUANTITÉ · </span><span style={{fontSize:12,color:"#7dd3fc",fontWeight:700}}>{ai>=0?profile[ai].l:`×${mult}`}</span><span style={{fontSize:12,color:"#4a6070"}}> · {food.unit}</span></div>
+        <div><span style={{fontSize:12,color:"#4a6070"}}>glucides : </span><span style={{fontSize:16,color:"#0ea5e9",fontWeight:700}}>{rc}g</span></div>
       </div>
       <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
         {profile.map((step,i)=>{const isA=i===ai;return(<button key={i} onClick={()=>onChange(step.m)} style={{flex:1,minWidth:36,padding:"9px 3px",border:`1px solid ${isA?"#0ea5e9":"#1c2a38"}`,borderRadius:8,background:isA?"rgba(14,165,233,0.2)":"#0d1117",color:isA?"#7dd3fc":"#2d3f50",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer",fontWeight:isA?700:400,transition:"all 0.12s"}}>{step.l}</button>);})}
       </div>
       <div style={{marginTop:8}}>
         <div style={{background:"#1c2a38",borderRadius:99,height:4,overflow:"hidden"}}><div style={{width:`${Math.min((mult/3)*100,100)}%`,height:"100%",borderRadius:99,background:"linear-gradient(90deg,#0ea5e9,#38bdf8)",transition:"width 0.25s"}}/></div>
-        <div style={{fontSize:10,color:"#2d3f50",marginTop:4}}>{food.unit} × {mult} = <strong style={{color:"#3d7fa0"}}>{rc}g</strong> glucides{food.note?<span style={{color:"#1a3040"}}> · {food.note}</span>:""}</div>
+        <div style={{fontSize:12,color:"#2d3f50",marginTop:4}}>{food.unit} × {mult} = <strong style={{color:"#3d7fa0"}}>{rc}g</strong> glucides{food.note?<span style={{color:"#1a3040"}}> · {food.note}</span>:""}</div>
       </div>
     </div>
   );
@@ -567,7 +567,7 @@ function InjectionStep({step,index,total}){
         {index<total-1&&<div style={{width:2,flex:1,minHeight:18,background:"linear-gradient(180deg,#1c2a38,transparent)",marginTop:4}}/>}
       </div>
       <div style={{flex:1,paddingBottom:index<total-1?18:0}}>
-        <div style={{fontSize:9,color:"#3d5a73",letterSpacing:1.5,marginBottom:3,textTransform:"uppercase"}}>{step.time}</div>
+        <div style={{fontSize:12,color:"#3d5a73",letterSpacing:1.5,marginBottom:3,textTransform:"uppercase"}}>{step.time}</div>
         {isInj?(
           <>
             <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:3}}>
@@ -579,7 +579,7 @@ function InjectionStep({step,index,total}){
         ):(
           <div style={{fontSize:13,fontWeight:600,color:step.color,marginBottom:3}}>{step.label}</div>
         )}
-        <div style={{fontSize:10,color:"#2d3f50",fontStyle:"italic"}}>{step.note}</div>
+        <div style={{fontSize:12,color:"#2d3f50",fontStyle:"italic"}}>{step.note}</div>
       </div>
     </div>
   );
@@ -609,15 +609,15 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
 
   return(
     <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:12}}>
-      <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Calculateur post-repas</div>
+      <div style={{fontSize:12,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Calculateur post-repas</div>
       <div style={{fontSize:11,color:"#3d5a73",marginBottom:14}}>Saisissez votre glycémie mesurée après le repas pour obtenir la dose de correction éventuelle.</div>
 
       {/* Time selector */}
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,color:C.muted,letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>Temps écoulé depuis le repas</div>
+        <div style={{fontSize:12,color:C.muted,letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>Temps écoulé depuis le repas</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
           {timeOptions.map(opt=>(
-            <button key={opt.v} onClick={()=>setPmTime(opt.v)} style={{flex:1,minWidth:50,padding:"8px 4px",border:`1px solid ${pmTime===opt.v?"#0ea5e9":C.border}`,borderRadius:8,background:pmTime===opt.v?"rgba(14,165,233,0.15)":"#070c12",color:pmTime===opt.v?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:10,cursor:"pointer",fontWeight:pmTime===opt.v?700:400,transition:"all 0.12s"}}>
+            <button key={opt.v} onClick={()=>setPmTime(opt.v)} style={{flex:1,minWidth:50,padding:"8px 4px",border:`1px solid ${pmTime===opt.v?"#0ea5e9":C.border}`,borderRadius:8,background:pmTime===opt.v?"rgba(14,165,233,0.15)":"#070c12",color:pmTime===opt.v?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer",fontWeight:pmTime===opt.v?700:400,transition:"all 0.12s"}}>
               {opt.l}
             </button>
           ))}
@@ -626,7 +626,7 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
 
       {/* Glycemia input */}
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,color:C.muted,letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>Glycémie mesurée (g/L)</div>
+        <div style={{fontSize:12,color:C.muted,letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>Glycémie mesurée (g/L)</div>
         <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 2.10" value={pmGlycemia} onChange={e=>setPmGlycemia(e.target.value)}
           style={{width:"100%",background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,color:pmG?glycColor(pmG):"#c8d6e5",padding:"12px 14px",fontSize:22,fontFamily:"'IBM Plex Mono',monospace",outline:"none",boxSizing:"border-box",fontWeight:700,textAlign:"center"}}/>
       </div>
@@ -634,14 +634,14 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
       {/* IOB display */}
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         <div style={{flex:1,background:"#070c12",borderRadius:8,padding:"8px 10px",border:`1px solid ${C.faint}`}}>
-          <div style={{fontSize:9,color:C.muted,letterSpacing:1,marginBottom:3}}>INSULINE ENCORE ACTIVE (IOB)</div>
+          <div style={{fontSize:12,color:C.muted,letterSpacing:1,marginBottom:3}}>INSULINE ENCORE ACTIVE (IOB)</div>
           <div style={{fontSize:16,fontWeight:700,color:"#a78bfa"}}>{iob} U</div>
-          <div style={{fontSize:9,color:"#2d3f50",marginTop:2}}>à {tMin} min après injection</div>
+          <div style={{fontSize:12,color:"#2d3f50",marginTop:2}}>à {tMin} min après injection</div>
         </div>
         <div style={{flex:1,background:"#070c12",borderRadius:8,padding:"8px 10px",border:`1px solid ${C.faint}`}}>
-          <div style={{fontSize:9,color:C.muted,letterSpacing:1,marginBottom:3}}>CIBLE</div>
+          <div style={{fontSize:12,color:C.muted,letterSpacing:1,marginBottom:3}}>CIBLE</div>
           <div style={{fontSize:16,fontWeight:700,color:C.green}}>{targetG.toFixed(1)} g/L</div>
-          <div style={{fontSize:9,color:"#2d3f50",marginTop:2}}>glycémie souhaitée</div>
+          <div style={{fontSize:12,color:"#2d3f50",marginTop:2}}>glycémie souhaitée</div>
         </div>
       </div>
 
@@ -674,19 +674,19 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
 
         // ── URGENCE — glycémie ≥ 3.0 g/L malgré IOB ──
         if (corr.status === "urgent_override") return (
-          <div style={{padding:"14px 16px",borderRadius:10,background:"rgba(220,38,38,0.15)",border:"2px solid rgba(220,38,38,0.6)"}}>
+          <div role="alert" style={{padding:"14px 16px",borderRadius:10,background:"rgba(220,38,38,0.15)",border:"2px solid rgba(220,38,38,0.6)"}}>
             <div style={{fontSize:12,letterSpacing:1,color:"#dc2626",marginBottom:8,textTransform:"uppercase"}}>🏥 URGENCE — Correction immédiate obligatoire</div>
             <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:8}}>
               <span style={{fontSize:48,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:"#dc2626",lineHeight:1}}>{corr.units}</span>
               <span style={{fontSize:16,color:C.muted}}>unités à injecter</span>
             </div>
-            <div style={{fontSize:10,color:"#fca5a5",lineHeight:1.7,marginBottom:8}}>
+            <div style={{fontSize:12,color:"#fca5a5",lineHeight:1.7,marginBottom:8}}>
               Glycémie : <strong style={{color:"#dc2626"}}>{pmG.toFixed(1)} g/L</strong> — seuil critique ≥ 3.0 g/L<br/>
               Correction brute : {corr.rawUnits} U · IOB estimé : {iob} U<br/>
               <strong>Dose de sécurité appliquée : 50% du brut malgré l'IOB</strong><br/>
               → Contrôler dans 45 min. Si pas de baisse → re-corriger.
             </div>
-            <div style={{padding:"8px 10px",background:"rgba(220,38,38,0.1)",borderRadius:7,fontSize:10,color:"#fca5a5",borderLeft:"2px solid rgba(220,38,38,0.5)"}}>
+            <div style={{padding:"8px 10px",background:"rgba(220,38,38,0.1)",borderRadius:7,fontSize:12,color:"#fca5a5",borderLeft:"2px solid rgba(220,38,38,0.5)"}}>
               🏥 Consultez immédiatement votre médecin ou urgences si la glycémie persiste au-dessus de 3.0 g/L.
             </div>
           </div>
@@ -700,13 +700,13 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
               <span style={{fontSize:48,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:C.red,lineHeight:1}}>{corr.units}</span>
               <span style={{fontSize:16,color:C.muted}}>unités à injecter</span>
             </div>
-            <div style={{fontSize:10,color:"#fca5a5",lineHeight:1.7,marginBottom:8}}>
+            <div style={{fontSize:12,color:"#fca5a5",lineHeight:1.7,marginBottom:8}}>
               Glycémie : <strong style={{color:C.red}}>{pmG.toFixed(1)} g/L</strong> — seuil sévère 2.5–3.0 g/L<br/>
               Correction brute : {corr.rawUnits} U · IOB estimé : {iob} U<br/>
               <strong>Dose de sécurité : 40% du brut malgré l'IOB</strong><br/>
               → Contrôler dans 45–60 min.
             </div>
-            <div style={{padding:"8px 10px",background:"rgba(239,68,68,0.08)",borderRadius:7,fontSize:10,color:"#fca5a5",borderLeft:"2px solid rgba(239,68,68,0.4)"}}>
+            <div style={{padding:"8px 10px",background:"rgba(239,68,68,0.08)",borderRadius:7,fontSize:12,color:"#fca5a5",borderLeft:"2px solid rgba(239,68,68,0.4)"}}>
               Si la glycémie ne baisse pas dans 1h → consulter votre médecin.
             </div>
           </div>
@@ -726,7 +726,7 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
               <strong>Dose prudente : 30% du brut malgré l'IOB</strong><br/>
               → Contrôler dans 1h. Si pas de baisse significative → re-corriger.
             </div>
-            <div style={{padding:"8px 10px",background:"rgba(249,115,22,0.08)",borderRadius:7,fontSize:10,color:"#fdba74",borderLeft:"2px solid rgba(249,115,22,0.4)"}}>
+            <div style={{padding:"8px 10px",background:"rgba(249,115,22,0.08)",borderRadius:7,fontSize:12,color:"#fdba74",borderLeft:"2px solid rgba(249,115,22,0.4)"}}>
               ⚕️ À 2.0+ g/L, une correction s'impose même avec de l'insuline encore active.
             </div>
           </div>
@@ -735,14 +735,14 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
         // ── CORRECTION NORMALE ──
         return (
           <div style={{padding:"14px 16px",borderRadius:10,background:`${glycColor(pmG)}12`,border:`1px solid ${glycColor(pmG)}44`}}>
-            <div style={{fontSize:10,color:C.muted,letterSpacing:1,marginBottom:6,textTransform:"uppercase"}}>Dose de correction recommandée</div>
+            <div style={{fontSize:12,color:C.muted,letterSpacing:1,marginBottom:6,textTransform:"uppercase"}}>Dose de correction recommandée</div>
             <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
               <span style={{fontSize:52,fontWeight:900,fontFamily:"'Syne Mono',monospace",color:glycColor(pmG),lineHeight:1}}>{corr.units}</span>
               <span style={{fontSize:16,color:C.muted}}>unités</span>
             </div>
             {/* Calculation detail */}
             <div style={{background:"#070c12",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
-              <div style={{fontSize:9,color:"#2d3f50",letterSpacing:1,marginBottom:6}}>DÉTAIL DU CALCUL</div>
+              <div style={{fontSize:12,color:"#2d3f50",letterSpacing:1,marginBottom:6}}>DÉTAIL DU CALCUL</div>
               {[
                 {label:`Glycémie mesurée`,      val:`${pmG.toFixed(1)} g/L`},
                 {label:`Cible`,                 val:`${targetG.toFixed(1)} g/L`},
@@ -756,7 +756,7 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
                 </div>
               ))}
             </div>
-            <div style={{fontSize:10,color:"#2d3f50",padding:"6px 10px",background:"rgba(0,0,0,0.15)",borderRadius:7,borderLeft:`2px solid ${glycColor(pmG)}44`}}>
+            <div style={{fontSize:12,color:"#2d3f50",padding:"6px 10px",background:"rgba(0,0,0,0.15)",borderRadius:7,borderLeft:`2px solid ${glycColor(pmG)}44`}}>
               ⚕️ Vérifiez toujours avec votre médecin avant de corriger.
             </div>
           </div>
@@ -865,7 +865,7 @@ function App(){
   };
 
   const card={background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:12};
-  const lbl={fontSize:10,letterSpacing:2,color:C.muted,textTransform:"uppercase",marginBottom:8,display:"block"};
+  const lbl={fontSize:12,letterSpacing:2,color:C.muted,textTransform:"uppercase",marginBottom:8,display:"block"};
   const inp={width:"100%",background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"11px 14px",fontSize:15,fontFamily:"'IBM Plex Mono',monospace",outline:"none",boxSizing:"border-box"};
 
   return(
@@ -886,12 +886,12 @@ function App(){
         <div style={{maxWidth:520,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div>
             <div style={{fontSize:21,fontWeight:700,fontFamily:"'Syne Mono',monospace",color:"#e2edf5",letterSpacing:-0.5}}>InsulinCalc</div>
-            <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginTop:3}}>Diabète Type 1 · Cuisine marocaine</div>
+            <div style={{fontSize:12,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginTop:3}}>Diabète Type 1 · Cuisine marocaine</div>
           </div>
           <div style={{background:C.adim,border:"1px solid rgba(14,165,233,0.25)",borderRadius:10,padding:"8px 14px",textAlign:"right"}}>
-            <div style={{fontSize:9,color:C.muted,letterSpacing:1}}>GLUCIDES</div>
+            <div style={{fontSize:12,color:C.muted,letterSpacing:1}}>GLUCIDES</div>
             <div style={{fontSize:22,fontWeight:700,color:C.accent,fontFamily:"'Syne Mono',monospace",lineHeight:1.1}}>{totalCarbs}g</div>
-            {selections.length>0&&<div style={{fontSize:9,color:C.muted}}>{selections.length} aliment{selections.length>1?"s":""}</div>}
+            {selections.length>0&&<div style={{fontSize:12,color:C.muted}}>{selections.length} aliment{selections.length>1?"s":""}</div>}
           </div>
         </div>
       </div>
@@ -900,9 +900,9 @@ function App(){
       <div style={{maxWidth:520,margin:"10px auto 0",padding:"0 20px"}}>
         <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:3}}>
           {[{id:"repas",label:"🍽 Repas",badge:selections.length},{id:"saisie",label:"🩸 Saisie"},{id:"resultat",label:"⚡ Résultat"},{id:"params",label:"⚙ Params"}].map(t=>(
-            <button key={t.id} className="tb" onClick={()=>setTab(t.id)} style={{flex:1,padding:"9px 2px",border:"none",borderRadius:8,background:tab===t.id?"#131d2b":"transparent",color:tab===t.id?C.accent:C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:10,cursor:"pointer",position:"relative",transition:"all 0.15s"}}>
+            <button key={t.id} className="tb" aria-label={`Onglet ${t.label}`} onClick={()=>setTab(t.id)} style={{flex:1,padding:"9px 2px",border:"none",borderRadius:8,background:tab===t.id?"#131d2b":"transparent",color:tab===t.id?C.accent:C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer",position:"relative",transition:"all 0.15s"}}>
               {t.label}
-              {t.badge>0&&<span style={{position:"absolute",top:4,right:8,background:C.accent,color:"#fff",borderRadius:99,fontSize:8,padding:"1px 5px",fontWeight:700}}>✓</span>}
+              {t.badge>0&&<span style={{position:"absolute",top:4,right:8,background:C.accent,color:"#fff",borderRadius:99,fontSize:12,padding:"1px 5px",fontWeight:700}}>✓</span>}
             </button>
           ))}
         </div>
@@ -917,19 +917,19 @@ function App(){
             <div style={{display:"flex",gap:10}}>
               {/* Poids */}
               <div style={{flex:1}}>
-                <div style={{fontSize:9,letterSpacing:1.5,color:"#22c55e",marginBottom:6,textTransform:"uppercase"}}>⚖ Poids (kg)</div>
-                <input type="number" step="0.5" min="20" max="200" placeholder="68" inputMode="decimal"
+                <div style={{fontSize:12,letterSpacing:1.5,color:"#22c55e",marginBottom:6,textTransform:"uppercase"}}>⚖ Poids (kg)</div>
+                <input type="number" step="0.5" min="20" max="200" placeholder="68" inputMode="decimal" aria-label="Poids en kg"
                   value={weight} onChange={e=>setWeight(e.target.value)}
                   style={{...inp,fontSize:20,padding:"10px 8px",fontWeight:700,color:weightOk?"#22c55e":"#c8d6e5",textAlign:"center",borderRadius:10}}/>
-                {wSugg&&<div style={{fontSize:8,color:"#22c55e",marginTop:4,textAlign:"center"}}>TDD ~{wSugg.tdd}U/j · ICR 1U/{wSugg.icr}g · ISF {wSugg.isfMg}</div>}
+                {wSugg&&<div style={{fontSize:12,color:"#22c55e",marginTop:4,textAlign:"center"}}>TDD ~{wSugg.tdd}U/j · ICR 1U/{wSugg.icr}g · ISF {wSugg.isfMg}</div>}
               </div>
               {/* Glycémie */}
               <div style={{flex:1}}>
-                <div style={{fontSize:9,letterSpacing:1.5,color:C.accent,marginBottom:6,textTransform:"uppercase"}}>🩸 Glycémie (g/L)</div>
-                <input type="number" step="0.1" min="0.1" max="6" placeholder="1.40" inputMode="decimal"
+                <div style={{fontSize:12,letterSpacing:1.5,color:C.accent,marginBottom:6,textTransform:"uppercase"}}>🩸 Glycémie (g/L)</div>
+                <input type="number" step="0.1" min="0.1" max="6" placeholder="1.40" inputMode="decimal" aria-label="Glycémie en g/L"
                   value={glycemia} onChange={e=>setGlycemia(e.target.value)}
                   style={{...inp,fontSize:20,padding:"10px 8px",fontWeight:700,color:glycColor(gVal),textAlign:"center",borderRadius:10}}/>
-                {glycOk&&<div style={{fontSize:8,color:glycColor(gVal),marginTop:4,textAlign:"center"}}>{glycLabel(gVal)} · écart {gVal>targetG?"+":""}{(gVal-targetG).toFixed(2)}</div>}
+                {glycOk&&<div style={{fontSize:12,color:glycColor(gVal),marginTop:4,textAlign:"center"}}>{glycLabel(gVal)} · écart {gVal>targetG?"+":""}{(gVal-targetG).toFixed(2)}</div>}
                 {glycOutOfBounds && (
                   <div style={{fontSize:12,color:C.red,marginTop:4,textAlign:"center"}}>
                     Glycémie hors bornes (0.3 — 6.0 g/L)
@@ -940,22 +940,22 @@ function App(){
             {/* Boutons appliquer si poids saisi */}
             {wSugg&&(
               <div style={{display:"flex",gap:6,marginTop:10}}>
-                <button onClick={()=>setRatio(wSugg.icr)} style={{flex:1,padding:"6px",border:"1px solid rgba(14,165,233,0.3)",borderRadius:8,background:"rgba(14,165,233,0.06)",color:"#7dd3fc",fontFamily:"'IBM Plex Mono',monospace",fontSize:9,cursor:"pointer"}}>
+                <button onClick={()=>setRatio(wSugg.icr)} style={{flex:1,padding:"6px",border:"1px solid rgba(14,165,233,0.3)",borderRadius:8,background:"rgba(14,165,233,0.06)",color:"#7dd3fc",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer"}}>
                   ✓ Ratio 1U/{wSugg.icr}g
                 </button>
-                <button onClick={()=>setIsf(wSugg.isfMg)} style={{flex:1,padding:"6px",border:"1px solid rgba(245,158,11,0.3)",borderRadius:8,background:"rgba(245,158,11,0.06)",color:"#fcd34d",fontFamily:"'IBM Plex Mono',monospace",fontSize:9,cursor:"pointer"}}>
+                <button onClick={()=>setIsf(wSugg.isfMg)} style={{flex:1,padding:"6px",border:"1px solid rgba(245,158,11,0.3)",borderRadius:8,background:"rgba(245,158,11,0.06)",color:"#fcd34d",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer"}}>
                   ✓ ISF {wSugg.isfMg}mg/dL
                 </button>
               </div>
             )}
             {/* Alertes glycémie */}
             {glycOk&&gVal>2.0&&(
-              <div style={{marginTop:8,padding:"6px 10px",borderRadius:8,background:gVal>3.0?"rgba(220,38,38,0.15)":gVal>2.5?"rgba(239,68,68,0.12)":"rgba(249,115,22,0.1)",border:`1px solid ${gVal>3.0?"rgba(220,38,38,0.5)":gVal>2.5?"rgba(239,68,68,0.4)":"rgba(249,115,22,0.3)"}`,fontSize:10,color:gVal>2.5?"#fca5a5":"#fdba74"}}>
+              <div style={{marginTop:8,padding:"6px 10px",borderRadius:8,background:gVal>3.0?"rgba(220,38,38,0.15)":gVal>2.5?"rgba(239,68,68,0.12)":"rgba(249,115,22,0.1)",border:`1px solid ${gVal>3.0?"rgba(220,38,38,0.5)":gVal>2.5?"rgba(239,68,68,0.4)":"rgba(249,115,22,0.3)"}`,fontSize:12,color:gVal>2.5?"#fca5a5":"#fdba74"}}>
                 {gVal>3.0?"🏥":"🚨"} Glycémie {gVal.toFixed(1)} g/L — {gVal>3.0?"URGENCE MÉDICALE":"correction nécessaire"}
               </div>
             )}
             {glycOk&&gVal<0.8&&(
-              <div style={{marginTop:8,padding:"6px 10px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",fontSize:10,color:"#fca5a5"}}>
+              <div style={{marginTop:8,padding:"6px 10px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",fontSize:12,color:"#fca5a5"}}>
                 🚨 Hypoglycémie — Prendre du sucre immédiatement
               </div>
             )}
@@ -969,9 +969,9 @@ function App(){
                   <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:`1px solid ${C.faint}`}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:12,color:"#9ab8cc",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.food.name}</div>
-                      <div style={{fontSize:10,color:C.muted,marginTop:1}}>{GI_ICON[s.food.gi]} IG {s.food.gi}{s.mult!==1&&<span style={{color:"#0ea5e9"}}> · {(QTY_PROFILES[s.food.qty]||QTY_PROFILES["plat"]).find(p=>Math.abs(p.m-s.mult)<0.01)?.l||`×${s.mult}`}</span>}</div>
+                      <div style={{fontSize:12,color:C.muted,marginTop:1}}>{GI_ICON[s.food.gi]} IG {s.food.gi}{s.mult!==1&&<span style={{color:"#0ea5e9"}}> · {(QTY_PROFILES[s.food.qty]||QTY_PROFILES["plat"]).find(p=>Math.abs(p.m-s.mult)<0.01)?.l||`×${s.mult}`}</span>}</div>
                     </div>
-                    <button onClick={()=>setExpandedId(expandedId===s.food.id?null:s.food.id)} style={{background:expandedId===s.food.id?"rgba(14,165,233,0.15)":"#131d2b",border:`1px solid ${expandedId===s.food.id?"#0ea5e9":C.border}`,borderRadius:7,color:expandedId===s.food.id?C.accent:C.muted,fontSize:10,padding:"5px 9px",cursor:"pointer",whiteSpace:"nowrap"}}>
+                    <button onClick={()=>setExpandedId(expandedId===s.food.id?null:s.food.id)} style={{background:expandedId===s.food.id?"rgba(14,165,233,0.15)":"#131d2b",border:`1px solid ${expandedId===s.food.id?"#0ea5e9":C.border}`,borderRadius:7,color:expandedId===s.food.id?C.accent:C.muted,fontSize:12,padding:"5px 9px",cursor:"pointer",whiteSpace:"nowrap"}}>
                       {(QTY_PROFILES[s.food.qty]||QTY_PROFILES["plat"]).find(p=>Math.abs(p.m-s.mult)<0.01)?.l||`×${s.mult}`} ✎
                     </button>
                     <div style={{fontSize:13,color:C.accent,minWidth:40,textAlign:"right",fontWeight:700}}>{Math.round(s.food.carbs*s.mult)}g</div>
@@ -987,7 +987,7 @@ function App(){
               <div style={{display:"flex",gap:8,marginTop:10}}>
                 {[{label:"INDEX GLYCÉMIQUE",val:dominantGI,color:GI_COLOR[dominantGI],icon:GI_ICON[dominantGI]},{label:"GRAISSES",val:dominantFat,color:dominantFat==="élevé"?C.yellow:dominantFat==="moyen"?"#a78bfa":C.green,icon:dominantFat==="élevé"?"🔶":dominantFat==="moyen"?"🟣":"🟢"}].map((it,i)=>(
                   <div key={i} style={{flex:1,background:"#070c12",borderRadius:8,padding:"8px 10px"}}>
-                    <div style={{fontSize:9,color:C.muted,marginBottom:3}}>{it.label}</div>
+                    <div style={{fontSize:12,color:C.muted,marginBottom:3}}>{it.label}</div>
                     <div style={{fontSize:12,color:it.color,fontWeight:600}}>{it.icon} {it.val.charAt(0).toUpperCase()+it.val.slice(1)}</div>
                   </div>
                 ))}
@@ -1003,7 +1003,7 @@ function App(){
                 <button key={key} onClick={()=>setDigestion(key)} style={{padding:"10px",border:`1px solid ${digestion===key?"#0ea5e9":C.border}`,borderRadius:10,background:digestion===key?"rgba(14,165,233,0.12)":"#070c12",color:digestion===key?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
                   <div style={{fontSize:16,marginBottom:4}}>{dp.icon}</div>
                   <div style={{fontWeight:digestion===key?700:400,marginBottom:2}}>{dp.label}</div>
-                  <div style={{fontSize:9,color:digestion===key?"#4a8fa8":"#2d3f50",lineHeight:1.3}}>Pic {dp.peakMin}min · Fin {Math.round(dp.tail/60*10)/10}h</div>
+                  <div style={{fontSize:12,color:digestion===key?"#4a8fa8":"#2d3f50",lineHeight:1.3}}>Pic {dp.peakMin}min · Fin {Math.round(dp.tail/60*10)/10}h</div>
                 </button>
               ))}
             </div>
@@ -1011,7 +1011,7 @@ function App(){
 
           {/* Search + food list */}
           <div style={{position:"relative",marginBottom:12}}>
-            <input type="text" placeholder="🔍  Rechercher un aliment ou un plat..." value={search} onChange={e=>setSearch(e.target.value)} style={inp}/>
+            <input type="text" placeholder="🔍  Rechercher un aliment ou un plat..." aria-label="Rechercher un aliment" value={search} onChange={e=>setSearch(e.target.value)} style={inp}/>
             {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:18}}>×</button>}
           </div>
           {Object.entries(filteredDB).map(([cat,foods])=>{
@@ -1020,14 +1020,14 @@ function App(){
             return(
               <div key={cat} style={{marginBottom:6}}>
                 <button className="cb" onClick={()=>setOpenCat(isOpen&&!search?null:cat)} style={{width:"100%",background:C.card,border:`1px solid ${selCount>0?"rgba(14,165,233,0.35)":C.border}`,borderRadius:isOpen?"10px 10px 0 0":10,padding:"11px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",color:isOpen?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:12,cursor:"pointer",transition:"color 0.15s"}}>
-                  <span>{cat}<span style={{fontSize:10,color:"#2d3f50",marginLeft:6}}>({foods.length})</span>{selCount>0&&<span style={{marginLeft:8,background:C.accent,color:"#fff",borderRadius:99,fontSize:9,padding:"1px 6px"}}>{selCount}</span>}</span>
-                  <span style={{fontSize:10,color:C.muted}}>{isOpen?"▲":"▼"}</span>
+                  <span>{cat}<span style={{fontSize:12,color:"#2d3f50",marginLeft:6}}>({foods.length})</span>{selCount>0&&<span style={{marginLeft:8,background:C.accent,color:"#fff",borderRadius:99,fontSize:12,padding:"1px 6px"}}>{selCount}</span>}</span>
+                  <span style={{fontSize:12,color:C.muted}}>{isOpen?"▲":"▼"}</span>
                 </button>
                 {isOpen&&(
                   <div style={{background:"#070c12",border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
                     <div style={{display:"flex",padding:"5px 14px",borderBottom:`1px solid ${C.faint}`}}>
-                      <div style={{flex:1,fontSize:9,color:"#2d3f50",letterSpacing:1}}>ALIMENT · PORTION DE BASE</div>
-                      <div style={{fontSize:9,color:"#2d3f50",letterSpacing:1,minWidth:80,textAlign:"right"}}>IG · GLUCIDES</div>
+                      <div style={{flex:1,fontSize:12,color:"#2d3f50",letterSpacing:1}}>ALIMENT · PORTION DE BASE</div>
+                      <div style={{fontSize:12,color:"#2d3f50",letterSpacing:1,minWidth:80,textAlign:"right"}}>IG · GLUCIDES</div>
                     </div>
                     {foods.map((food,i)=>{
                       const sel=selections.find(s=>s.food.id===food.id);
@@ -1035,13 +1035,13 @@ function App(){
                       return(
                         <div key={food.id}>
                           <div className="fr" onClick={()=>toggleFood(food)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",borderBottom:(!isExp&&i<foods.length-1)?`1px solid ${C.faint}`:"none",background:sel?"rgba(14,165,233,0.06)":"transparent",transition:"background 0.12s"}}>
-                            <div style={{width:18,height:18,borderRadius:4,flexShrink:0,border:`1.5px solid ${sel?C.accent:C.border}`,background:sel?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",transition:"all 0.12s"}}>{sel?"✓":""}</div>
+                            <div style={{width:18,height:18,borderRadius:4,flexShrink:0,border:`1.5px solid ${sel?C.accent:C.border}`,background:sel?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff",transition:"all 0.12s"}}>{sel?"✓":""}</div>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{fontSize:12,color:sel?"#7dd3fc":"#8aa8bd",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{food.name}</div>
-                              <div style={{fontSize:10,color:"#2d3f50",marginTop:1}}>{food.unit}{food.note?<span style={{color:"#1a3040"}}> · {food.note}</span>:""}</div>
+                              <div style={{fontSize:12,color:"#2d3f50",marginTop:1}}>{food.unit}{food.note?<span style={{color:"#1a3040"}}> · {food.note}</span>:""}</div>
                             </div>
                             <div style={{textAlign:"right",flexShrink:0}}>
-                              <div style={{fontSize:11}}>{GI_ICON[food.gi]}</div>
+                              <div style={{fontSize:12}}>{GI_ICON[food.gi]} <span style={{fontSize:12,color:GI_COLOR[food.gi]}}>{food.gi}</span></div>
                               <div style={{fontSize:13,color:sel?C.accent:"#4a6070",fontWeight:sel?700:400}}>{food.carbs}g</div>
                             </div>
                           </div>
@@ -1060,11 +1060,11 @@ function App(){
         {tab==="saisie"&&(<>
           {/* ── GLYCÉMIE ── */}
           <div style={card}>
-            <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Glycémie actuelle</div>
-            <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 1.40" inputMode="decimal"
+            <div style={{fontSize:12,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>🩸 Glycémie actuelle</div>
+            <input type="number" step="0.1" min="0.1" max="6" placeholder="ex : 1.40" inputMode="decimal" aria-label="Glycémie en g/L"
               value={glycemia} onChange={e=>setGlycemia(e.target.value)}
               style={{...inp,fontSize:34,padding:14,fontWeight:700,color:glycColor(gVal),textAlign:"center",borderRadius:12}}/>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#2d3f50"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:12,color:"#2d3f50"}}>
               <span>min : 0.5</span><span>unité : g/L</span><span>max : 6.0</span>
             </div>
             {glycOutOfBounds && (
@@ -1077,7 +1077,7 @@ function App(){
                 <div style={{background:C.faint,borderRadius:99,height:8,overflow:"hidden"}}>
                   <div style={{width:`${Math.min((gVal/5)*100,100)}%`,height:"100%",borderRadius:99,background:`linear-gradient(90deg,${C.green},${glycColor(gVal)})`,transition:"all 0.4s"}}/>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:5,fontSize:9,color:C.muted}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:5,fontSize:12,color:C.muted}}>
                   <span>0.5</span>
                   <span style={{color:C.green}}>cible : {targetG.toFixed(1)} g/L</span>
                   <span>5.0</span>
@@ -1085,11 +1085,11 @@ function App(){
               </div>
               <div style={{marginTop:10,display:"flex",gap:8}}>
                 <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:`${glycColor(gVal)}18`,border:`1px solid ${glycColor(gVal)}44`,textAlign:"center"}}>
-                  <div style={{fontSize:9,color:C.muted,marginBottom:3}}>STATUT</div>
+                  <div style={{fontSize:12,color:C.muted,marginBottom:3}}>STATUT</div>
                   <div style={{fontSize:12,fontWeight:700,color:glycColor(gVal)}}>{glycLabel(gVal)}</div>
                 </div>
                 <div style={{flex:1,padding:"10px 12px",borderRadius:10,background:"#070c12",border:`1px solid ${C.faint}`,textAlign:"center"}}>
-                  <div style={{fontSize:9,color:C.muted,marginBottom:3}}>ÉCART / CIBLE</div>
+                  <div style={{fontSize:12,color:C.muted,marginBottom:3}}>ÉCART / CIBLE</div>
                   <div style={{fontSize:12,fontWeight:700,color:gVal>targetG?C.red:gVal<targetG?C.yellow:C.green}}>
                     {gVal>targetG?"+":""}{(gVal-targetG).toFixed(2)} g/L
                   </div>
@@ -1107,12 +1107,12 @@ function App(){
                 </div>
               )}
               {gVal>3.0&&(
-                <div style={{marginTop:10,padding:"12px 14px",borderRadius:10,background:"rgba(220,38,38,0.15)",border:"2px solid rgba(220,38,38,0.6)",fontSize:12,color:"#fca5a5",fontWeight:700}}>
+                <div role="alert" style={{marginTop:10,padding:"12px 14px",borderRadius:10,background:"rgba(220,38,38,0.15)",border:"2px solid rgba(220,38,38,0.6)",fontSize:12,color:"#fca5a5",fontWeight:700}}>
                   🏥 Glycémie {gVal.toFixed(1)} g/L — URGENCE MÉDICALE. Correction immédiate + consultez votre médecin / urgences si elle persiste.
                 </div>
               )}
               {gVal<0.8&&(
-                <div style={{marginTop:10,padding:"10px 12px",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",fontSize:11,color:"#fca5a5"}}>
+                <div role="alert" style={{marginTop:10,padding:"10px 12px",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",fontSize:11,color:"#fca5a5"}}>
                   🚨 Glycémie &lt; 0.8 g/L — hypoglycémie. Prendre du sucre immédiatement.
                 </div>
               )}
@@ -1121,16 +1121,16 @@ function App(){
 
           {/* ── POIDS ── */}
           <div style={card}>
-            <div style={{fontSize:10,letterSpacing:2,color:"#22c55e",marginBottom:14,textTransform:"uppercase"}}>⚖ Poids corporel</div>
-            <input type="number" step="0.5" min="20" max="200" placeholder="ex : 68" inputMode="decimal"
+            <div style={{fontSize:12,letterSpacing:2,color:"#22c55e",marginBottom:14,textTransform:"uppercase"}}>⚖ Poids corporel</div>
+            <input type="number" step="0.5" min="20" max="200" placeholder="ex : 68" inputMode="decimal" aria-label="Poids en kg"
               value={weight} onChange={e=>setWeight(e.target.value)}
               style={{...inp,fontSize:34,padding:14,fontWeight:700,color:weightOk?"#22c55e":"#c8d6e5",textAlign:"center",borderRadius:12}}/>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#2d3f50"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:12,color:"#2d3f50"}}>
               <span>min : 20 kg</span><span>unité : kg</span><span>max : 200 kg</span>
             </div>
             {wSugg&&(
               <div style={{marginTop:12}}>
-                <div style={{fontSize:9,color:"#22c55e",letterSpacing:1,marginBottom:8}}>DOSES SUGGÉRÉES POUR {weightKg} KG</div>
+                <div style={{fontSize:12,color:"#22c55e",letterSpacing:1,marginBottom:8}}>DOSES SUGGÉRÉES POUR {weightKg} KG</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
                   {[
                     {label:"TDD total/jour",val:`~${wSugg.tdd} U/j`,color:"#7dd3fc",note:"0.5 U × kg"},
@@ -1139,9 +1139,9 @@ function App(){
                     {label:"ISF correction",  val:`${wSugg.isfMg}mg/dL`,color:C.yellow,note:"Règle des 1700"},
                   ].map((it,i)=>(
                     <div key={i} style={{background:"#070c12",borderRadius:10,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:9,color:C.muted,marginBottom:3}}>{it.label}</div>
+                      <div style={{fontSize:12,color:C.muted,marginBottom:3}}>{it.label}</div>
                       <div style={{fontSize:16,fontWeight:700,color:it.color}}>{it.val}</div>
-                      <div style={{fontSize:8,color:"#2d3f50",marginTop:2}}>{it.note}</div>
+                      <div style={{fontSize:12,color:"#2d3f50",marginTop:2}}>{it.note}</div>
                     </div>
                   ))}
                 </div>
@@ -1153,7 +1153,7 @@ function App(){
                     ✓ Appliquer ISF<br/><strong>{wSugg.isfMg} mg/dL</strong>
                   </button>
                 </div>
-                <div style={{marginTop:8,fontSize:9,color:"#2d3f50",padding:"7px 10px",background:"rgba(239,68,68,0.04)",borderRadius:7,borderLeft:"2px solid rgba(239,68,68,0.2)"}}>
+                <div style={{marginTop:8,fontSize:12,color:"#2d3f50",padding:"7px 10px",background:"rgba(239,68,68,0.04)",borderRadius:7,borderLeft:"2px solid rgba(239,68,68,0.2)"}}>
                   ⚕️ Valeurs estimatives — à valider avec votre endocrinologue.
                 </div>
               </div>
@@ -1162,7 +1162,7 @@ function App(){
 
           {/* ── ZONES DE RÉFÉRENCE compactes ── */}
           <div style={{...card,padding:"14px 16px"}}>
-            <div style={{fontSize:10,letterSpacing:2,color:C.muted,marginBottom:10,textTransform:"uppercase"}}>Zones glycémiques (g/L)</div>
+            <div style={{fontSize:12,letterSpacing:2,color:C.muted,marginBottom:10,textTransform:"uppercase"}}>Zones glycémiques (g/L)</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
               {[
                 {zone:"< 0.7",label:"Hypo",color:C.red},
@@ -1178,8 +1178,8 @@ function App(){
                 );
                 return(
                   <div key={i} style={{padding:"8px 4px",borderRadius:8,textAlign:"center",background:isActive?`${z.color}22`:"#070c12",border:`1px solid ${isActive?z.color:C.faint}`,transition:"all 0.3s"}}>
-                    <div style={{fontSize:9,color:z.color,fontWeight:isActive?700:400,marginBottom:2}}>{z.zone}</div>
-                    <div style={{fontSize:8,color:isActive?z.color:"#2d3f50"}}>{z.label}</div>
+                    <div style={{fontSize:12,color:z.color,fontWeight:isActive?700:400,marginBottom:2}}>{z.zone}</div>
+                    <div style={{fontSize:12,color:isActive?z.color:"#2d3f50"}}>{z.label}</div>
                   </div>
                 );
               })}
@@ -1187,7 +1187,7 @@ function App(){
           </div>
 
           {/* ── BOUTON CALCULER ── */}
-          <button onClick={calculate} style={{width:"100%",padding:16,borderRadius:12,cursor:canCalc?"pointer":"not-allowed",background:canCalc?"linear-gradient(135deg,#0ea5e9,#0284c7)":C.card,border:canCalc?"none":`1px solid ${C.border}`,color:canCalc?"#fff":C.muted,fontSize:14,fontWeight:700,fontFamily:"'Syne Mono',monospace",marginBottom:4}}>
+          <button onClick={calculate} aria-label="Lancer le calcul de dose" style={{width:"100%",padding:16,borderRadius:12,cursor:canCalc?"pointer":"not-allowed",background:canCalc?"linear-gradient(135deg,#0ea5e9,#0284c7)":C.card,border:canCalc?"none":`1px solid ${C.border}`,color:canCalc?"#fff":C.muted,fontSize:14,fontWeight:700,fontFamily:"'Syne Mono',monospace",marginBottom:4}}>
             {canCalc
               ? `⚡ Calculer — ${totalCarbs}g glucides · glycémie ${gVal.toFixed(1)} g/L`
               : `⚠ ${!glycOk && !selections.length ? "Saisissez glycémie + sélectionnez des aliments" : !glycOk ? "Saisissez votre glycémie" : "Sélectionnez des aliments (onglet Repas)"}`
@@ -1206,7 +1206,7 @@ function App(){
           ):(<>
             {/* Total */}
             <div style={{...card,borderColor:"rgba(14,165,233,0.3)",background:"linear-gradient(135deg,#0d1117,#0a1520)"}}>
-              <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:10,textTransform:"uppercase"}}>Dose totale calculée</div>
+              <div style={{fontSize:12,letterSpacing:2,color:C.accent,marginBottom:10,textTransform:"uppercase"}}>Dose totale calculée</div>
               {result.total > maxDose && (
                 <div role="alert" style={{padding:"12px 14px",borderRadius:10,background:"rgba(239,68,68,0.15)",border:"2px solid rgba(239,68,68,0.5)",marginBottom:12,fontSize:12,color:"#fca5a5",fontWeight:700}}>
                   ⚠️ Dose inhabituellement élevée ({result.total} U &gt; seuil {maxDose} U) — Vérifiez vos paramètres ou consultez votre médecin.
@@ -1222,7 +1222,7 @@ function App(){
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                 {[{label:"Repas",val:`${result.bolusRepas} U`,color:C.accent},{label:"Correction",val:result.correction>0?`+${result.correction} U`:"—",color:result.correction>0?C.yellow:"#2d3f50"},{label:"Graisses",val:result.fatBonus>0?`+${result.fatBonus} U`:"—",color:result.fatBonus>0?"#a78bfa":"#2d3f50"}].map((it,i)=>(
                   <div key={i} style={{background:"#070c12",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
-                    <div style={{fontSize:9,color:C.muted,marginBottom:3}}>{it.label.toUpperCase()}</div>
+                    <div style={{fontSize:12,color:C.muted,marginBottom:3}}>{it.label.toUpperCase()}</div>
                     <div style={{fontSize:14,color:it.color,fontWeight:700}}>{it.val}</div>
                   </div>
                 ))}
@@ -1232,7 +1232,7 @@ function App(){
             {/* Timeline */}
             <div style={{...card,borderColor:"rgba(14,165,233,0.2)"}}>
               <div style={{...lbl,color:C.accent}}>📅 Calendrier d'injections</div>
-              <div style={{marginBottom:12,padding:"8px 12px",background:"rgba(14,165,233,0.05)",borderRadius:8,fontSize:10,color:C.muted,display:"flex",gap:6,alignItems:"center"}}>
+              <div style={{marginBottom:12,padding:"8px 12px",background:"rgba(14,165,233,0.05)",borderRadius:8,fontSize:12,color:C.muted,display:"flex",gap:6,alignItems:"center"}}>
                 <span>{DIGESTION_PROFILES[digestion].icon}</span>
                 <span>Digestion <strong style={{color:C.accent}}>{DIGESTION_PROFILES[digestion].label}</strong> · Pic {DIGESTION_PROFILES[digestion].peakMin}min · Fin d'action {Math.round(DIGESTION_PROFILES[digestion].tail/60*10)/10}h</span>
               </div>
@@ -1276,7 +1276,7 @@ function App(){
               </div>
             </div>
 
-            <div style={{fontSize:10,color:"#2d3f50",padding:"10px 14px",background:"rgba(14,165,233,0.03)",borderRadius:10,borderLeft:`2px solid ${C.accent}`}}>
+            <div style={{fontSize:12,color:"#2d3f50",padding:"10px 14px",background:"rgba(14,165,233,0.03)",borderRadius:10,borderLeft:`2px solid ${C.accent}`}}>
               ⚕️ Ces calculs sont indicatifs. Ne modifiez jamais votre traitement sans l'accord de votre endocrinologue.
             </div>
           </>)}
@@ -1289,7 +1289,7 @@ function App(){
             {/* Poids saisi dans l'onglet Saisie */}
             {/* MANUAL PARAMS */}
             <div style={card}>
-              <div style={{fontSize:10,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>Paramètres manuels</div>
+              <div style={{fontSize:12,letterSpacing:2,color:C.accent,marginBottom:14,textTransform:"uppercase"}}>Paramètres manuels</div>
 
               {[{label:"Ratio insuline / glucides (ICR)",val:ratio,set:setRatio,min:5,max:25,step:1,display:`1 U / ${ratio}g`,note:`1 unité couvre ${ratio}g de glucides`,color:C.accent},{label:"Facteur de correction (ISF)",val:isf,set:setIsf,min:20,max:100,step:5,display:`${isf} mg/dL`,note:`1 unité baisse de ${isf} mg/dL (${(isf/100).toFixed(2)} g/L)`,color:"#a78bfa"}].map((p,i)=>(
                 <div key={i} style={{marginBottom:20}}>
@@ -1298,7 +1298,7 @@ function App(){
                     <input type="range" min={p.min} max={p.max} step={p.step} value={p.val} onChange={e=>p.set(Number(e.target.value))} style={{flex:1,accentColor:p.color}}/>
                     <div style={{background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,padding:"6px 12px",color:p.color,fontFamily:"'IBM Plex Mono',monospace",fontSize:13,minWidth:90,textAlign:"center"}}>{p.display}</div>
                   </div>
-                  <div style={{color:"#2d3f50",fontSize:10,marginTop:4}}>{p.note}</div>
+                  <div style={{color:"#2d3f50",fontSize:12,marginTop:4}}>{p.note}</div>
                 </div>
               ))}
 
@@ -1314,7 +1314,7 @@ function App(){
                   <div style={{position:"absolute",left:"75%",right:0,height:"100%",borderRadius:"0 99px 99px 0",background:"rgba(245,158,11,0.3)"}}/>
                   <div style={{position:"absolute",top:-4,left:`${Math.min(Math.max(((targetG-1.0)/0.8)*50+25,0),100)}%`,width:14,height:14,borderRadius:"50%",background:C.green,border:"2px solid #07090f",transform:"translateX(-50%)",transition:"left 0.3s"}}/>
                 </div>
-                <div style={{fontSize:10,color:C.green,marginTop:6,fontWeight:700}}>Votre cible : {targetG.toFixed(1)} g/L</div>
+                <div style={{fontSize:12,color:C.green,marginTop:6,fontWeight:700}}>Votre cible : {targetG.toFixed(1)} g/L</div>
               </div>
 
               <div style={{marginBottom:8}}>
@@ -1324,7 +1324,7 @@ function App(){
                     <button key={key} onClick={()=>setDigestion(key)} style={{padding:"10px",border:`1px solid ${digestion===key?"#0ea5e9":C.border}`,borderRadius:10,background:digestion===key?"rgba(14,165,233,0.12)":"#070c12",color:digestion===key?"#7dd3fc":C.muted,fontFamily:"'IBM Plex Mono',monospace",fontSize:11,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
                       <div style={{fontSize:16,marginBottom:3}}>{dp.icon}</div>
                       <div style={{fontWeight:digestion===key?700:400,marginBottom:2}}>{dp.label}</div>
-                      <div style={{fontSize:9,color:digestion===key?"#4a8fa8":"#2d3f50"}}>Pic {dp.peakMin}min · Fin {Math.round(dp.tail/60*10)/10}h</div>
+                      <div style={{fontSize:12,color:digestion===key?"#4a8fa8":"#2d3f50"}}>Pic {dp.peakMin}min · Fin {Math.round(dp.tail/60*10)/10}h</div>
                     </button>
                   ))}
                 </div>
@@ -1349,7 +1349,7 @@ function App(){
       {/* FLOATING CTA */}
       {tab==="repas"&&(
         <div style={{position:"fixed",bottom:0,left:0,right:0,padding:"10px 20px 16px",background:"linear-gradient(0deg,#07090f 60%,transparent)",maxWidth:520,margin:"0 auto"}}>
-          <button onClick={()=>{if(canCalc){calculate();}else if(selections.length>0){setTab("saisie");}}} style={{width:"100%",padding:15,borderRadius:12,cursor:"pointer",background:canCalc?"linear-gradient(135deg,#0ea5e9,#0284c7)":selections.length>0?"linear-gradient(135deg,#1c3a50,#0d2233)":C.card,border:canCalc?"none":`1px solid ${C.border}`,color:canCalc?"#fff":selections.length>0?"#7dd3fc":C.muted,fontSize:13,fontWeight:700,fontFamily:"'Syne Mono',monospace"}}>
+          <button onClick={()=>{if(canCalc){calculate();}else if(selections.length>0){setTab("saisie");}}} aria-label="Lancer le calcul de dose" style={{width:"100%",padding:15,borderRadius:12,cursor:"pointer",background:canCalc?"linear-gradient(135deg,#0ea5e9,#0284c7)":selections.length>0?"linear-gradient(135deg,#1c3a50,#0d2233)":C.card,border:canCalc?"none":`1px solid ${C.border}`,color:canCalc?"#fff":selections.length>0?"#7dd3fc":C.muted,fontSize:13,fontWeight:700,fontFamily:"'Syne Mono',monospace"}}>
             {canCalc?`⚡ Calculer le calendrier — ${totalCarbs}g glucides`:selections.length>0?`→ Saisir glycémie + poids (${totalCarbs}g sélectionnés)`:"← Sélectionner des aliments"}
           </button>
         </div>
