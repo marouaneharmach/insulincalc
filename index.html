@@ -148,6 +148,44 @@ function getDominantGI(sel){
   return Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
+// ─── GLYCEMIA HELPERS ──────────────────────────────────────────────────────
+function glycColor(v) {
+  if (!v || isNaN(v)) return "#2d3f50";
+  if (v < 0.7) return "#ef4444";
+  if (v < 1.0) return "#f97316";
+  if (v <= 1.8) return "#22c55e";
+  if (v <= 2.0) return "#f59e0b";
+  if (v <= 2.5) return "#f97316";
+  if (v <= 3.0) return "#ef4444";
+  return "#dc2626";
+}
+
+function glycLabel(v) {
+  if (!v || isNaN(v)) return "—";
+  if (v < 0.7) return "⚠ Hypoglycémie sévère";
+  if (v < 1.0) return "Limite basse";
+  if (v <= 1.8) return "✓ Zone cible";
+  if (v <= 2.0) return "Élevée";
+  if (v <= 2.5) return "⚠ Hyperglycémie";
+  if (v <= 3.0) return "🚨 Hyper sévère";
+  return "🚨 URGENCE MÉDICALE";
+}
+
+// ─── COLOR PALETTE ─────────────────────────────────────────────────────────
+const C = {
+  bg: "#07090f",
+  card: "#0d1117",
+  border: "#1c2a38",
+  accent: "#0ea5e9",
+  adim: "rgba(14,165,233,0.12)",
+  text: "#c8d6e5",
+  muted: "#4a6070",
+  faint: "#0f161e",
+  green: "#22c55e",
+  yellow: "#f59e0b",
+  red: "#ef4444",
+};
+
 // ─── INJECTION SCHEDULE BUILDER ─────────────────────────────────────────────
 function buildSchedule(totalCarbs,bolusRepas,correction,fatBonus,gVal,targetG,digestionKey,bolusType,dominantGI){
   const dp=DIGESTION_PROFILES[digestionKey];
@@ -546,8 +584,6 @@ function PostMealCorrector({initialDose, isf, targetG, digestionKey}){
     ? calcPostMealCorrection(pmG, targetG, isf, iob)
     : null;
 
-  const glycColor=v=>{if(!v||isNaN(v))return"#2d3f50";if(v<0.7)return"#ef4444";if(v<1.0)return"#f97316";if(v<=1.8)return"#22c55e";if(v<=2.0)return"#f59e0b";if(v<=2.5)return"#f97316";if(v<=3.0)return"#ef4444";return"#dc2626";};
-  const C={accent:"#0ea5e9",green:"#22c55e",yellow:"#f59e0b",red:"#ef4444",muted:"#4a6070",faint:"#0f161e",border:"#1c2a38",card:"#0d1117"};
 
   return(
     <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:12}}>
@@ -746,8 +782,6 @@ function App(){
   const glycOk = !isNaN(gVal)&&gVal>0;
   const canCalc= glycOk&&totalCarbs>0;
 
-  const glycColor=v=>{if(!v||isNaN(v))return"#2d3f50";if(v<0.7)return"#ef4444";if(v<1.0)return"#f97316";if(v<=1.8)return"#22c55e";if(v<=2.0)return"#f59e0b";if(v<=2.5)return"#f97316";if(v<=3.0)return"#ef4444";return"#dc2626";};
-  const glycLabel=v=>{if(!v||isNaN(v))return"—";if(v<0.7)return"⚠ Hypoglycémie sévère";if(v<1.0)return"Limite basse";if(v<=1.8)return"✓ Zone cible";if(v<=2.0)return"Élevée";if(v<=2.5)return"⚠ Hyperglycémie";if(v<=3.0)return"🚨 Hyper sévère";return"🚨 URGENCE MÉDICALE";};
 
   const toggleFood=food=>{
     setSelections(prev=>{
@@ -781,7 +815,6 @@ function App(){
     setTab("resultat");
   };
 
-  const C={bg:"#07090f",card:"#0d1117",border:"#1c2a38",accent:"#0ea5e9",adim:"rgba(14,165,233,0.12)",text:"#c8d6e5",muted:"#4a6070",faint:"#0f161e",green:"#22c55e",yellow:"#f59e0b",red:"#ef4444"};
   const card={background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:12};
   const lbl={fontSize:10,letterSpacing:2,color:C.muted,textTransform:"uppercase",marginBottom:8,display:"block"};
   const inp={width:"100%",background:"#070c12",border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"11px 14px",fontSize:15,fontFamily:"'IBM Plex Mono',monospace",outline:"none",boxSizing:"border-box"};
