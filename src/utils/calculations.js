@@ -1,18 +1,16 @@
-import { FAT_SCORE, DIGESTION_PROFILES } from '../data/constants.js';
+import { FAT_SCORE, DIGESTION_PROFILES, AGE_PROFILES, getAgeGroup } from '../data/constants.js';
 
 // ─── HbA1c ESTIMÉE ───────────────────────────────────────────────────────────
 
 export function estimateHbA1c(entries) {
-  // Collect all glycemia values (pre + post) from entries
   const vals = [];
   entries.forEach(e => {
     if (e.preMealGlycemia != null && !isNaN(e.preMealGlycemia)) vals.push(e.preMealGlycemia);
     if (e.postMealGlycemia != null && !isNaN(e.postMealGlycemia)) vals.push(e.postMealGlycemia);
   });
-  if (vals.length < 30) return null; // pas assez de mesures
+  if (vals.length < 30) return null;
   const avgGL = vals.reduce((s, v) => s + v, 0) / vals.length;
-  const avgMgDL = avgGL * 100; // conversion g/L → mg/dL
-  // Formule ADAG : HbA1c ≈ (moyenne mg/dL + 46.7) / 28.7
+  const avgMgDL = avgGL * 100;
   const hba1c = (avgMgDL + 46.7) / 28.7;
   return Math.round(hba1c * 10) / 10;
 }
@@ -23,7 +21,6 @@ export function detectPatterns(entries) {
   const patterns = [];
   if (!entries || entries.length < 5) return patterns;
 
-  // 1. Hypos récurrentes à la même heure
   const hypoByHour = {};
   entries.forEach(e => {
     if (e.preMealGlycemia != null && e.preMealGlycemia < 0.7) {
@@ -35,62 +32,45 @@ export function detectPatterns(entries) {
   Object.entries(hypoByHour).forEach(([slot, count]) => {
     if (count >= 3) {
       patterns.push({
-        type: "hypo_recurrent",
-        severity: "warning",
-        icon: "⚠️",
+        type: "hypo_recurrent", severity: "warning", icon: "⚠️",
         message: `${count} hypos récurrentes le ${slot} — envisagez de réduire la dose basale ou le ratio pour ce créneau.`,
       });
     }
   });
 
-  // 2. Glycémies à jeun régulièrement hautes
-  const fastingEntries = entries.filter(e =>
-    e.mealType === "petit-déjeuner" && e.preMealGlycemia != null
-  );
+  const fastingEntries = entries.filter(e => e.mealType === "petit-déjeuner" && e.preMealGlycemia != null);
   if (fastingEntries.length >= 5) {
     const highFasting = fastingEntries.filter(e => e.preMealGlycemia > 1.5);
     const pct = (highFasting.length / fastingEntries.length) * 100;
     if (pct >= 60) {
       patterns.push({
-        type: "high_fasting",
-        severity: "info",
-        icon: "🌅",
+        type: "high_fasting", severity: "info", icon: "🌅",
         message: `${Math.round(pct)}% des glycémies à jeun > 1.5 g/L — possible effet de l'aube. Discutez un ajustement de basale nocturne avec votre médecin.`,
       });
     }
   }
 
-  // 3. Post-repas régulièrement haut pour un type de repas
   const mealTypes = ["petit-déjeuner", "déjeuner", "dîner", "collation"];
   mealTypes.forEach(mt => {
-    const mealEntries = entries.filter(e =>
-      e.mealType === mt && e.postMealGlycemia != null
-    );
+    const mealEntries = entries.filter(e => e.mealType === mt && e.postMealGlycemia != null);
     if (mealEntries.length >= 3) {
       const highPost = mealEntries.filter(e => e.postMealGlycemia > 2.0);
       const pct = (highPost.length / mealEntries.length) * 100;
       if (pct >= 60) {
         patterns.push({
-          type: "high_postmeal",
-          severity: "info",
-          icon: "📈",
+          type: "high_postmeal", severity: "info", icon: "📈",
           message: `${Math.round(pct)}% des glycémies post-${mt} > 2.0 g/L — envisagez d'augmenter le ratio ou d'allonger le délai d'injection pour ce repas.`,
         });
       }
     }
   });
 
-  // 4. Écart dose calculée vs injectée
-  const withDoses = entries.filter(e =>
-    e.doseCalculated > 0 && e.doseInjected > 0
-  );
+  const withDoses = entries.filter(e => e.doseCalculated > 0 && e.doseInjected > 0);
   if (withDoses.length >= 5) {
     const underDosed = withDoses.filter(e => e.doseInjected < e.doseCalculated * 0.8);
     if (underDosed.length >= 3) {
       patterns.push({
-        type: "underdosing",
-        severity: "info",
-        icon: "💉",
+        type: "underdosing", severity: "info", icon: "💉",
         message: `Vous injectez souvent moins que la dose calculée (${underDosed.length}/${withDoses.length} repas). Vérifiez vos paramètres ou consultez votre équipe soignante.`,
       });
     }
@@ -103,14 +83,62 @@ export function round05(v) {
   return Math.round(v * 2) / 2;
 }
 
-export function calcWeightSuggestions(weightKg) {
+// ─── IMC / BSA / BMR (Fix #10) ─────────────────────────────────────────────
+
+export function calcIMC(weightKg, heightCm) {
+  if (!weightKg || !heightCm || heightCm < 50) return null;
+  const heightM = heightCm / 100;
+  return Math.round((weightKg / (heightM * heightM)) * 10) / 10;
+}
+
+export function calcBSA(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  // Formule DuBois
+  return Math.round(0.007184 * Math.pow(weightKg, 0.425) * Math.pow(heightCm, 0.725) * 100) / 100;
+}
+
+export function calcBMR(weightKg, heightCm, age, sex) {
+  if (!weightKg || !heightCm || !age) return null;
+  // Mifflin-St Jeor
+  if (sex === "F") {
+    return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161);
+  }
+  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5);
+}
+
+export function imcCategory(imc) {
+  if (!imc) return "";
+  if (imc < 18.5) return "Insuffisance pondérale";
+  if (imc < 25) return "Poids normal";
+  if (imc < 30) return "Surpoids";
+  if (imc < 35) return "Obésité modérée";
+  if (imc < 40) return "Obésité sévère";
+  return "Obésité morbide";
+}
+
+// ─── WEIGHT SUGGESTIONS (updated with age/sex - Fix #11) ────────────────────
+
+export function calcWeightSuggestions(weightKg, age, sex) {
   if (!weightKg || weightKg < 20 || weightKg > 200) return null;
-  const tdd = Math.round(weightKg * 0.5);
-  const icr = Math.round(500 / tdd);
-  const isfMg = Math.round(1700 / tdd);
+
+  const ageGroup = getAgeGroup(age);
+  const profile = AGE_PROFILES[ageGroup];
+
+  // TDD based on age group midpoint
+  const tddPerKg = (profile.tddRange[0] + profile.tddRange[1]) / 2;
+  let tdd = Math.round(weightKg * tddPerKg);
+
+  // Sex adjustment: women ~10-15% more sensitive
+  if (sex === "F") {
+    tdd = Math.round(tdd * 0.88);
+  }
+
+  const icr = Math.round(profile.icrRule / tdd);
+  const isfMg = Math.round(profile.isfRule / tdd);
   const basal = round05(tdd * 0.5);
   const bolus = round05(tdd * 0.5);
-  return { tdd, icr, isfMg, basal, bolus };
+
+  return { tdd, icr, isfMg, basal, bolus, ageGroup, ageLabel: profile.label };
 }
 
 export function calcIOB(initialDose, minutesElapsed, durationMin) {
@@ -169,24 +197,24 @@ export function buildSchedule(totalCarbs, bolusRepas, correction, fatBonus, gVal
   if (bolusType === "standard") {
     const u = round05(bolusRepas + correction);
     const tl = preDelay === 0 ? "Au début du repas" : `${preDelay} min avant le repas`;
-    steps.push({ timeMin: -preDelay, time: tl, units: u, label: "Bolus repas + correction", color: "#0ea5e9", icon: "\u{1F489}", note: `${totalCarbs}g glucides${correction > 0 ? " + correction glycémique" : ""}` });
+    steps.push({ timeMin: -preDelay, time: tl, units: u, label: "Bolus repas + correction", color: "#0ea5e9", icon: "💉", note: `${totalCarbs}g glucides${correction > 0 ? " + correction glycémique" : ""}` });
   }
   if (bolusType === "dual") {
     const u1 = round05((bolusRepas + correction) * 0.6);
     const u2 = round05((bolusRepas + correction) * 0.4 + fatBonus);
     const tl = preDelay === 0 ? "Au début du repas" : `${preDelay} min avant le repas`;
-    steps.push({ timeMin: -preDelay, time: tl, units: u1, label: "Bolus phase 1 \u2014 glucides rapides (60%)", color: "#0ea5e9", icon: "\u{1F489}", note: "Glucides rapides + correction" });
-    steps.push({ timeMin: dp.fatDelay, time: dp.fatDelay === 0 ? "Pendant le repas" : `${dp.fatDelay} min après début du repas`, units: u2, label: "Bolus phase 2 \u2014 glucides lents + graisses (40%)", color: "#f59e0b", icon: "\u26A1", note: "Couvre l'absorption des graisses" });
+    steps.push({ timeMin: -preDelay, time: tl, units: u1, label: "Phase 1 — glucides rapides (60%)", color: "#0ea5e9", icon: "💉", note: "Glucides rapides + correction" });
+    steps.push({ timeMin: dp.fatDelay, time: dp.fatDelay === 0 ? "Pendant le repas" : `${dp.fatDelay} min après début du repas`, units: u2, label: "Phase 2 — graisses (40%)", color: "#f59e0b", icon: "⚡", note: "Couvre l'absorption des graisses" });
   }
 
   const chk1 = dp.peakMin;
   const chk2 = bolusType === "dual" ? Math.round(dp.tail * 0.6) : null;
   const chk3 = dp.tail;
 
-  steps.push({ timeMin: chk1, time: `${chk1} min après le repas`, units: null, label: "Contrôle glycémie \u2014 pic attendu", color: "#a78bfa", icon: "\u{1FA78}", note: `Pic attendu. Si > ${(targetG + 0.5).toFixed(1)} g/L \u2192 correction nécessaire` });
+  steps.push({ timeMin: chk1, time: `${chk1} min après le repas`, units: null, label: "Contrôle — pic attendu", color: "#a78bfa", icon: "🩸", note: `Cible < ${(targetG + 0.5).toFixed(1)} g/L` });
   if (chk2 && bolusType === "dual")
-    steps.push({ timeMin: chk2, time: `${chk2} min après le repas`, units: null, label: "Contrôle glycémie \u2014 digestion graisses", color: "#f59e0b", icon: "\u{1FA78}", note: "Les graisses peuvent encore élever la glycémie" });
-  steps.push({ timeMin: chk3, time: `${Math.round(chk3 / 60 * 10) / 10}h après le repas`, units: null, label: "Contrôle glycémie \u2014 fin d'action", color: "#4a6070", icon: "\u{1FA78}", note: `Insuline quasi-terminée. Cible : ${targetG.toFixed(1)} g/L` });
+    steps.push({ timeMin: chk2, time: `${chk2} min après le repas`, units: null, label: "Contrôle — digestion graisses", color: "#f59e0b", icon: "🩸", note: "Graisses peuvent encore élever la glycémie" });
+  steps.push({ timeMin: chk3, time: `${Math.round(chk3 / 60 * 10) / 10}h après le repas`, units: null, label: "Contrôle — fin d'action", color: "#4a6070", icon: "🩸", note: `Cible : ${targetG.toFixed(1)} g/L` });
   steps.sort((a, b) => a.timeMin - b.timeMin);
   return steps;
 }

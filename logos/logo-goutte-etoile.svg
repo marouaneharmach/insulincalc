@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Goutte & Étoile — InsulinCalc -->
+  <path d="M60 14 C60 14 28 52 28 72 C28 89.6731 42.3269 104 60 104 C77.6731 104 92 89.6731 92 72 C92 52 60 14 60 14Z" fill="url(#grad1)"/>
+  <path d="M60 42 L63.5 54 L76 54 L66 62 L69.5 74 L60 66 L50.5 74 L54 62 L44 54 L56.5 54 Z" fill="rgba(255,255,255,0.2)"/>
+  <line x1="48" y1="82" x2="52" y2="82" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="56" y1="82" x2="64" y2="82" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="68" y1="82" x2="72" y2="82" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="grad1" x1="28" y1="14" x2="92" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+</svg>

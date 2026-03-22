@@ -1,148 +1,61 @@
-import { C } from '../utils/colors.js';
+import { useState } from 'react';
 
-const MAX_FAVORITES = 20;
+export default function FavoriteMeals({ selections, favorites, setFavorites, onLoadFavorite, t, colors, theme }) {
+  const cc = colors || {};
+  const isDark = theme === 'dark' || !theme;
+  const [name, setName] = useState('');
+  const [showSave, setShowSave] = useState(false);
 
-export default function FavoriteMeals({ selections, favorites, setFavorites, onLoadFavorite }) {
-  const atLimit = favorites.length >= MAX_FAVORITES;
-
-  const saveFavorite = () => {
-    if (selections.length === 0) return;
-    if (atLimit) return;
-    const name = window.prompt("Nom du repas favori :");
-    if (!name || !name.trim()) return;
-    const newFav = {
-      id: "fav_" + Date.now(),
+  const handleSave = () => {
+    if (!name.trim() || selections.length === 0) return;
+    const fav = {
+      id: Date.now(),
       name: name.trim(),
       items: selections.map(s => ({ foodId: s.food.id, mult: s.mult })),
-      createdAt: new Date().toISOString(),
+      totalCarbs: Math.round(selections.reduce((a, s) => a + s.food.carbs * s.mult, 0)),
     };
-    setFavorites(prev => [newFav, ...prev]);
+    setFavorites(prev => [fav, ...prev]);
+    setName('');
+    setShowSave(false);
   };
 
-  const deleteFavorite = (id) => {
-    setFavorites(prev => prev.filter(f => f.id !== id));
-  };
-
-  const card = {
-    background: C.card,
-    border: `1px solid ${C.border}`,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-  };
-
-  const lbl = {
-    fontSize: 12,
-    letterSpacing: 2,
-    color: C.muted,
-    textTransform: "uppercase",
-    marginBottom: 8,
-    display: "block",
-  };
+  if (favorites.length === 0 && selections.length === 0) return null;
 
   return (
-    <div style={card}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: favorites.length > 0 ? 10 : 0 }}>
-        <span style={{ ...lbl, marginBottom: 0 }}>Mes repas</span>
-        {selections.length > 0 && (
-          <button
-            onClick={saveFavorite}
-            disabled={atLimit}
-            title={atLimit ? `Limite de ${MAX_FAVORITES} favoris atteinte` : "Sauvegarder ce repas"}
-            style={{
-              padding: "6px 12px",
-              border: `1px solid ${atLimit ? C.border : "rgba(14,165,233,0.4)"}`,
-              borderRadius: 8,
-              background: atLimit ? "transparent" : "rgba(14,165,233,0.08)",
-              color: atLimit ? C.muted : C.accent,
-              fontFamily: "'IBM Plex Mono',monospace",
-              fontSize: 12,
-              cursor: atLimit ? "not-allowed" : "pointer",
-              whiteSpace: "nowrap",
-              opacity: atLimit ? 0.5 : 1,
-            }}
-          >
-            + Sauvegarder ce repas
-          </button>
-        )}
-      </div>
-
-      {atLimit && (
-        <div style={{
-          fontSize: 12,
-          color: C.yellow,
-          background: "rgba(245,158,11,0.08)",
-          border: "1px solid rgba(245,158,11,0.25)",
-          borderRadius: 8,
-          padding: "6px 10px",
-          marginBottom: favorites.length > 0 ? 10 : 0,
-        }}>
-          Limite de {MAX_FAVORITES} favoris atteinte. Supprimez un repas pour en ajouter un nouveau.
+    <div style={{ marginBottom: 12 }}>
+      {/* Save current meal */}
+      {selections.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          {showSave ? (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t ? t("nomDuRepas") : "Nom du repas"} style={{ flex: 1, background: isDark ? '#070c12' : '#f8fafc', border: `1px solid ${cc.border}`, borderRadius: 8, color: cc.text, padding: '9px 12px', fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", outline: 'none' }} />
+              <button onClick={handleSave} style={{ padding: '9px 14px', borderRadius: 8, border: 'none', background: name.trim() ? cc.accent : (cc.card || '#1a2d42'), color: name.trim() ? '#fff' : cc.muted, fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", cursor: name.trim() ? 'pointer' : 'default' }}>✓</button>
+              <button onClick={() => setShowSave(false)} style={{ padding: '9px 10px', borderRadius: 8, border: `1px solid ${cc.border}`, background: 'transparent', color: cc.muted, fontSize: 12, cursor: 'pointer' }}>×</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowSave(true)} style={{ width: '100%', padding: '9px 14px', borderRadius: 8, border: `1px dashed ${cc.accent}40`, background: 'transparent', color: cc.muted, fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", cursor: 'pointer' }}>
+              {t ? t("enregistrerRepas") : "💾 Enregistrer ce repas"}
+            </button>
+          )}
         </div>
       )}
 
-      {favorites.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.muted, textAlign: "center", padding: "10px 0" }}>
-          Aucun repas sauvegardé
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {favorites.map(fav => (
-            <div
-              key={fav.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 10px",
-                background: C.faint,
-                borderRadius: 8,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, color: C.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {fav.name}
-                </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                  {fav.items.length} aliment{fav.items.length > 1 ? "s" : ""}
-                  {" · "}
-                  {new Date(fav.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
-                </div>
+      {/* Show favorites */}
+      {favorites.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, letterSpacing: 1.5, color: cc.muted, textTransform: 'uppercase', marginBottom: 6, paddingLeft: 4 }}>
+            {t ? t("repasFavoris") : "⭐ Repas favoris"}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {favorites.map(fav => (
+              <div key={fav.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, border: `1px solid ${cc.border}`, background: isDark ? '#0d1117' : '#f8fafc' }}>
+                <button onClick={() => onLoadFavorite(fav)} style={{ background: 'none', border: 'none', color: isDark ? '#8aa8bd' : '#334155', fontSize: 11, cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", padding: 0 }}>
+                  {fav.name} <span style={{ color: cc.accent, fontWeight: 700 }}>{fav.totalCarbs}g</span>
+                </button>
+                <button onClick={() => setFavorites(prev => prev.filter(f => f.id !== fav.id))} style={{ background: 'none', border: 'none', color: cc.muted, fontSize: 14, cursor: 'pointer', padding: '0 2px', opacity: 0.5 }}>×</button>
               </div>
-              <button
-                onClick={() => onLoadFavorite(fav)}
-                style={{
-                  padding: "5px 10px",
-                  border: `1px solid rgba(14,165,233,0.3)`,
-                  borderRadius: 7,
-                  background: "rgba(14,165,233,0.06)",
-                  color: "#7dd3fc",
-                  fontFamily: "'IBM Plex Mono',monospace",
-                  fontSize: 12,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Charger
-              </button>
-              <button
-                onClick={() => deleteFavorite(fav.id)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: C.muted,
-                  cursor: "pointer",
-                  fontSize: 18,
-                  padding: "0 2px",
-                  lineHeight: 1,
-                }}
-                title="Supprimer ce favori"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

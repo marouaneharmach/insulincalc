@@ -1,0 +1,240 @@
+const ar = {
+  // App
+  appName: "InsulinCalc",
+  appSubtitle: "السكري النوع 1 · المطبخ المغربي",
+  glucides: "الكربوهيدرات",
+  aliment: "مكوّن",
+  aliments: "مكوّنات",
+
+  // Tabs
+  tabRepas: "🍽 الوجبة",
+  tabSaisie: "🩸 الإدخال",
+  tabResultat: "⚡ النتيجة",
+  tabJournal: "📋 السجل",
+  tabParams: "⚙ الإعدادات",
+
+  // Glycémie
+  glycemie: "نسبة السكر",
+  glycemieGL: "نسبة السكر (غ/ل)",
+  poids: "الوزن (كغ)",
+  poidsKg: "الوزن",
+  uniteGL: "غ/ل",
+  uniteKg: "كغ",
+  min: "أدنى",
+  max: "أقصى",
+  unite: "وحدة",
+  glycemieHorsBornes: "نسبة السكر خارج النطاق (0.3 — 6.0 غ/ل)",
+  glycemieBasse: "نسبة السكر منخفضة ← عدّل التوقيت",
+  glycemieElevee: "نسبة السكر مرتفعة ← راقب بعد ساعتين",
+  hypoglycemie: "نقص السكر — خذ سكر فوراً",
+  urgenceMedicale: "حالة طوارئ طبية",
+  correctionNecessaire: "تصحيح ضروري",
+  hyperglycemie: "ارتفاع السكر",
+  hyperSevere: "ارتفاع حاد في السكر. تصحيح عاجل + مراقبة بعد ساعة.",
+  urgenceMsg: "حالة طوارئ طبية. تصحيح فوري + استشر طبيبك / الطوارئ إذا استمر.",
+  hypoMsg: "نسبة السكر < 0.8 غ/ل — نقص السكر. خذ سكر فوراً.",
+
+  // Glyc labels
+  hypoSevere: "⚠ نقص حاد في السكر",
+  limiteBasse: "الحد الأدنى",
+  zoneCible: "✓ المنطقة المستهدفة",
+  elevee: "مرتفعة",
+  hyperglycemieLabel: "⚠ ارتفاع السكر",
+  hyperSevereLabel: "🚨 ارتفاع حاد",
+  urgenceLabel: "🚨 حالة طوارئ طبية",
+
+  // Food / meal
+  monRepas: "وجبتي",
+  totalGlucides: "مجموع الكربوهيدرات",
+  indexGlycemique: "مؤشر السكر",
+  graisses: "الدهون",
+  vitesseDigestion: "سرعة الهضم المقدّرة",
+  rechercherAliment: "🔍  ابحث عن طعام أو وجبة...",
+  ajouterAlimentPerso: "+ أضف مكوّن مخصص",
+  mesAliments: "⭐ مكوّناتي",
+  recents: "🕐 الأخيرة",
+  suggestions: "💡 اقتراحات",
+  nouveauRepas: "🔄 وجبة جديدة",
+
+  // Digestion
+  picMin: "ذروة",
+  finAction: "نهاية",
+
+  // Calculate
+  calculer: "احسب",
+  calculerMsg: "احسب — {carbs}غ كربوهيدرات · سكر {glyc} غ/ل",
+  saisissezGlycemie: "أدخل نسبة السكر",
+  selectionnezAliments: "اختر المكوّنات",
+  saisissezEtSelectionnez: "أدخل نسبة السكر + اختر المكوّنات",
+
+  // Result
+  doseTotale: "الجرعة الإجمالية المحسوبة",
+  unitesTotales: "وحدات إجمالية",
+  doseInhabituelle: "جرعة مرتفعة بشكل غير عادي ({dose} و > حد {max} و) — تحقق من إعداداتك أو استشر طبيبك.",
+  bolusStandard: "💉 بولس عادي — حقنة واحدة",
+  bolusDual: "⚡ بولس مزدوج — حقنتان",
+  repas: "الوجبة",
+  correction: "التصحيح",
+  calendrierInjections: "📅 جدول الحقن",
+  digestionLabel: "الهضم",
+  avertissements: "التحذيرات",
+  recapitulatif: "ملخص الوجبة",
+  total: "المجموع",
+  glucidesUnit: "كربوهيدرات",
+  disclaimerMedical: "⚕️ هذه الحسابات إرشادية. لا تغيّر علاجك بدون موافقة طبيب الغدد.",
+  imprimerExporter: "🖨 طباعة / تصدير",
+
+  // Bolus types
+  repasGras: "وجبة دسمة ← بولس على مرحلتين",
+  igEleve: "مؤشر سكر مرتفع ← ذروة سريعة (30–45 دقيقة)",
+  doseElevee: "جرعة مرتفعة ← استشر طبيبك",
+
+  // Quantity
+  quantite: "الكمية",
+
+  // Journal
+  journal: "السجل",
+  entree: "إدخال",
+  entrees: "إدخالات",
+  aucuneEntree: "لا توجد إدخالات في السجل",
+  calculsAutoSave: "الحسابات تُسجّل تلقائياً هنا",
+  exporterPdf: "📄 تصدير PDF",
+  glycPre: "سكر قبل",
+  glycPost: "بعد",
+  pasAliments: "لا توجد مكوّنات مسجّلة",
+  doseSuggeree: "الجرعة المقترحة",
+  doseEffective: "الجرعة الفعلية",
+  modifierDose: "تعديل",
+
+  // Saisie
+  glycemieActuelle: "🩸 نسبة السكر الحالية",
+  poidsCorporel: "⚖ وزن الجسم",
+  dosesSuggerees: "الجرعات المقترحة لوزن {weight} كغ",
+  tddTotal: "الجرعة اليومية",
+  basaleJour: "القاعدية / يوم",
+  ratioICR: "نسبة ICR",
+  isfCorrection: "تصحيح ISF",
+  appliquerRatio: "✓ تطبيق النسبة",
+  appliquerISF: "✓ تطبيق ISF",
+  valeursEstimatives: "⚕️ قيم تقديرية — يجب التحقق منها مع طبيب الغدد.",
+  zonesGlycemiques: "مناطق السكر (غ/ل)",
+  hypo: "نقص",
+  bas: "منخفض",
+  cible: "✓ هدف",
+  eleve: "مرتفع",
+  hyper: "فرط",
+  severe: "حاد",
+  urgence: "طوارئ",
+  statut: "الحالة",
+  ecartCible: "الفرق / الهدف",
+
+  // Settings
+  profil: "الملف الشخصي",
+  nomPatient: "اسم المريض",
+  pourExportPdf: "للتصدير PDF",
+  afficheDansEntete: "يظهر في رأس السجل PDF المُصدّر",
+  apparence: "المظهر",
+  modeSombre: "🌙 الوضع الداكن",
+  modeClair: "☀️ الوضع الفاتح",
+  basculerTheme: "التبديل بين الوضع الفاتح والداكن",
+  notifications: "الإشعارات",
+  rappelPostRepas: "تذكير بعد الوجبة",
+  rappelMesurer: "تذكير لقياس السكر بعد الوجبة",
+  notifBloquees: "⚠ الإشعارات محظورة من المتصفح. فعّلها من الإعدادات.",
+  delaiRappel: "مهلة التذكير",
+  parametresManuels: "الإعدادات اليدوية",
+  ratioInsulineGlucides: "نسبة الأنسولين / الكربوهيدرات (ICR)",
+  facteurCorrection: "عامل التصحيح (ISF)",
+  glycemieCible: "نسبة السكر المستهدفة",
+  votreCible: "هدفك",
+  digestionDefaut: "سرعة الهضم الافتراضية",
+  securite: "الأمان",
+  seuilAlerte: "حد التنبيه للجرعة القصوى",
+  afficheAvertissement: "يعرض تحذيراً إذا تجاوزت الجرعة هذا الحد",
+  langue: "اللغة",
+  francais: "Français",
+  arabe: "العربية",
+
+  // BMI / Body
+  taille: "الطول (سم)",
+  age: "العمر",
+  sexe: "الجنس",
+  homme: "ذكر",
+  femme: "أنثى",
+  imc: "مؤشر كتلة الجسم",
+  surfaceCorporelle: "مساحة الجسم",
+  metabolismeBase: "التمثيل الغذائي الأساسي",
+  corpulence: "البنية الجسدية",
+
+  // Onboarding
+  bienvenue: "مرحباً في InsulinCalc",
+  bienvenueDesc: "احسب جرعات الأنسولين المناسبة للمطبخ المغربي. لنبدأ بوزنك.",
+  votrePoids: "⚖ وزنك (كغ)",
+  continuer: "← متابعة",
+  ajustezParams: "اضبط إعداداتك",
+  modifierDansReglages: "يمكنك تعديلها في أي وقت من الإعدادات",
+  vousPret: "أنت مستعد!",
+  resumeParams: "ملخص إعداداتك الأولية",
+  retour: "رجوع →",
+  commencer: "🚀 ابدأ",
+  valeursEstim: "⚕️ هذه القيم تقديرية بناءً على وزنك. تحقق منها مع طبيب الغدد واضبطها في الإعدادات.",
+
+  // Custom food form
+  nomAliment: "اسم المكوّن",
+  glucidesParPortion: "كربوهيدرات لكل حصة (غ)",
+  portionde: "الحصة (مثال: 1 قطعة · 100غ)",
+  matieresGrasses: "الدهون",
+  indexGI: "مؤشر السكر",
+  note: "ملاحظة (اختياري)",
+  enregistrer: "حفظ",
+  annuler: "إلغاء",
+  nouvelAliment: "مكوّن مخصص جديد",
+
+  // Favorites
+  repasAEnregistrer: "وجبة للحفظ",
+  enregistrerRepas: "💾 حفظ هذه الوجبة",
+  nomDuRepas: "اسم الوجبة",
+  repasFavoris: "⭐ الوجبات المفضلة",
+  charger: "تحميل",
+  supprimer: "حذف",
+
+  // GI labels
+  igBas: "IG منخفض",
+  igMoy: "IG متوسط",
+  igHaut: "IG مرتفع",
+  faible: "منخفض",
+  moyen: "متوسط",
+  eleve_gi: "مرتفع",
+
+  // Fat labels
+  aucun: "بدون",
+
+  // Timeline / Schedule
+  auDebutRepas: "في بداية الوجبة",
+  minAvantRepas: "دقيقة قبل الوجبة",
+  minApresRepas: "دقيقة بعد الوجبة",
+  hApresRepas: "ساعة بعد الوجبة",
+  pendantRepas: "أثناء الوجبة",
+  bolusRepasCorrection: "بولس الوجبة + التصحيح",
+  phase1: "المرحلة 1 — كربوهيدرات سريعة (60%)",
+  phase2: "المرحلة 2 — دهون (40%)",
+  controlePic: "مراقبة — الذروة المتوقعة",
+  controleGraisses: "مراقبة — هضم الدهون",
+  controleFin: "مراقبة — نهاية المفعول",
+  unites: "وحدات",
+  controleGlycemie: "قياس السكر",
+
+  // Post-meal corrector
+  correcteurPostRepas: "مصحح بعد الوجبة",
+  glycemiePostRepas: "نسبة السكر بعد الوجبة",
+  insulineRestante: "الأنسولين المتبقي (IOB)",
+  correctionSuggeree: "التصحيح المقترح",
+
+  // Stats
+  toutesEntrees: "كل الإدخالات",
+  moyenne: "المتوسط",
+  tirLabel: "الوقت في النطاق",
+  hba1cEstimee: "HbA1c المقدّرة",
+};
+
+export default ar;
