@@ -9,7 +9,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     rollupOptions: {
-      input: resolve(__dirname, 'app.html'),
+      input: resolve(__dirname, 'index.html'),
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
       },

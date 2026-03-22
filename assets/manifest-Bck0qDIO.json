@@ -1,0 +1,41 @@
+{
+  "name": "InsulinCalc",
+  "short_name": "InsulinCalc",
+  "description": "Calculateur d'insuline pour diabète de type 1 - Cuisine marocaine",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07090f",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "medical"],
+  "shortcuts": [
+    {
+      "name": "Calculer la dose",
+      "short_name": "Calculer",
+      "description": "Calculer la dose d'insuline",
+      "url": "./index.html?tab=repas",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
