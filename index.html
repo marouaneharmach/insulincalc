@@ -12,6 +12,41 @@
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <style>
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+      src: url('./fonts/ibm-plex-mono-300.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+      src: url('./fonts/ibm-plex-mono-400.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+      src: url('./fonts/ibm-plex-mono-500.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+      src: url('./fonts/ibm-plex-mono-600.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Syne Mono';
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+      src: url('./fonts/syne-mono-400.woff2') format('woff2');
+    }
     * {
       box-sizing: border-box;
       margin: 0;
@@ -871,7 +906,6 @@ function App(){
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'IBM Plex Mono',monospace",color:C.text}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         input:focus{border-color:#0ea5e9!important;box-shadow:0 0 0 2px rgba(14,165,233,0.1);}
         .fr:hover{background:rgba(14,165,233,0.04)!important;}

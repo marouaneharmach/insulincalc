@@ -1,12 +1,16 @@
-const CACHE_NAME = 'insulincalc-v1';
+const CACHE_NAME = 'insulincalc-v2';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
+  './fonts/ibm-plex-mono-300.woff2',
+  './fonts/ibm-plex-mono-400.woff2',
+  './fonts/ibm-plex-mono-500.woff2',
+  './fonts/ibm-plex-mono-600.woff2',
+  './fonts/syne-mono-400.woff2',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
-  'https://fonts.googleapis.com/css2?family=Syne+Mono&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap',
 ];
 
 // Install event
