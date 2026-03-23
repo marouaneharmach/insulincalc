@@ -1,0 +1,263 @@
+import { useState, useMemo } from 'react';
+import { calcIOB } from '../utils/calculations';
+import { DIGESTION_PROFILES } from '../data/constants';
+
+function glycColor(v) {
+  if (!v || isNaN(v)) return '#94A3B8';
+  if (v < 0.7) return '#EF4444';
+  if (v < 1.0) return '#F97316';
+  if (v <= 1.8) return '#10B981';
+  if (v <= 2.5) return '#F59E0B';
+  return '#EF4444';
+}
+
+export default function DayTimeline({ journal, setJournal, targetGMin, targetGMax, targetGMid, isf, t, colors, isDark }) {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Get entries for selected date
+  const dayEntries = useMemo(() => {
+    return journal
+      .filter(e => e.date && e.date.startsWith(selectedDate))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [journal, selectedDate]);
+
+  // Calculate IOB for each entry
+  const entriesWithIOB = useMemo(() => {
+    const now = Date.now();
+    return dayEntries.map(entry => {
+      if (!entry.doseActual || entry.doseActual <= 0) return { ...entry, iob: 0 };
+      const minutesElapsed = (now - new Date(entry.date).getTime()) / 60000;
+      const digProfile = DIGESTION_PROFILES[entry.digestion || 'normal'];
+      const iob = calcIOB(entry.doseActual, minutesElapsed, digProfile.tail);
+      return { ...entry, iob };
+    });
+  }, [dayEntries]);
+
+  // Total IOB right now
+  const totalIOB = useMemo(() => {
+    return entriesWithIOB.reduce((sum, e) => sum + (e.iob || 0), 0);
+  }, [entriesWithIOB]);
+
+  // Navigate dates
+  const changeDate = (delta) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + delta);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isYesterday = (() => {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    return selectedDate === y.toISOString().split('T')[0];
+  })();
+
+  const dateLabel = isToday ? t('aujourdhui') : isYesterday ? t('hier') : new Date(selectedDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const formatTime = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getEventType = (entry) => {
+    if (entry.mealType === 'mesure') return 'glycemia';
+    if (entry.mealType === 'injection') return 'insulin';
+    if (entry.totalCarbs > 0) return 'meal';
+    return 'glycemia';
+  };
+
+  const eventConfig = {
+    glycemia: { icon: '🩸', color: '#EC4899', bgLight: 'bg-pink-50 border-pink-200', bgDark: 'bg-pink-900/20 border-pink-800/30' },
+    meal: { icon: '🍽', color: '#10B981', bgLight: 'bg-emerald-50 border-emerald-200', bgDark: 'bg-emerald-900/20 border-emerald-800/30' },
+    insulin: { icon: '💉', color: '#3B82F6', bgLight: 'bg-blue-50 border-blue-200', bgDark: 'bg-blue-900/20 border-blue-800/30' },
+  };
+
+  // Post-meal glycemia input
+  const [editingPost, setEditingPost] = useState(null);
+  const [postValue, setPostValue] = useState('');
+
+  const savePostGlyc = (entryId) => {
+    if (!postValue) return;
+    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, glycPost: postValue } : e));
+    setEditingPost(null);
+    setPostValue('');
+  };
+
+  const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
+
+  return (
+    <div className="px-4 pt-2 space-y-2">
+      {/* Date navigation */}
+      <div className={cardClass}>
+        <div className="flex items-center justify-between">
+          <button onClick={() => changeDate(-1)} className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'}`}>
+            ←
+          </button>
+          <div className="text-center">
+            <p className={`text-lg font-bold capitalize ${isDark ? 'text-white' : 'text-slate-800'}`}>{dateLabel}</p>
+            {!isToday && <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{selectedDate}</p>}
+          </div>
+          <button onClick={() => changeDate(1)} disabled={isToday}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              isToday ? 'opacity-30 cursor-not-allowed' : ''
+            } ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'}`}>
+            →
+          </button>
+        </div>
+      </div>
+
+      {/* IOB indicator */}
+      {totalIOB > 0 && isToday && (
+        <div className={`rounded-2xl p-3 border ${isDark ? 'bg-blue-900/20 border-blue-800/30' : 'bg-blue-50 border-blue-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-xs font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>💉 {t('insulineActive')}</p>
+              <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-500'}`}>IOB en cours</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-blue-500">{totalIOB.toFixed(1)}</p>
+              <p className="text-xs text-blue-400">unités</p>
+            </div>
+          </div>
+          {/* IOB decay bar */}
+          <div className="mt-2 h-1.5 rounded-full bg-blue-200/30 overflow-hidden">
+            <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(100, totalIOB * 20)}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Timeline */}
+      {dayEntries.length === 0 ? (
+        <div className={`${cardClass} text-center py-6`}>
+          <p className="text-4xl mb-3">📋</p>
+          <p className={isDark ? 'text-slate-400' : 'text-slate-500'}>{t('pasDeRepasAujourdhui')}</p>
+          <p className={`text-sm mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{t('ajouterPremierRepas')}</p>
+        </div>
+      ) : (
+        <div className="relative">
+          {/* Vertical line */}
+          <div className={`absolute left-6 top-0 bottom-0 w-0.5 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`} />
+
+          {entriesWithIOB.map((entry, idx) => {
+            const type = getEventType(entry);
+            const config = eventConfig[type];
+            const glycPre = parseFloat(entry.glycPre);
+            const glycPost = parseFloat(entry.glycPost);
+
+            return (
+              <div key={entry.id} className="relative flex gap-4 pb-2">
+                {/* Time + icon node */}
+                <div className="flex flex-col items-center z-10 shrink-0 w-12">
+                  <p className={`text-[10px] font-medium mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {formatTime(entry.date)}
+                  </p>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${isDark ? 'border-slate-800' : 'border-white'}`}
+                    style={{ backgroundColor: config.color + '20', borderColor: config.color }}>
+                    {config.icon}
+                  </div>
+                </div>
+
+                {/* Content card */}
+                <div className={`flex-1 rounded-2xl p-2 border ${isDark ? config.bgDark : config.bgLight}`}>
+                  {/* Meal event */}
+                  {type === 'meal' && (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                          {entry.aliments ? entry.aliments.split(',').slice(0, 3).join(', ') : 'Repas'}
+                          {entry.aliments && entry.aliments.split(',').length > 3 && '...'}
+                        </p>
+                        <span className="text-xs font-bold text-emerald-600">{entry.totalCarbs}g</span>
+                      </div>
+                      {/* Glycemia pre */}
+                      {!isNaN(glycPre) && glycPre > 0 && (
+                        <p className="text-xs mb-1" style={{ color: glycColor(glycPre) }}>
+                          🩸 Avant : {glycPre.toFixed(2)} g/L
+                        </p>
+                      )}
+                      {/* Dose */}
+                      {entry.doseActual > 0 && (
+                        <p className="text-xs text-blue-500 mb-1">
+                          💉 {entry.doseActual}U {entry.bolusType === 'dual' ? '(dual)' : ''}
+                          {entry.doseSuggested !== entry.doseActual && (
+                            <span className="text-gray-400"> (calculé: {entry.doseSuggested}U)</span>
+                          )}
+                        </p>
+                      )}
+                      {/* IOB */}
+                      {entry.iob > 0 && (
+                        <p className="text-[10px] text-blue-400">IOB: {entry.iob.toFixed(1)}U restant</p>
+                      )}
+                      {/* Post-meal glycemia */}
+                      {glycPost > 0 ? (
+                        <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
+                          🩸 Après : {glycPost.toFixed(2)} g/L
+                        </p>
+                      ) : (
+                        <div className="mt-2">
+                          {editingPost === entry.id ? (
+                            <div className="flex items-center gap-2">
+                              <input type="number" step="0.01" placeholder="1.20" value={postValue}
+                                onChange={e => setPostValue(e.target.value)} autoFocus
+                                className={`w-20 text-center text-sm p-1 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200'}`} />
+                              <button onClick={() => savePostGlyc(entry.id)}
+                                className="text-xs px-2 py-1 bg-emerald-500 text-white rounded-lg">✓</button>
+                              <button onClick={() => setEditingPost(null)}
+                                className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setEditingPost(entry.id)}
+                              className={`text-[11px] px-3 py-1.5 rounded-lg border border-dashed ${
+                                isDark ? 'border-slate-600 text-slate-500 hover:text-slate-300' : 'border-gray-300 text-gray-400 hover:text-gray-600'
+                              }`}>
+                              + {t('saisirGlycPost') || 'Glycémie post-repas'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {/* Scheduled controls */}
+                      {entry.schedule && entry.schedule.filter(s => s.units === null).map((step, si) => {
+                        const mealTime = new Date(entry.date).getTime();
+                        const controlTime = mealTime + step.timeMin * 60000;
+                        const now = Date.now();
+                        const isPast = now > controlTime;
+                        const isSoon = !isPast && (controlTime - now) < 30 * 60000;
+                        if (isPast && glycPost > 0) return null;
+                        return (
+                          <div key={si} className={`mt-2 text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-2 ${
+                            isSoon ? 'bg-amber-50 border border-amber-200 text-amber-700' : isPast ? 'bg-gray-50 text-gray-400 line-through' : 'bg-purple-50/50 text-purple-500 border border-purple-100'
+                          }`}>
+                            <span>🩸</span>
+                            <span>{step.label} — {step.time}</span>
+                            {isSoon && <span className="ml-auto font-bold animate-pulse">→ {t('mesurerMaintenant') || 'Mesurer'}</span>}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* Glycemia-only event */}
+                  {type === 'glycemia' && !isNaN(glycPre) && (
+                    <div className="flex items-center justify-between">
+                      <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Mesure glycémie</p>
+                      <p className="text-lg font-bold" style={{ color: glycColor(glycPre) }}>{glycPre.toFixed(2)} g/L</p>
+                    </div>
+                  )}
+
+                  {/* Insulin-only event */}
+                  {type === 'insulin' && (
+                    <div className="flex items-center justify-between">
+                      <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Injection</p>
+                      <p className="text-lg font-bold text-blue-500">{entry.doseActual}U</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="h-8" />
+    </div>
+  );
+}
