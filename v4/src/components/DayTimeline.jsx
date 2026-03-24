@@ -74,12 +74,25 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   // Post-meal glycemia input
   const [editingPost, setEditingPost] = useState(null);
   const [postValue, setPostValue] = useState('');
+  // Dose editing
+  const [editingDose, setEditingDose] = useState(null);
+  const [doseValue, setDoseValue] = useState('');
+  // Expand schedule
+  const [expandedSchedule, setExpandedSchedule] = useState(null);
 
   const savePostGlyc = (entryId) => {
     if (!postValue) return;
     setJournal(prev => prev.map(e => e.id === entryId ? { ...e, glycPost: postValue } : e));
     setEditingPost(null);
     setPostValue('');
+  };
+
+  const saveDose = (entryId) => {
+    const d = parseFloat(doseValue);
+    if (isNaN(d) || d < 0) return;
+    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: d } : e));
+    setEditingDose(null);
+    setDoseValue('');
   };
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
@@ -174,23 +187,46 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           🩸 Avant : {glycPre.toFixed(2)} g/L
                         </p>
                       )}
-                      {/* Dose */}
+                      {/* Dose — editable */}
                       {entry.doseActual > 0 && (
-                        <p className="text-xs text-blue-500 mb-1">
-                          💉 {entry.doseActual}U {entry.bolusType === 'dual' ? '(dual)' : ''}
-                          {entry.doseSuggested !== entry.doseActual && (
-                            <span className="text-gray-400"> (calculé: {entry.doseSuggested}U)</span>
+                        <div className="flex items-center gap-2 mb-1">
+                          {editingDose === entry.id ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-blue-500">💉</span>
+                              <input type="number" step="0.5" min="0" value={doseValue}
+                                onChange={e => setDoseValue(e.target.value)} autoFocus
+                                className={`w-16 text-center text-sm p-1 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200'}`} />
+                              <span className="text-xs text-gray-400">U</span>
+                              <button onClick={() => saveDose(entry.id)}
+                                className="text-xs px-2 py-1 bg-blue-500 text-white rounded-lg">✓</button>
+                              <button onClick={() => setEditingDose(null)}
+                                className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual)); }}
+                              className="text-xs text-blue-500 hover:underline">
+                              💉 {entry.doseActual}U {entry.bolusType === 'dual' ? '(dual)' : ''}
+                              {entry.doseSuggested !== entry.doseActual && (
+                                <span className="text-gray-400"> (calc: {entry.doseSuggested}U)</span>
+                              )}
+                              <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
+                            </button>
                           )}
-                        </p>
+                        </div>
                       )}
                       {/* IOB */}
                       {entry.iob > 0 && (
-                        <p className="text-[10px] text-blue-400">IOB: {entry.iob.toFixed(1)}U restant</p>
+                        <p className="text-[10px] text-blue-400 mb-1">IOB: {entry.iob.toFixed(1)}U restant</p>
                       )}
                       {/* Post-meal glycemia */}
                       {glycPost > 0 ? (
                         <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
                           🩸 Après : {glycPost.toFixed(2)} g/L
+                          {!isNaN(glycPre) && glycPre > 0 && (
+                            <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
+                              ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
+                            </span>
+                          )}
                         </p>
                       ) : (
                         <div className="mt-2">
@@ -214,24 +250,43 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           )}
                         </div>
                       )}
-                      {/* Scheduled controls */}
-                      {entry.schedule && entry.schedule.filter(s => s.units === null).map((step, si) => {
-                        const mealTime = new Date(entry.date).getTime();
-                        const controlTime = mealTime + step.timeMin * 60000;
-                        const now = Date.now();
-                        const isPast = now > controlTime;
-                        const isSoon = !isPast && (controlTime - now) < 30 * 60000;
-                        if (isPast && glycPost > 0) return null;
-                        return (
-                          <div key={si} className={`mt-2 text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-2 ${
-                            isSoon ? 'bg-amber-50 border border-amber-200 text-amber-700' : isPast ? 'bg-gray-50 text-gray-400 line-through' : 'bg-purple-50/50 text-purple-500 border border-purple-100'
-                          }`}>
-                            <span>🩸</span>
-                            <span>{step.label} — {step.time}</span>
-                            {isSoon && <span className="ml-auto font-bold animate-pulse">→ {t('mesurerMaintenant') || 'Mesurer'}</span>}
-                          </div>
-                        );
-                      })}
+                      {/* Injection schedule — expandable */}
+                      {entry.schedule && entry.schedule.length > 0 && (
+                        <div className="mt-2">
+                          <button onClick={() => setExpandedSchedule(expandedSchedule === entry.id ? null : entry.id)}
+                            className={`text-[10px] font-medium flex items-center gap-1 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
+                            📅 Planning ({entry.schedule.length} étapes)
+                            <span className={`transition-transform ${expandedSchedule === entry.id ? 'rotate-180' : ''}`}>▾</span>
+                          </button>
+                          {expandedSchedule === entry.id && (
+                            <div className={`mt-1.5 space-y-1 pl-2 border-l-2 ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
+                              {entry.schedule.map((step, si) => {
+                                const mealTime = new Date(entry.date).getTime();
+                                const controlTime = mealTime + step.timeMin * 60000;
+                                const now = Date.now();
+                                const isPast = now > controlTime;
+                                const isSoon = !isPast && (controlTime - now) < 30 * 60000;
+                                const timeLabel = new Date(controlTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                                return (
+                                  <div key={si} className={`text-[10px] px-2 py-1.5 rounded-lg flex items-center gap-2 ${
+                                    isSoon ? (isDark ? 'bg-amber-900/30 text-amber-400 border border-amber-700' : 'bg-amber-50 border border-amber-200 text-amber-700')
+                                    : isPast ? (isDark ? 'bg-slate-800 text-slate-600' : 'bg-gray-50 text-gray-400')
+                                    : step.units != null ? (isDark ? 'bg-blue-900/20 text-blue-400 border border-blue-800/30' : 'bg-blue-50 text-blue-600 border border-blue-100')
+                                    : (isDark ? 'bg-purple-900/20 text-purple-400 border border-purple-800/30' : 'bg-purple-50/50 text-purple-500 border border-purple-100')
+                                  }`}>
+                                    <span>{step.icon}</span>
+                                    <span className="font-medium">{timeLabel}</span>
+                                    <span className="flex-1">{step.label}</span>
+                                    {step.units != null && <span className="font-bold">{step.units}U</span>}
+                                    {isSoon && <span className="font-bold animate-pulse">→ Maintenant</span>}
+                                    {isPast && <span>✓</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
 

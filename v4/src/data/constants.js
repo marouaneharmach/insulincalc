@@ -19,8 +19,8 @@ export const QTY_PROFILES = {
 export const DIGESTION_PROFILES = {
   rapide:   {label:"Rapide",   desc:"Estomac vide, liquides, sucres simples", icon:"⚡", peakMin:30,  tail:120, fatDelay:0  },
   normal:   {label:"Normal",   desc:"Repas standard équilibré",               icon:"🔄", peakMin:60,  tail:180, fatDelay:30 },
-  lent:     {label:"Lent",     desc:"Repas riche, gras, fibres ++",           icon:"🐢", peakMin:90,  tail:240, fatDelay:60 },
-  tres_lent:{label:"Très lent",desc:"Tajine/couscous complet, fête",          icon:"🏔", peakMin:120, tail:300, fatDelay:90 },
+  lent:     {label:"Lent",     desc:"Repas riche, gras, fibres ++",           icon:"🐢", peakMin:90,  tail:210, fatDelay:45 },
+  tres_lent:{label:"Très lent",desc:"Tajine/couscous complet, fête",          icon:"🏔", peakMin:120, tail:240, fatDelay:75 },
 };
 
 export const FAT_SCORE  = {"aucun":0,"faible":1,"moyen":2,"élevé":3};

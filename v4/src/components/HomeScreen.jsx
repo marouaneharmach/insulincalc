@@ -86,7 +86,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
             </p>
           )}
           <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            InsulinCalc
+            InsulinCalc <span className={`text-xs font-normal ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>v4.1</span>
           </h1>
         </div>
         {/* Current carbs badge if meal in progress */}

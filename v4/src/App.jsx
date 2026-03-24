@@ -14,6 +14,7 @@ import Settings from './components/Settings';
 import BottomNav from './components/BottomNav';
 import QuickAddSheet from './components/QuickAddSheet';
 import Onboarding from './components/Onboarding';
+import PdfExport from './components/PdfExport';
 
 export default function App() {
   const { theme, isDark, colors, toggleTheme } = useTheme();
@@ -252,17 +253,31 @@ export default function App() {
           />
         )}
         {tab === 'timeline' && (
-          <DayTimeline
-            journal={journal}
-            setJournal={setJournal}
-            targetGMin={targetGMin}
-            targetGMax={targetGMax}
-            targetGMid={targetGMid}
-            isf={isf}
-            t={t}
-            colors={colors}
-            isDark={isDark}
-          />
+          <>
+            <DayTimeline
+              journal={journal}
+              setJournal={setJournal}
+              targetGMin={targetGMin}
+              targetGMax={targetGMax}
+              targetGMid={targetGMid}
+              isf={isf}
+              ratio={ratio}
+              t={t}
+              colors={colors}
+              isDark={isDark}
+            />
+            <PdfExport
+              journal={journal}
+              patientName={patientName}
+              ratio={ratio}
+              isf={isf}
+              targetGMin={targetGMin}
+              targetGMax={targetGMax}
+              t={t}
+              colors={colors}
+              isDark={isDark}
+            />
+          </>
         )}
         {tab === 'settings' && (
           <Settings
