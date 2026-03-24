@@ -55,6 +55,7 @@ const ar = {
   recents: "🕐 الأخيرة",
   suggestions: "💡 اقتراحات",
   nouveauRepas: "🔄 وجبة جديدة",
+  nouveauRepasBtn: "وجبة جديدة",
 
   // Digestion
   picMin: "ذروة",
@@ -319,6 +320,21 @@ const ar = {
   insulineActive: "الأنسولين النشط",
   mesurerMaintenant: "قياس الآن",
   voirPlanning: "عرض الجدول",
+
+  // V4.2 — Injection tracking & correction
+  correctionLabel: "تصحيح",
+  basalLabel: "قاعدية",
+  manualLabel: "أخرى",
+  injecterCorrection: "تسجيل السكر + حقنة تصحيح",
+  correctionConfirmee: "سيتم تسجيل التصحيح في الجدول الزمني",
+  resumeInsulineJour: "ملخص الأنسولين اليومي",
+  enCours: "جارٍ",
+  restant: "متبقي",
+  etapes: "خطوات",
+
+  // V4.2 — Keto
+  ketoCategory: "كيتو ومنخفض الكربوهيدرات",
+  saladeMarocaineCategory: "سلطات مغربية",
 };
 
 export default ar;

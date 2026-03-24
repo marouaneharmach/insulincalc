@@ -38,6 +38,30 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
     return entriesWithIOB.reduce((sum, e) => sum + (e.iob || 0), 0);
   }, [entriesWithIOB]);
 
+  // Daily insulin totals
+  const dailyInsulinStats = useMemo(() => {
+    let totalDose = 0;
+    let corrections = 0;
+    let mealBolus = 0;
+    let basalCount = 0;
+    let injectionCount = 0;
+
+    dayEntries.forEach(e => {
+      if (e.doseActual > 0) {
+        totalDose += e.doseActual;
+        injectionCount++;
+        if (e.mealType === 'injection') {
+          if (e.injectionType === 'correction') corrections += e.doseActual;
+          else if (e.injectionType === 'basal') basalCount += e.doseActual;
+          else corrections += e.doseActual;
+        } else if (e.totalCarbs > 0) {
+          mealBolus += e.doseActual;
+        }
+      }
+    });
+    return { totalDose, corrections, mealBolus, basalCount, injectionCount };
+  }, [dayEntries]);
+
   // Navigate dates
   const changeDate = (delta) => {
     const d = new Date(selectedDate);
@@ -63,6 +87,19 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
     if (entry.mealType === 'injection') return 'insulin';
     if (entry.totalCarbs > 0) return 'meal';
     return 'glycemia';
+  };
+
+  const getInjectionLabel = (entry) => {
+    if (entry.injectionType === 'correction') return t('correctionLabel') || 'Correction';
+    if (entry.injectionType === 'basal') return t('basalLabel') || 'Basale';
+    if (entry.injectionType === 'manual') return t('manualLabel') || 'Injection manuelle';
+    return t('ajouterInsuline') || 'Injection';
+  };
+
+  const getInjectionIcon = (entry) => {
+    if (entry.injectionType === 'correction') return '🎯';
+    if (entry.injectionType === 'basal') return '🕐';
+    return '💉';
   };
 
   const eventConfig = {
@@ -124,17 +161,45 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-xs font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>💉 {t('insulineActive')}</p>
-              <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-500'}`}>IOB en cours</p>
+              <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-500'}`}>IOB {t('enCours') || 'en cours'}</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-500">{totalIOB.toFixed(1)}</p>
-              <p className="text-xs text-blue-400">unités</p>
+              <p className="text-xs text-blue-400">{t('unites')}</p>
             </div>
           </div>
           {/* IOB decay bar */}
           <div className="mt-2 h-1.5 rounded-full bg-blue-200/30 overflow-hidden">
             <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(100, totalIOB * 20)}%` }} />
           </div>
+        </div>
+      )}
+
+      {/* Daily insulin summary */}
+      {dailyInsulinStats.injectionCount > 0 && (
+        <div className={cardClass}>
+          <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            📊 {t('resumeInsulineJour') || 'Résumé insuline du jour'}
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center">
+              <p className="text-lg font-bold text-blue-500">{dailyInsulinStats.totalDose.toFixed(1)}U</p>
+              <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Total</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-500">{dailyInsulinStats.mealBolus.toFixed(1)}U</p>
+              <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('repas')}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-amber-500">{dailyInsulinStats.corrections.toFixed(1)}U</p>
+              <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('correction')}</p>
+            </div>
+          </div>
+          {dailyInsulinStats.basalCount > 0 && (
+            <p className={`text-[10px] mt-1 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              {t('basalLabel') || 'Basale'}: {dailyInsulinStats.basalCount.toFixed(1)}U
+            </p>
+          )}
         </div>
       )}
 
@@ -165,7 +230,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                   </p>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${isDark ? 'border-slate-800' : 'border-white'}`}
                     style={{ backgroundColor: config.color + '20', borderColor: config.color }}>
-                    {config.icon}
+                    {type === 'insulin' ? getInjectionIcon(entry) : config.icon}
                   </div>
                 </div>
 
@@ -184,7 +249,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                       {/* Glycemia pre */}
                       {!isNaN(glycPre) && glycPre > 0 && (
                         <p className="text-xs mb-1" style={{ color: glycColor(glycPre) }}>
-                          🩸 Avant : {glycPre.toFixed(2)} g/L
+                          🩸 {t('glycPre') || 'Avant'} : {glycPre.toFixed(2)} g/L
                         </p>
                       )}
                       {/* Dose — editable */}
@@ -206,7 +271,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                             <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual)); }}
                               className="text-xs text-blue-500 hover:underline">
                               💉 {entry.doseActual}U {entry.bolusType === 'dual' ? '(dual)' : ''}
-                              {entry.doseSuggested !== entry.doseActual && (
+                              {entry.doseSuggested !== entry.doseActual && entry.doseSuggested > 0 && (
                                 <span className="text-gray-400"> (calc: {entry.doseSuggested}U)</span>
                               )}
                               <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
@@ -216,12 +281,12 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                       )}
                       {/* IOB */}
                       {entry.iob > 0 && (
-                        <p className="text-[10px] text-blue-400 mb-1">IOB: {entry.iob.toFixed(1)}U restant</p>
+                        <p className="text-[10px] text-blue-400 mb-1">IOB: {entry.iob.toFixed(1)}U {t('restant') || 'restant'}</p>
                       )}
                       {/* Post-meal glycemia */}
                       {glycPost > 0 ? (
                         <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
-                          🩸 Après : {glycPost.toFixed(2)} g/L
+                          🩸 {t('glycPost') || 'Après'} : {glycPost.toFixed(2)} g/L
                           {!isNaN(glycPre) && glycPre > 0 && (
                             <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
                               ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
@@ -255,7 +320,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                         <div className="mt-2">
                           <button onClick={() => setExpandedSchedule(expandedSchedule === entry.id ? null : entry.id)}
                             className={`text-[10px] font-medium flex items-center gap-1 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
-                            📅 Planning ({entry.schedule.length} étapes)
+                            📅 {t('voirPlanning') || 'Planning'} ({entry.schedule.length} {t('etapes') || 'étapes'})
                             <span className={`transition-transform ${expandedSchedule === entry.id ? 'rotate-180' : ''}`}>▾</span>
                           </button>
                           {expandedSchedule === entry.id && (
@@ -278,7 +343,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                     <span className="font-medium">{timeLabel}</span>
                                     <span className="flex-1">{step.label}</span>
                                     {step.units != null && <span className="font-bold">{step.units}U</span>}
-                                    {isSoon && <span className="font-bold animate-pulse">→ Maintenant</span>}
+                                    {isSoon && <span className="font-bold animate-pulse">→ {t('mesurerMaintenant') || 'Maintenant'}</span>}
                                     {isPast && <span>✓</span>}
                                   </div>
                                 );
@@ -293,16 +358,58 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                   {/* Glycemia-only event */}
                   {type === 'glycemia' && !isNaN(glycPre) && (
                     <div className="flex items-center justify-between">
-                      <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Mesure glycémie</p>
+                      <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{t('glycemie') || 'Mesure glycémie'}</p>
                       <p className="text-lg font-bold" style={{ color: glycColor(glycPre) }}>{glycPre.toFixed(2)} g/L</p>
                     </div>
                   )}
 
-                  {/* Insulin-only event */}
+                  {/* Insulin-only event — enhanced */}
                   {type === 'insulin' && (
-                    <div className="flex items-center justify-between">
-                      <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Injection</p>
-                      <p className="text-lg font-bold text-blue-500">{entry.doseActual}U</p>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                            {getInjectionIcon(entry)} {getInjectionLabel(entry)}
+                          </p>
+                          {entry.injectionType === 'correction' && entry.correctionDetails && (
+                            <p className={`text-[10px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                              {t('glycemie')}: {parseFloat(entry.correctionDetails.glycemia).toFixed(2)} g/L → {t('votreCible') || 'Cible'}: {entry.correctionDetails.target?.toFixed(2)} g/L
+                              {entry.correctionDetails.iob > 0 && ` · IOB: ${entry.correctionDetails.iob.toFixed(1)}U`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {editingDose === entry.id ? (
+                            <div className="flex items-center gap-1">
+                              <input type="number" step="0.5" min="0" value={doseValue}
+                                onChange={e => setDoseValue(e.target.value)} autoFocus
+                                className={`w-16 text-center text-sm p-1 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200'}`} />
+                              <button onClick={() => saveDose(entry.id)}
+                                className="text-xs px-1.5 py-1 bg-blue-500 text-white rounded-lg">✓</button>
+                              <button onClick={() => setEditingDose(null)}
+                                className="text-xs px-1.5 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual)); }}
+                              className="text-right">
+                              <p className="text-lg font-bold text-blue-500">{entry.doseActual}U</p>
+                              <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {/* IOB for injection */}
+                      {entry.iob > 0 && (
+                        <div className="mt-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[10px] text-blue-400">IOB: {entry.iob.toFixed(1)}U</p>
+                            <div className="flex-1 h-1 rounded-full bg-blue-200/30 overflow-hidden">
+                              <div className="h-full rounded-full bg-blue-400 transition-all"
+                                style={{ width: `${Math.min(100, (entry.iob / entry.doseActual) * 100)}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

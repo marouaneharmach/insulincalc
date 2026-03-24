@@ -55,6 +55,7 @@ const fr = {
   recents: "🕐 Récents",
   suggestions: "💡 Suggestions",
   nouveauRepas: "🔄 Nouveau repas",
+  nouveauRepasBtn: "Nouveau repas",
 
   // Digestion
   picMin: "Pic",
@@ -322,6 +323,21 @@ const fr = {
   insulineActive: "Insuline active",
   mesurerMaintenant: "Mesurer maintenant",
   voirPlanning: "Voir le planning",
+
+  // V4.2 — Injection tracking & correction
+  correctionLabel: "Correction",
+  basalLabel: "Basale",
+  manualLabel: "Autre",
+  injecterCorrection: "Enregistrer glycémie + injection correction",
+  correctionConfirmee: "Correction sera enregistrée dans la timeline",
+  resumeInsulineJour: "Résumé insuline du jour",
+  enCours: "en cours",
+  restant: "restant",
+  etapes: "étapes",
+
+  // V4.2 — Keto
+  ketoCategory: "Keto & Low-Carb",
+  saladeMarocaineCategory: "Salades marocaines",
 };
 
 export default fr;

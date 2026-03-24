@@ -314,6 +314,8 @@ export default function App() {
           setGlycemia={setGlycemia}
           journal={journal}
           setJournal={setJournal}
+          targetGMid={targetGMid}
+          isf={isf}
           t={t}
           colors={colors}
           isDark={isDark}

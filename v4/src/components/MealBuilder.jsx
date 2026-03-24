@@ -163,8 +163,8 @@ export default function MealBuilder({
                   <button onClick={saveFavorite} className="text-xs px-2 py-1 rounded-lg bg-amber-500 text-white">✓</button>
                 </div>
               )}
-              <button onClick={resetMeal} className={`text-[10px] px-2 py-1 rounded-lg ${isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-100 text-gray-500'}`}>
-                🔄
+              <button onClick={resetMeal} className={`text-xs px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 ${isDark ? 'bg-red-900/30 text-red-400 border border-red-800/40 hover:bg-red-900/50' : 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100'}`}>
+                🍽 {t('nouveauRepasBtn') || 'Nouveau repas'}
               </button>
             </div>
           </div>
