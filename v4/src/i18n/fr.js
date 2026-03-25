@@ -338,6 +338,52 @@ const fr = {
   // V4.2 — Keto
   ketoCategory: "Keto & Low-Carb",
   saladeMarocaineCategory: "Salades marocaines",
+
+  // V4.3 — Validation
+  glycTropBasse: "Glycémie trop basse (min 0.3 g/L)",
+  glycTropHaute: "Glycémie trop haute (max 6.0 g/L)",
+  poidsHorsBornes: "Poids hors limites (15-300 kg)",
+  ratioHorsBornes: "Ratio hors limites (1-50)",
+  isfHorsBornes: "ISF hors limites (5-200 mg/dL)",
+  doseNegative: "La dose ne peut pas être négative",
+  doseAbsurde: "Dose anormalement élevée (> 100 U)",
+  doseDepasseSeuil: "Dose dépasse le seuil de sécurité",
+  ageHorsBornes: "Âge hors limites (1-120)",
+  tailleHorsBornes: "Taille hors limites (50-250 cm)",
+
+  // V4.3 — Export/Import
+  sauvegardeRestauration: "Sauvegarde & Restauration",
+  exporter: "Exporter",
+  importer: "Importer",
+  formatInvalide: "Format de fichier invalide",
+  importReussi: "Import réussi",
+  fichierCorrompu: "Fichier corrompu",
+
+  // V4.3 — Tendances
+  tendances: "Tendances",
+  hypos: "Hypos",
+  tendance: "Tendance",
+  tempsDansCible: "Temps dans la cible",
+
+  // V4.3 — Profils horaires
+  profilsHoraires: "Profils horaires ICR/ISF",
+  profilsHorairesDesc: "Ratios différents selon le moment de la journée",
+  creneau: "Créneau",
+  matin: "Matin",
+  midi: "Midi",
+  soir: "Soir",
+  nuit: "Nuit",
+
+  // V4.3 — Sécurité dose
+  doseEleveeDetectee: "Dose élevée détectée",
+  confirmerEnregistrer: "Confirmer et enregistrer",
+  annulerVerifier: "Annuler et vérifier",
+  verifierParametres: "Vérifiez vos paramètres",
+
+  // V4.3 — Error boundary
+  erreurInattendue: "Erreur inattendue",
+  reessayer: "Réessayer",
+  redemarrer: "Redémarrer l'application",
 };
 
 export default fr;

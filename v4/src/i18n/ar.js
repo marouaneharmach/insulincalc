@@ -335,6 +335,52 @@ const ar = {
   // V4.2 — Keto
   ketoCategory: "كيتو ومنخفض الكربوهيدرات",
   saladeMarocaineCategory: "سلطات مغربية",
+
+  // V4.3 — Validation
+  glycTropBasse: "سكر الدم منخفض جداً (الحد الأدنى 0.3)",
+  glycTropHaute: "سكر الدم مرتفع جداً (الحد الأقصى 6.0)",
+  poidsHorsBornes: "الوزن خارج الحدود (15-300 كغ)",
+  ratioHorsBornes: "النسبة خارج الحدود (1-50)",
+  isfHorsBornes: "عامل الحساسية خارج الحدود (5-200)",
+  doseNegative: "الجرعة لا يمكن أن تكون سلبية",
+  doseAbsurde: "جرعة مرتفعة بشكل غير طبيعي (> 100)",
+  doseDepasseSeuil: "الجرعة تتجاوز حد الأمان",
+  ageHorsBornes: "العمر خارج الحدود (1-120)",
+  tailleHorsBornes: "الطول خارج الحدود (50-250 سم)",
+
+  // V4.3 — Export/Import
+  sauvegardeRestauration: "النسخ الاحتياطي والاستعادة",
+  exporter: "تصدير",
+  importer: "استيراد",
+  formatInvalide: "تنسيق ملف غير صالح",
+  importReussi: "تم الاستيراد بنجاح",
+  fichierCorrompu: "ملف تالف",
+
+  // V4.3 — Tendances
+  tendances: "الاتجاهات",
+  hypos: "نقص السكر",
+  tendance: "الاتجاه",
+  tempsDansCible: "الوقت في النطاق المستهدف",
+
+  // V4.3 — Profils horaires
+  profilsHoraires: "ملفات النسب حسب الوقت",
+  profilsHorairesDesc: "نسب مختلفة حسب وقت اليوم",
+  creneau: "الفترة",
+  matin: "صباح",
+  midi: "ظهر",
+  soir: "مساء",
+  nuit: "ليل",
+
+  // V4.3 — Sécurité dose
+  doseEleveeDetectee: "تم اكتشاف جرعة عالية",
+  confirmerEnregistrer: "تأكيد وتسجيل",
+  annulerVerifier: "إلغاء والتحقق",
+  verifierParametres: "تحقق من إعداداتك",
+
+  // V4.3 — Error boundary
+  erreurInattendue: "خطأ غير متوقع",
+  reessayer: "إعادة المحاولة",
+  redemarrer: "إعادة تشغيل التطبيق",
 };
 
 export default ar;

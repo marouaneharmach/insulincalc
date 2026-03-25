@@ -1,9 +1,25 @@
 import { useState, useMemo } from 'react';
 import FOOD_DB from '../data/foods';
 import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants';
+import DoseAnimation from './DoseAnimation';
 
 function stripDiacritics(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function fuzzyMatch(text, query) {
+  const t = stripDiacritics(text.toLowerCase());
+  const q = stripDiacritics(query.toLowerCase());
+  // Exact substring match = score 2
+  if (t.includes(q)) return 2;
+  // Fuzzy: all chars of query appear in order in text
+  let ti = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const idx = t.indexOf(q[qi], ti);
+    if (idx === -1) return 0;
+    ti = idx + 1;
+  }
+  return 1;
 }
 
 function glycColor(v) {
@@ -42,17 +58,26 @@ export default function MealBuilder({
     return sorted;
   }, []);
 
-  // Filter
+  // Fuzzy filter + recent foods
+  const recentFoodIds = useMemo(() => {
+    const ids = new Set();
+    // Get last 10 journal entries' food ids
+    const recent = (typeof journal !== 'undefined' ? journal : []).slice(0, 10);
+    recent.forEach(e => { (e.alimentIds || []).forEach(id => ids.add(id)); });
+    return ids;
+  }, []);
+
   const filteredDB = useMemo(() => {
     if (!search.trim()) return sortedDB;
-    const q = stripDiacritics(search.toLowerCase());
+    const q = search.trim();
+    if (q.length < 2) return sortedDB;
     const out = {};
     for (const [cat, foods] of Object.entries(sortedDB)) {
-      const f = foods.filter(fd =>
-        stripDiacritics(fd.name.toLowerCase()).includes(q) ||
-        (fd.note && stripDiacritics(fd.note.toLowerCase()).includes(q))
-      );
-      if (f.length) out[cat] = f;
+      const scored = foods
+        .map(fd => ({ fd, score: Math.max(fuzzyMatch(fd.name, q), fd.note ? fuzzyMatch(fd.note, q) : 0) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score);
+      if (scored.length) out[cat] = scored.map(x => x.fd);
     }
     return out;
   }, [search, sortedDB]);
@@ -250,15 +275,7 @@ export default function MealBuilder({
               </div>
             )}
             <p className={`text-xs uppercase tracking-wider font-semibold mb-2 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>{t('doseTotale')}</p>
-            <div className="flex items-end gap-2 mb-3">
-              <span className="text-3xl font-bold text-teal-600">{result.total}</span>
-              <span className={`text-lg mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>U</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full mb-2 ${
-                result.bolusType === 'dual' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
-              }`}>
-                {result.bolusType === 'dual' ? '⚡ Dual' : '💉 Standard'}
-              </span>
-            </div>
+            <DoseAnimation dose={result.total} bolusType={result.bolusType} isDark={isDark} />
             <div className="grid grid-cols-3 gap-1.5">
               {[
                 { label: 'Repas', val: `${result.bolusRepas}U`, color: 'text-teal-600' },
@@ -344,11 +361,11 @@ export default function MealBuilder({
         </>
       )}
 
-      {/* Food search */}
+      {/* Food search with fuzzy matching */}
       <div className={cardClass}>
         <input
           type="search"
-          placeholder={t('rechercherAliment')}
+          placeholder="🔍 Rechercher (ex: kho → Khobz, taj → Tajine...)"
           value={search}
           onChange={e => {
             setSearch(e.target.value);
@@ -358,6 +375,27 @@ export default function MealBuilder({
             isDark ? 'bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 focus:border-teal-500' : 'bg-gray-50 border-gray-200 placeholder:text-gray-400 focus:border-teal-400'
           }`}
         />
+        {/* Quick filter chips */}
+        <div className="flex gap-1.5 mt-2 overflow-x-auto">
+          {[
+            { label: '🟢 IG bas', filter: () => setSearch('faible') },
+            { label: '🥑 Keto', filter: () => { setSearch(''); setOpenCat('🥑 Keto & Low-Carb'); } },
+            { label: '🥗 Salades', filter: () => { setSearch(''); setOpenCat('🥗 Salades marocaines'); } },
+            { label: '🍞 Pains', filter: () => { setSearch(''); setOpenCat('🍞 Pains & Céréales'); } },
+          ].map((chip, i) => (
+            <button key={i} onClick={chip.filter}
+              className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium transition ${
+                isDark ? 'bg-slate-700 text-slate-400 hover:bg-slate-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}>
+              {chip.label}
+            </button>
+          ))}
+        </div>
+        {search.trim() && (
+          <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            {Object.values(filteredDB).reduce((s, f) => s + f.length, 0)} résultats pour "{search}"
+          </p>
+        )}
       </div>
 
       {/* Food categories */}

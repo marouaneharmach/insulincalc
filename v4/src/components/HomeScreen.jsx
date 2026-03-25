@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import GlycemiaChart from './GlycemiaChart';
+import TrendChart from './TrendChart';
+import DoseAnimation from './DoseAnimation';
 
-export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, targetGMin, targetGMax, targetGMid, result, totalCarbs, selections, setTab, onQuickAdd, t, colors, isDark }) {
+export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, targetGMin, targetGMax, targetGMid, result, totalCarbs, selections, setTab, onQuickAdd, activeProfile, t, colors, isDark }) {
 
   // Compute stats directly from in-memory journal (uses glycPre/glycPost field names)
   const stats = useMemo(() => {
@@ -86,7 +88,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
             </p>
           )}
           <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            InsulinCalc <span className={`text-xs font-normal ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>v4.2</span>
+            InsulinCalc <span className={`text-xs font-normal ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>v4.3</span>
           </h1>
         </div>
         {/* Current carbs badge if meal in progress */}
@@ -129,6 +131,16 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
       {stats.measureCount >= 2 && (
         <div className={`rounded-2xl p-4 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'} border shadow-sm`}>
           <GlycemiaChart entries={stats.entries} targetGMin={targetGMin} targetGMax={targetGMax} isDark={isDark} colors={colors} />
+        </div>
+      )}
+
+      {/* Trend chart */}
+      <TrendChart journal={journal} targetGMin={targetGMin} targetGMax={targetGMax} isDark={isDark} colors={colors} />
+
+      {/* Active profile indicator */}
+      {activeProfile.slot && (
+        <div className={`rounded-xl px-3 py-1.5 text-center text-[10px] font-medium ${isDark ? 'bg-teal-900/20 text-teal-400 border border-teal-800/30' : 'bg-teal-50 text-teal-700 border border-teal-200'}`}>
+          🕐 Profil actif : {activeProfile.label} — ICR 1/{activeProfile.ratio}g · ISF {activeProfile.isf} mg/dL
         </div>
       )}
 
@@ -190,10 +202,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
               {result.bolusType === 'dual' ? '⚡ Dual' : '💉 Standard'}
             </span>
           </div>
-          <div className="flex items-end gap-2 mb-4">
-            <span className="text-4xl font-bold text-teal-600">{result.total}</span>
-            <span className={`text-lg mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>unités</span>
-          </div>
+          <DoseAnimation dose={result.total} bolusType={result.bolusType} isDark={isDark} />
           <div className="grid grid-cols-3 gap-1.5 mb-4">
             {[
               { label: t('repas'), val: `${result.bolusRepas}U`, color: 'text-teal-600' },

@@ -2,9 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 // ─── VERSION MANAGEMENT & CACHE BUSTING ──────────────────────────────────────
-const APP_VERSION = '4.2.0';
+const APP_VERSION = '4.3.0';
 const VERSION_KEY = 'insulincalc_v4_app_version';
 
 function handleVersionMigration() {
@@ -61,6 +62,8 @@ handleVersionMigration();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );

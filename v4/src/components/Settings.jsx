@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { DIGESTION_PROFILES } from '../data/constants';
 import { requestNotificationPermission } from '../utils/notifications';
 import { imcCategory } from '../utils/calculations';
+import DataExport from './DataExport';
+import TimeProfiles from './TimeProfiles';
 
 export default function Settings({
   ratio, setRatio, isf, setIsf,
@@ -13,6 +15,8 @@ export default function Settings({
   notifEnabled, setNotifEnabled,
   theme, isDark, toggleTheme,
   locale, setLocale,
+  timeProfiles, setTimeProfiles,
+  journal,
   t, colors, isRTL
 }) {
   const [section, setSection] = useState('profil');
@@ -190,6 +194,14 @@ export default function Settings({
               </span>
             </div>
           </div>
+          <TimeProfiles
+            timeProfiles={timeProfiles}
+            setTimeProfiles={setTimeProfiles}
+            globalRatio={ratio}
+            globalIsf={isf}
+            isDark={isDark}
+            t={t}
+          />
         </div>
       )}
 
@@ -255,6 +267,9 @@ export default function Settings({
           </div>
         </div>
       )}
+
+      {/* Data export/import */}
+      <DataExport journal={journal} t={t} isDark={isDark} colors={colors} />
 
       {/* Medical disclaimer */}
       <div className={`text-center text-[10px] py-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>

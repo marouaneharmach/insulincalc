@@ -6,6 +6,7 @@ import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSche
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants';
 import FOOD_DB from './data/foods';
 import { scheduleFromPlan, cancelAll } from './utils/notifications';
+import { getActiveProfile } from './components/TimeProfiles';
 
 import HomeScreen from './components/HomeScreen';
 import MealBuilder from './components/MealBuilder';
@@ -15,6 +16,7 @@ import BottomNav from './components/BottomNav';
 import QuickAddSheet from './components/QuickAddSheet';
 import Onboarding from './components/Onboarding';
 import PdfExport from './components/PdfExport';
+import OverdoseDialog from './components/OverdoseDialog';
 
 export default function App() {
   const { theme, isDark, colors, toggleTheme } = useTheme();
@@ -46,6 +48,13 @@ export default function App() {
 
   // Journal
   const [journal, setJournal] = useLocalStorage('journal', []);
+
+  // Time-based profiles
+  const [timeProfiles, setTimeProfiles] = useLocalStorage('timeProfiles', []);
+  const activeProfile = useMemo(() => getActiveProfile(timeProfiles, ratio, isf), [timeProfiles, ratio, isf]);
+
+  // Overdose dialog
+  const [overdoseDialog, setOverdoseDialog] = useState(null);
 
   // Selections
   const [selData, setSelData] = useLocalStorage('selections', []);
@@ -92,10 +101,12 @@ export default function App() {
 
   const result = useMemo(() => {
     if (!canCalc) return null;
-    const bolusRepas = totalCarbs / ratio;
+    const effectiveRatio = activeProfile.ratio;
+    const effectiveIsf = activeProfile.isf;
+    const bolusRepas = totalCarbs / effectiveRatio;
     const ecart = gVal - targetGMid;
-    const correction = ecart > 0 ? (ecart * 100) / isf : 0;
-    const fatBonus = (totalCarbs / ratio) * FAT_FACTOR[dominantFat];
+    const correction = ecart > 0 ? (ecart * 100) / effectiveIsf : 0;
+    const fatBonus = (totalCarbs / effectiveRatio) * FAT_FACTOR[dominantFat];
     const total = round05(bolusRepas + correction + fatBonus);
     const hasFat = dominantFat === 'élevé' || dominantFat === 'moyen';
     const bolusType = hasFat ? 'dual' : 'standard';
@@ -107,10 +118,10 @@ export default function App() {
     if (dominantGI === 'élevé') warnings.push({ t: 'c', txt: t('igEleve') });
     if (total > 20) warnings.push({ t: 'w', txt: t('doseElevee') });
     return { total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) };
-  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t]);
+  }, [canCalc, totalCarbs, activeProfile, gVal, targetGMid, dominantFat, dominantGI, digestion, t]);
 
-  // Save to journal with schedule
-  const saveToJournal = useCallback((doseActual) => {
+  // Save to journal with overdose check
+  const doSaveToJournal = useCallback((doseActual) => {
     if (!result) return;
     const entry = {
       id: Date.now(),
@@ -136,6 +147,15 @@ export default function App() {
       scheduleFromPlan(result.schedule);
     }
   }, [result, gVal, totalCarbs, selections, digestion, notifEnabled, setJournal]);
+
+  const saveToJournal = useCallback((doseActual) => {
+    const dose = doseActual != null ? doseActual : result?.total;
+    if (dose > maxDose) {
+      setOverdoseDialog({ dose, callback: () => doSaveToJournal(doseActual) });
+    } else {
+      doSaveToJournal(doseActual);
+    }
+  }, [result, maxDose, doSaveToJournal]);
 
   const resetMeal = () => {
     setSelections([]);
@@ -212,6 +232,7 @@ export default function App() {
             selections={selections}
             setTab={setTab}
             onQuickAdd={openQuickAdd}
+            activeProfile={activeProfile}
             t={t}
             colors={colors}
             isDark={isDark}
@@ -297,6 +318,8 @@ export default function App() {
             notifEnabled={notifEnabled} setNotifEnabled={setNotifEnabled}
             theme={theme} isDark={isDark} toggleTheme={toggleTheme}
             locale={locale} setLocale={setLocale}
+            timeProfiles={timeProfiles} setTimeProfiles={setTimeProfiles}
+            journal={journal}
             t={t} colors={colors} isRTL={isRTL}
           />
         )}
@@ -304,6 +327,17 @@ export default function App() {
 
       {/* Bottom navigation */}
       <BottomNav tab={tab} setTab={setTab} t={t} colors={colors} isDark={isDark} selections={selections} />
+
+      {/* Overdose safety dialog */}
+      {overdoseDialog && (
+        <OverdoseDialog
+          dose={overdoseDialog.dose}
+          maxDose={maxDose}
+          onConfirm={() => { overdoseDialog.callback(); setOverdoseDialog(null); }}
+          onCancel={() => setOverdoseDialog(null)}
+          isDark={isDark}
+        />
+      )}
 
       {/* Quick add overlay */}
       {showQuickAdd && (
