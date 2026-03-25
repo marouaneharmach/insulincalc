@@ -116,6 +116,11 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const [doseValue, setDoseValue] = useState('');
   // Expand schedule
   const [expandedSchedule, setExpandedSchedule] = useState(null);
+  // Quick add inline
+  const [showInlineAdd, setShowInlineAdd] = useState(false);
+  const [inlineGlyc, setInlineGlyc] = useState('');
+  const [inlineDose, setInlineDose] = useState('');
+  const [inlineType, setInlineType] = useState('mesure'); // 'mesure', 'correction', 'basal'
 
   const savePostGlyc = (entryId) => {
     if (!postValue) return;
@@ -130,6 +135,51 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
     setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: d } : e));
     setEditingDose(null);
     setDoseValue('');
+  };
+
+  const saveInlineEntry = () => {
+    const glycVal = parseFloat(inlineGlyc);
+    const doseVal = parseFloat(inlineDose);
+    const hasGlyc = !isNaN(glycVal) && glycVal >= 0.3 && glycVal <= 6.0;
+    const hasDose = !isNaN(doseVal) && doseVal > 0;
+    if (!hasGlyc && !hasDose) return;
+
+    if (hasGlyc) {
+      const glycEntry = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        glycPre: glycVal.toFixed(2),
+        glycPost: '',
+        totalCarbs: 0,
+        doseSuggested: 0,
+        doseActual: 0,
+        aliments: '',
+        alimentIds: [],
+        mealType: 'mesure',
+      };
+      setJournal(prev => [glycEntry, ...prev].slice(0, 200));
+    }
+
+    if (hasDose) {
+      const doseEntry = {
+        id: Date.now() + 1,
+        date: new Date().toISOString(),
+        glycPre: hasGlyc ? glycVal.toFixed(2) : '',
+        glycPost: '',
+        totalCarbs: 0,
+        doseSuggested: 0,
+        doseActual: doseVal,
+        aliments: '',
+        alimentIds: [],
+        mealType: 'injection',
+        injectionType: inlineType === 'mesure' ? 'manual' : inlineType,
+      };
+      setJournal(prev => [doseEntry, ...prev].slice(0, 200));
+    }
+
+    setInlineGlyc('');
+    setInlineDose('');
+    setShowInlineAdd(false);
   };
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
@@ -199,6 +249,66 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
             <p className={`text-[10px] mt-1 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
               {t('basalLabel') || 'Basale'}: {dailyInsulinStats.basalCount.toFixed(1)}U
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Quick inline add */}
+      {isToday && (
+        <div className={cardClass}>
+          {!showInlineAdd ? (
+            <button onClick={() => setShowInlineAdd(true)}
+              className={`w-full py-2 rounded-xl text-sm font-medium border border-dashed transition ${
+                isDark ? 'border-slate-600 text-slate-400 hover:border-teal-500 hover:text-teal-400' : 'border-gray-300 text-gray-400 hover:border-teal-400 hover:text-teal-600'
+              }`}>
+              + {t('saisieRapide') || 'Saisie rapide glycémie / injection'}
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  ✏️ {t('saisieRapide') || 'Saisie rapide'}
+                </p>
+                <button onClick={() => setShowInlineAdd(false)}
+                  className={`text-xs px-2 py-1 rounded-lg ${isDark ? 'text-slate-500 hover:text-slate-300' : 'text-gray-400 hover:text-gray-600'}`}>✕</button>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className={`text-[10px] block mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>🩸 Glycémie (g/L)</label>
+                  <input type="number" step="0.01" min="0.3" max="6.0" placeholder="1.20" value={inlineGlyc}
+                    onChange={e => setInlineGlyc(e.target.value)}
+                    className={`w-full text-center text-sm p-2 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                </div>
+                <div className="flex-1">
+                  <label className={`text-[10px] block mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>💉 Dose (U)</label>
+                  <input type="number" step="0.5" min="0" placeholder="0" value={inlineDose}
+                    onChange={e => setInlineDose(e.target.value)}
+                    className={`w-full text-center text-sm p-2 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                </div>
+              </div>
+              {parseFloat(inlineDose) > 0 && (
+                <div className="flex gap-1">
+                  {[
+                    { key: 'correction', label: '🎯 Correction', },
+                    { key: 'basal', label: '🕐 Basale' },
+                    { key: 'manual', label: '✏️ Autre' },
+                  ].map(opt => (
+                    <button key={opt.key} onClick={() => setInlineType(opt.key)}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium border transition ${
+                        inlineType === opt.key
+                          ? isDark ? 'bg-teal-900/30 border-teal-600 text-teal-400' : 'bg-teal-50 border-teal-300 text-teal-700'
+                          : isDark ? 'border-slate-600 text-slate-500' : 'border-gray-200 text-gray-400'
+                      }`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button onClick={saveInlineEntry}
+                className="w-full py-2 rounded-xl text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 transition">
+                {t('enregistrer') || 'Enregistrer'}
+              </button>
+            </div>
           )}
         </div>
       )}

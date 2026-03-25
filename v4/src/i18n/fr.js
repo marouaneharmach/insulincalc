@@ -144,8 +144,8 @@ const fr = {
   notifBloquees: "⚠ Notifications bloquées par le navigateur. Autorisez-les dans les paramètres.",
   delaiRappel: "Délai de rappel",
   parametresManuels: "Paramètres manuels",
-  ratioInsulineGlucides: "Ratio insuline / glucides (ICR)",
-  facteurCorrection: "Facteur de correction (ISF)",
+  ratioInsulineGlucides: "Combien de grammes de glucides pour 1 unité d'insuline ?",
+  facteurCorrection: "De combien baisse votre glycémie avec 1 unité d'insuline ?",
   glycemieCible: "Glycémie cible",
   glycemieCiblePlage: "Plage glycémique cible",
   cibleMin: "Min (g/L)",
@@ -384,6 +384,10 @@ const fr = {
   erreurInattendue: "Erreur inattendue",
   reessayer: "Réessayer",
   redemarrer: "Redémarrer l'application",
+
+  // V4.3.1 — Timeline inline add, dose réelle, terminologie
+  saisieRapide: "Saisie rapide glycémie / injection",
+  doseReelle: "Dose réellement injectée",
 };
 
 export default fr;

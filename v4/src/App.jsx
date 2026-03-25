@@ -5,7 +5,7 @@ import { useI18n } from './i18n/useI18n';
 import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR } from './utils/calculations';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants';
 import FOOD_DB from './data/foods';
-import { scheduleFromPlan, cancelAll } from './utils/notifications';
+import { scheduleFromPlan, cancelAll, setFallbackHandler } from './utils/notifications';
 import { getActiveProfile } from './components/TimeProfiles';
 
 import HomeScreen from './components/HomeScreen';
@@ -55,6 +55,15 @@ export default function App() {
 
   // Overdose dialog
   const [overdoseDialog, setOverdoseDialog] = useState(null);
+
+  // In-app notification fallback (for Safari private browsing, etc.)
+  const [inAppNotif, setInAppNotif] = useState(null);
+  useState(() => {
+    setFallbackHandler((notif) => {
+      setInAppNotif(notif);
+      setTimeout(() => setInAppNotif(null), 15000); // auto-dismiss after 15s
+    });
+  });
 
   // Selections
   const [selData, setSelData] = useLocalStorage('selections', []);
@@ -217,7 +226,7 @@ export default function App() {
       </div>
 
       {/* Main content */}
-      <div className="max-w-lg mx-auto pb-24">
+      <div className="max-w-lg mx-auto pb-24 px-0 sm:px-2">
         {tab === 'home' && (
           <HomeScreen
             patientName={patientName}
@@ -337,6 +346,18 @@ export default function App() {
           onCancel={() => setOverdoseDialog(null)}
           isDark={isDark}
         />
+      )}
+
+      {/* In-app notification toast (fallback for Safari/private browsing) */}
+      {inAppNotif && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-md animate-pulse">
+          <div className={`rounded-2xl p-3 shadow-lg border ${isDark ? 'bg-blue-900 border-blue-700' : 'bg-blue-50 border-blue-200'}`}
+            onClick={() => setInAppNotif(null)}>
+            <p className={`text-sm font-bold ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>🔔 {inAppNotif.title}</p>
+            <p className={`text-xs mt-1 whitespace-pre-line ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{inAppNotif.body}</p>
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-blue-600' : 'text-blue-300'}`}>Tap pour fermer</p>
+          </div>
+        </div>
       )}
 
       {/* Quick add overlay */}

@@ -5,7 +5,7 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 // ─── VERSION MANAGEMENT & CACHE BUSTING ──────────────────────────────────────
-const APP_VERSION = '4.3.0';
+const APP_VERSION = '4.3.1';
 const VERSION_KEY = 'insulincalc_v4_app_version';
 
 function handleVersionMigration() {
@@ -54,6 +54,15 @@ function handleVersionMigration() {
     }
 
     console.log('[InsulinCalc] Migration v' + APP_VERSION + ' terminée. Données utilisateur préservées.');
+
+    // Force reload after cache clear to pick up new assets
+    // Use a flag to prevent infinite reload loop
+    const reloadKey = 'insulincalc_reload_' + APP_VERSION;
+    if (!sessionStorage.getItem(reloadKey)) {
+      sessionStorage.setItem(reloadKey, '1');
+      window.location.reload(true);
+      return; // stop execution, reload will restart
+    }
   }
 }
 

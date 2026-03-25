@@ -6,6 +6,7 @@ export default function QuickAddSheet({ type, onClose, setTab, setGlycemia, jour
   const [value, setValue] = useState('');
   const [insulinType, setInsulinType] = useState('correction'); // 'correction', 'basal', 'manual'
   const [showCorrectionResult, setShowCorrectionResult] = useState(false);
+  const [correctionDoseOverride, setCorrectionDoseOverride] = useState('');
 
   // Calculate current IOB from today's journal entries
   const currentIOB = useMemo(() => {
@@ -55,6 +56,7 @@ export default function QuickAddSheet({ type, onClose, setTab, setGlycemia, jour
 
       // If correction is needed and user confirms, also add correction injection
       if (showCorrectionResult && correctionSuggestion && correctionSuggestion.units > 0) {
+        const actualCorrDose = correctionDoseOverride !== '' ? parseFloat(correctionDoseOverride) : correctionSuggestion.units;
         const corrEntry = {
           id: Date.now() + 1,
           date: new Date().toISOString(),
@@ -62,7 +64,7 @@ export default function QuickAddSheet({ type, onClose, setTab, setGlycemia, jour
           glycPost: '',
           totalCarbs: 0,
           doseSuggested: correctionSuggestion.units,
-          doseActual: correctionSuggestion.units,
+          doseActual: actualCorrDose,
           aliments: '',
           alimentIds: [],
           mealType: 'injection',
@@ -178,7 +180,7 @@ export default function QuickAddSheet({ type, onClose, setTab, setGlycemia, jour
 
                 {!showCorrectionResult ? (
                   <button
-                    onClick={() => setShowCorrectionResult(true)}
+                    onClick={() => { setShowCorrectionResult(true); setCorrectionDoseOverride(''); }}
                     className={`w-full mt-2 py-2 rounded-xl text-sm font-medium border transition ${
                       isDark
                         ? 'border-blue-700 text-blue-400 hover:bg-blue-900/30'
@@ -189,9 +191,29 @@ export default function QuickAddSheet({ type, onClose, setTab, setGlycemia, jour
                   </button>
                 ) : (
                   <div className={`mt-2 p-2 rounded-lg border ${isDark ? 'bg-emerald-900/20 border-emerald-800/40' : 'bg-emerald-50 border-emerald-200'}`}>
-                    <p className={`text-xs font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                       ✓ {t('correctionConfirmee') || 'Correction sera enregistrée dans la timeline'}
                     </p>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        💉 {t('doseReelle') || 'Dose réellement injectée'} :
+                      </p>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        placeholder={String(correctionSuggestion.units)}
+                        value={correctionDoseOverride}
+                        onChange={e => setCorrectionDoseOverride(e.target.value)}
+                        className={`w-20 text-center text-sm font-bold p-1.5 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200'}`}
+                      />
+                      <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>U</span>
+                    </div>
+                    {correctionDoseOverride !== '' && parseFloat(correctionDoseOverride) !== correctionSuggestion.units && (
+                      <p className={`text-[10px] mt-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                        ⚠️ Suggéré : {correctionSuggestion.units}U — Injecté : {correctionDoseOverride}U
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

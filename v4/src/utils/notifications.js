@@ -1,5 +1,38 @@
-// V4 — Smart notifications tied to injection schedule
+// V4.3 — Smart notifications with Safari/private-browsing fallback
 let scheduledTimers = [];
+let onFallbackNotification = null; // callback for in-app fallback
+
+export function setFallbackHandler(handler) {
+  onFallbackNotification = handler;
+}
+
+function canUseNativeNotifications() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission !== 'granted') return false;
+  // Safari private browsing: Notification exists but silently fails
+  // We can't detect this reliably, so we always fire fallback too
+  return true;
+}
+
+function fireNotification(title, body, tag) {
+  // Try native notification
+  if (canUseNativeNotifications()) {
+    try {
+      new Notification(title, {
+        body,
+        icon: '/icon-192.png',
+        tag,
+        requireInteraction: true,
+      });
+    } catch (e) {
+      console.warn('[InsulinCalc] Native notification failed:', e);
+    }
+  }
+  // Always fire in-app fallback (visible even when native fails)
+  if (onFallbackNotification) {
+    onFallbackNotification({ title, body, tag, timestamp: Date.now() });
+  }
+}
 
 export async function requestNotificationPermission() {
   if (!('Notification' in window)) return 'unsupported';
@@ -8,38 +41,34 @@ export async function requestNotificationPermission() {
   return await Notification.requestPermission();
 }
 
-// V4 NEW: Schedule multiple notifications based on injection schedule
+// Schedule multiple notifications based on injection schedule
 export function scheduleFromPlan(schedule, mealTime = new Date()) {
   cancelAll();
 
   schedule.forEach((step, index) => {
-    const delayMs = step.timeMin * 60 * 1000; // timeMin is relative to meal start
-    const actualDelay = Math.max(0, delayMs); // don't schedule past events
+    const delayMs = step.timeMin * 60 * 1000;
+    const actualDelay = Math.max(0, delayMs);
+
+    if (actualDelay === 0 && step.timeMin > 0) return; // past event
 
     if (step.units === null) {
-      // This is a control step — schedule a reminder
+      // Control step — schedule a reminder
       const timer = setTimeout(() => {
-        if (Notification.permission === 'granted') {
-          new Notification('InsulinCalc — Contrôle glycémie', {
-            body: `${step.label}\n${step.note}`,
-            icon: '/icon-192.png',
-            tag: `insulincalc-control-${index}`,
-            requireInteraction: true,
-          });
-        }
+        fireNotification(
+          'InsulinCalc — Contrôle glycémie',
+          `${step.label}\n${step.note || ''}`,
+          `insulincalc-control-${index}`
+        );
       }, actualDelay);
       scheduledTimers.push(timer);
     } else if (step.timeMin > 0) {
       // Future injection step (phase 2 of dual bolus)
       const timer = setTimeout(() => {
-        if (Notification.permission === 'granted') {
-          new Notification('InsulinCalc — Injection rappel', {
-            body: `${step.label}\n💉 ${step.units} unités\n${step.note}`,
-            icon: '/icon-192.png',
-            tag: `insulincalc-injection-${index}`,
-            requireInteraction: true,
-          });
-        }
+        fireNotification(
+          'InsulinCalc — Injection rappel',
+          `${step.label}\n💉 ${step.units} unités\n${step.note || ''}`,
+          `insulincalc-injection-${index}`
+        );
       }, actualDelay);
       scheduledTimers.push(timer);
     }
@@ -48,16 +77,14 @@ export function scheduleFromPlan(schedule, mealTime = new Date()) {
   return scheduledTimers.length;
 }
 
-// Legacy simple reminder (kept for backward compat)
+// Legacy simple reminder
 export function schedulePostMealReminder(minutesDelay = 120) {
   const timer = setTimeout(() => {
-    if (Notification.permission === 'granted') {
-      new Notification('InsulinCalc — Rappel', {
-        body: 'Pensez à mesurer votre glycémie post-repas',
-        icon: '/icon-192.png',
-        tag: 'insulincalc-postmeal',
-      });
-    }
+    fireNotification(
+      'InsulinCalc — Rappel',
+      'Pensez à mesurer votre glycémie post-repas',
+      'insulincalc-postmeal'
+    );
   }, minutesDelay * 60 * 1000);
   scheduledTimers.push(timer);
   return timer;
@@ -68,7 +95,6 @@ export function cancelAll() {
   scheduledTimers = [];
 }
 
-// V4 NEW: Get active scheduled reminders info
 export function getActiveReminders() {
   return scheduledTimers.length;
 }

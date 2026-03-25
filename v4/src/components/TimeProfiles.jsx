@@ -55,10 +55,10 @@ export default function TimeProfiles({ timeProfiles, setTimeProfiles, globalRati
       <div className="flex items-center justify-between mb-2">
         <div>
           <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-            🕐 Profils horaires ICR/ISF
+            🕐 Profils horaires insuline
           </p>
           <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            Ratios différents selon le moment de la journée
+            Ajuster vos ratios selon le moment de la journée
           </p>
         </div>
         <button onClick={handleToggle}
@@ -72,8 +72,8 @@ export default function TimeProfiles({ timeProfiles, setTimeProfiles, globalRati
           <div className="grid grid-cols-4 gap-1 mb-1">
             <span className="text-[9px] text-gray-400 uppercase"></span>
             <span className="text-[9px] text-gray-400 uppercase text-center">Créneau</span>
-            <span className="text-[9px] text-gray-400 uppercase text-center">ICR (1U/Xg)</span>
-            <span className="text-[9px] text-gray-400 uppercase text-center">ISF (mg/dL)</span>
+            <span className="text-[9px] text-gray-400 uppercase text-center">Ratio (1U/Xg)</span>
+            <span className="text-[9px] text-gray-400 uppercase text-center">Correction (mg/dL)</span>
           </div>
           {profiles.map(p => (
             <div key={p.id} className={`grid grid-cols-4 gap-1 items-center p-1.5 rounded-xl ${isDark ? 'bg-slate-700/50' : 'bg-gray-50'}`}>

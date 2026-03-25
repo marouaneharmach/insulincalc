@@ -144,8 +144,8 @@ const ar = {
   notifBloquees: "⚠ الإشعارات محظورة من المتصفح. فعّلها من الإعدادات.",
   delaiRappel: "مهلة التذكير",
   parametresManuels: "الإعدادات اليدوية",
-  ratioInsulineGlucides: "نسبة الأنسولين / الكربوهيدرات (ICR)",
-  facteurCorrection: "عامل التصحيح (ISF)",
+  ratioInsulineGlucides: "كم غرام من الكربوهيدرات لوحدة أنسولين واحدة؟",
+  facteurCorrection: "بكم ينخفض السكر مع وحدة أنسولين واحدة؟",
   glycemieCible: "نسبة السكر المستهدفة",
   glycemieCiblePlage: "نطاق السكر المستهدف",
   cibleMin: "الحد الأدنى (غ/ل)",
@@ -381,6 +381,10 @@ const ar = {
   erreurInattendue: "خطأ غير متوقع",
   reessayer: "إعادة المحاولة",
   redemarrer: "إعادة تشغيل التطبيق",
+
+  // V4.3.1
+  saisieRapide: "إدخال سريع للسكر / الحقنة",
+  doseReelle: "الجرعة المحقونة فعلياً",
 };
 
 export default ar;
