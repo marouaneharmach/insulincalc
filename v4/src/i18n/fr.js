@@ -388,6 +388,16 @@ const fr = {
   // V4.3.1 — Timeline inline add, dose réelle, terminologie
   saisieRapide: "Saisie rapide glycémie / injection",
   doseReelle: "Dose réellement injectée",
+
+  // V4.3.2 — PostMealCorrector, graphique évolution
+  correcteurPostRepas: "Correcteur post-repas",
+  tempsEcoule: "Temps écoulé depuis le repas",
+  glycemiePostRepas: "Glycémie post-repas",
+  insulineRestante: "Insuline restante (IOB)",
+  votreCible: "Cible",
+  aucuneCorrection: "Aucune correction nécessaire",
+  enregistrerCorrection: "Enregistrer correction dans la timeline",
+  resumeEvolution: "Évolution glycémique",
 };
 
 export default fr;

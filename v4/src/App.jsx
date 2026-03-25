@@ -276,6 +276,8 @@ export default function App() {
             targetGMid={targetGMid}
             isf={isf}
             ratio={ratio}
+            journal={journal}
+            setJournal={setJournal}
             t={t}
             colors={colors}
             isDark={isDark}

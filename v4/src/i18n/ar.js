@@ -385,6 +385,16 @@ const ar = {
   // V4.3.1
   saisieRapide: "إدخال سريع للسكر / الحقنة",
   doseReelle: "الجرعة المحقونة فعلياً",
+
+  // V4.3.2
+  correcteurPostRepas: "مصحح ما بعد الوجبة",
+  tempsEcoule: "الوقت المنقضي منذ الوجبة",
+  glycemiePostRepas: "سكر ما بعد الوجبة",
+  insulineRestante: "الأنسولين المتبقي",
+  votreCible: "الهدف",
+  aucuneCorrection: "لا حاجة للتصحيح",
+  enregistrerCorrection: "تسجيل التصحيح في الجدول الزمني",
+  resumeEvolution: "تطور السكر",
 };
 
 export default ar;

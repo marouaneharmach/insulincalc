@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { calcIOB } from '../utils/calculations';
 import { DIGESTION_PROFILES } from '../data/constants';
+import GlycEvolutionChart from './GlycEvolutionChart';
 
 function glycColor(v) {
   if (!v || isNaN(v)) return '#94A3B8';
@@ -252,6 +253,15 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
           )}
         </div>
       )}
+
+      {/* Glycemia evolution chart */}
+      <GlycEvolutionChart
+        journal={journal}
+        targetGMin={targetGMin}
+        targetGMax={targetGMax}
+        isDark={isDark}
+        t={t}
+      />
 
       {/* Quick inline add */}
       {isToday && (

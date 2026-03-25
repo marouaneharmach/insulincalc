@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import FOOD_DB from '../data/foods';
 import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants';
 import DoseAnimation from './DoseAnimation';
+import PostMealCorrector from './PostMealCorrector';
 
 function stripDiacritics(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -38,7 +39,9 @@ export default function MealBuilder({
   glycemia, setGlycemia, weight, setWeight, selections, toggleFood, updateMult,
   resetMeal, totalCarbs, dominantFat, dominantGI, digestion, setDigestion,
   result, maxDose, onSave, favorites, setFavorites, allFoods,
-  wSugg, gVal, glycOk, targetGMid, isf, ratio, t, colors, isDark, isRTL
+  wSugg, gVal, glycOk, targetGMid, isf, ratio,
+  journal, setJournal,
+  t, colors, isDark, isRTL
 }) {
   const [search, setSearch] = useState('');
   const [openCat, setOpenCat] = useState(null);
@@ -330,6 +333,18 @@ export default function MealBuilder({
               ))}
             </div>
           </div>
+
+          {/* Post-meal corrector */}
+          <PostMealCorrector
+            initialDose={result.total}
+            isf={isf}
+            targetG={targetGMid}
+            digestionKey={digestion}
+            journal={journal}
+            setJournal={setJournal}
+            t={t}
+            isDark={isDark}
+          />
 
           {/* Save */}
           <div className={cardClass}>
