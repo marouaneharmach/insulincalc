@@ -135,6 +135,14 @@ export default function App() {
   // Save to journal with overdose check
   const doSaveToJournal = useCallback((doseActual) => {
     if (!result) return;
+    // Build interactive schedule steps (patient validates each injection)
+    const scheduleSteps = result.schedule.map(step => ({
+      ...step,
+      status: 'pending',  // 'pending' | 'done' | 'skipped'
+      actualDose: null,
+      completedAt: null,
+    }));
+
     const entry = {
       id: Date.now(),
       date: new Date().toISOString(),
@@ -142,12 +150,13 @@ export default function App() {
       glycPost: '',
       totalCarbs,
       doseSuggested: result.total,
-      doseActual: doseActual != null ? doseActual : result.total,
+      doseActual: doseActual != null ? doseActual : 0, // Start at 0, patient validates each step
       aliments: selections.map(s => s.food.name).join(', '),
       alimentIds: selections.map(s => s.food.id),
       bolusType: result.bolusType,
       digestion,
       schedule: result.schedule,
+      scheduleSteps,
       mealType: 'dejeuner',
     };
     setJournal(prev => {
