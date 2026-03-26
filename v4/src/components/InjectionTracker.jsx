@@ -103,16 +103,26 @@ export default function InjectionTracker({ entry, journal, setJournal, isDark, t
           const timeLabel = new Date(stepTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
           if (step.status === 'done') {
+            const proposed = step.units;
+            const actual = step.actualDose;
+            const differs = proposed != null && actual != null && Math.abs(proposed - actual) >= 0.1;
             return (
-              <div key={i} className={`flex items-center gap-3 p-2 rounded-xl ${isDark ? 'bg-emerald-900/15' : 'bg-emerald-50'}`}>
+              <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl ${isDark ? 'bg-emerald-900/15' : 'bg-emerald-50'}`}>
                 <span className="text-base">✅</span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{step.label}</p>
+                  <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{step.label}</p>
                   <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{timeLabel}</p>
                 </div>
-                {step.actualDose > 0 && (
-                  <span className="text-sm font-bold text-emerald-500">{step.actualDose}U ✓</span>
-                )}
+                <div className="text-right shrink-0">
+                  {actual > 0 && (
+                    <p className="text-sm font-bold text-emerald-500">{actual}U ✓</p>
+                  )}
+                  {differs && proposed > 0 && (
+                    <p className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                      proposé: {proposed}U
+                    </p>
+                  )}
+                </div>
               </div>
             );
           }

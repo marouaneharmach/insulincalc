@@ -327,9 +327,12 @@ export default function MealBuilder({
                     {step.note && <p className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{step.note}</p>}
                   </div>
                   {step.units != null && (
-                    <span className="text-sm font-bold px-3 py-1 rounded-full bg-blue-500 text-white shrink-0">
-                      {step.units}U
-                    </span>
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-bold px-3 py-1 rounded-full bg-blue-500 text-white">
+                        {step.units}U
+                      </span>
+                      <p className={`text-[8px] mt-0.5 text-center ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>proposé</p>
+                    </div>
                   )}
                 </div>
               ))}

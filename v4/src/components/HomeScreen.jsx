@@ -110,7 +110,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
               <span className={`text-lg font-normal ml-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>g/L</span>
             </p>
             <p className="text-sm mt-2" style={{ color: glycColor(lastGlyc.value) }}>
-              {glycStatus(lastGlyc.value)} · {t('ilYA')} {timeAgo(lastGlyc.minutesAgo)}
+              {glycStatus(lastGlyc.value)} · {lastGlyc.source === 'current' ? '⚡ ' + (t('enCours') || 'En cours') : t('ilYA') + ' ' + timeAgo(lastGlyc.minutesAgo)}
             </p>
           </div>
         ) : (

@@ -202,13 +202,17 @@ export default function App() {
     setShowQuickAdd(true);
   };
 
-  // Get last glycemia from journal
+  // Get last glycemia — prefer current meal glycemia, then journal
   const lastGlyc = useMemo(() => {
-    const last = journal.find(e => e.glycPre);
+    // If user typed glycemia in meal builder right now, show it as "current"
+    if (glycOk && gVal > 0) {
+      return { value: gVal, minutesAgo: 0, date: new Date().toISOString(), source: 'current' };
+    }
+    const last = journal.find(e => e.glycPre && parseFloat(e.glycPre) > 0);
     if (!last) return null;
-    const minAgo = Math.round((Date.now() - last.id) / 60000);
-    return { value: parseFloat(last.glycPre), minutesAgo: minAgo, date: last.date };
-  }, [journal]);
+    const minAgo = Math.round((Date.now() - new Date(last.date).getTime()) / 60000);
+    return { value: parseFloat(last.glycPre), minutesAgo: minAgo, date: last.date, source: 'journal' };
+  }, [journal, glycOk, gVal]);
 
   if (!onboarded) {
     return (

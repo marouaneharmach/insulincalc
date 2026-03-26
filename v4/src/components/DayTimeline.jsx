@@ -373,8 +373,8 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           🩸 {t('glycPre') || 'Avant'} : {glycPre.toFixed(2)} g/L
                         </p>
                       )}
-                      {/* Dose — editable */}
-                      {entry.doseActual > 0 && (
+                      {/* Dose — editable, shows proposed vs actual */}
+                      {(entry.doseActual > 0 || entry.doseSuggested > 0) && (
                         <div className="flex items-center gap-2 mb-1">
                           {editingDose === entry.id ? (
                             <div className="flex items-center gap-1">
@@ -389,12 +389,23 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                 className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual)); }}
+                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual || 0)); }}
                               className="text-xs text-blue-500 hover:underline">
-                              💉 {entry.doseActual}U {entry.bolusType === 'dual' ? '(dual)' : ''}
-                              {entry.doseSuggested !== entry.doseActual && entry.doseSuggested > 0 && (
-                                <span className="text-gray-400"> (calc: {entry.doseSuggested}U)</span>
-                              )}
+                              💉 {entry.doseActual > 0 ? (
+                                <>
+                                  <span className="font-bold">{entry.doseActual}U</span>
+                                  {entry.doseSuggested > 0 && entry.doseSuggested !== entry.doseActual && (
+                                    <span className={`ml-1 ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>
+                                      (proposé: {entry.doseSuggested}U)
+                                    </span>
+                                  )}
+                                </>
+                              ) : entry.doseSuggested > 0 ? (
+                                <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>
+                                  proposé: {entry.doseSuggested}U — <span className="text-amber-500">en attente</span>
+                                </span>
+                              ) : null}
+                              {entry.bolusType === 'dual' && <span className="ml-1 text-amber-500">(dual)</span>}
                               <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
                             </button>
                           )}
