@@ -1,0 +1,6 @@
+name = "clarifai-proxy"
+main = "clarifai-proxy.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+CLARIFAI_PAT = "1ec06f9bade1448bb13d863e298669aa"

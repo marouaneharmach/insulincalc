@@ -1,17 +1,10 @@
-// V4.4 — Clarifai Food Recognition API integration
-// Uses the general food model for food photo → ingredient identification
+// V4.4 — Clarifai Food Recognition via gRPC-web (bypasses CORS)
+import { ClarifaiStub } from 'clarifai-web-grpc';
 
-// ⚠️ Replace with your Clarifai Personal Access Token
-const CLARIFAI_PAT = import.meta.env.VITE_CLARIFAI_PAT || 'YOUR_CLARIFAI_PAT_HERE';
-
-// Clarifai food model
-const MODEL_ID = 'food-item-recognition';
-const MODEL_VERSION = '1d5fd481e0cf4826aa72ec3ff049e044';
-const USER_ID = 'clarifai';
-const APP_ID = 'main';
+const CLARIFAI_PAT = import.meta.env.VITE_CLARIFAI_PAT || '';
 
 /**
- * Compress image to JPEG, max 800px, for API upload
+ * Compress image to JPEG, max 800px
  */
 export function compressImage(file, maxSize = 800) {
   return new Promise((resolve) => {
@@ -27,108 +20,80 @@ export function compressImage(file, maxSize = 800) {
       canvas.width = w;
       canvas.height = h;
       ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(resolve, 'image/jpeg', 0.8);
+      canvas.toBlob(resolve, 'image/jpeg', 0.75);
     };
     img.src = URL.createObjectURL(file);
   });
 }
 
-/**
- * Convert blob to base64 string (without data: prefix)
- */
 function blobToBase64(blob) {
   return new Promise((resolve) => {
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result.split(',')[1];
-      resolve(base64);
-    };
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
     reader.readAsDataURL(blob);
   });
 }
 
 /**
- * Recognize food in an image using Clarifai
- * @param {File|Blob} imageFile - The image to analyze
- * @returns {Promise<Array<{name: string, confidence: number}>>} Detected foods
+ * Recognize food via Clarifai gRPC-web (no CORS issues)
  */
 export async function recognizeFood(imageFile) {
-  if (!CLARIFAI_PAT || CLARIFAI_PAT === 'YOUR_CLARIFAI_PAT_HERE') {
-    throw new Error('Clé API Clarifai non configurée. Ajoutez VITE_CLARIFAI_PAT dans votre .env');
+  if (!CLARIFAI_PAT) {
+    throw new Error('Clé API Clarifai non configurée');
   }
 
-  // Compress image
   const compressed = await compressImage(imageFile);
   const base64 = await blobToBase64(compressed);
 
-  const response = await fetch(
-    `https://api.clarifai.com/v2/models/${MODEL_ID}/versions/${MODEL_VERSION}/outputs`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${CLARIFAI_PAT}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_app_id: { user_id: USER_ID, app_id: APP_ID },
+  const stub = ClarifaiStub.grpc();
+
+  return new Promise((resolve, reject) => {
+    stub.PostModelOutputs(
+      {
+        user_app_id: { user_id: 'clarifai', app_id: 'main' },
+        model_id: 'food-item-recognition',
+        version_id: '1d5fd481e0cf4826aa72ec3ff049e044',
         inputs: [{
-          data: {
-            image: { base64 }
-          }
+          data: { image: { base64 } }
         }]
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Clarifai API error: ${response.status} — ${err}`);
-  }
-
-  const data = await response.json();
-  const concepts = data.outputs?.[0]?.data?.concepts || [];
-
-  // Return top 10 food items with confidence > 10%
-  return concepts
-    .filter(c => c.value > 0.1)
-    .slice(0, 10)
-    .map(c => ({
-      name: c.name,
-      confidence: Math.round(c.value * 100),
-      id: c.id,
-    }));
+      },
+      { authorization: `Key ${CLARIFAI_PAT}` },
+      (err, response) => {
+        if (err) {
+          reject(new Error(err.message || 'Erreur Clarifai'));
+          return;
+        }
+        if (!response || response.status?.code !== 10000) {
+          reject(new Error(response?.status?.description || 'Erreur API'));
+          return;
+        }
+        const concepts = response.outputs?.[0]?.data?.concepts || [];
+        resolve(
+          concepts
+            .filter(c => c.value > 0.1)
+            .slice(0, 10)
+            .map(c => ({ name: c.name, confidence: Math.round(c.value * 100), id: c.id }))
+        );
+      }
+    );
+  });
 }
 
 /**
- * Map Clarifai food names to local food database
- * Uses fuzzy matching to find the closest match
+ * Map Clarifai names to local food DB
  */
 export function mapToLocalFoods(clarifaiResults, allFoods) {
-  const localFoodsList = Object.values(allFoods);
-
+  const foods = Object.values(allFoods);
   return clarifaiResults.map(result => {
     const name = result.name.toLowerCase();
-
-    // Direct match
-    let best = null;
-    let bestScore = 0;
-
-    for (const food of localFoodsList) {
-      const foodName = food.name.toLowerCase();
-      // Exact match
-      if (foodName.includes(name) || name.includes(foodName)) {
-        const score = Math.max(foodName.length, name.length);
-        if (score > bestScore) {
-          bestScore = score;
-          best = food;
-        }
+    let best = null, bestScore = 0;
+    for (const f of foods) {
+      const fn = f.name.toLowerCase();
+      if (fn.includes(name) || name.includes(fn)) {
+        const score = Math.max(fn.length, name.length);
+        if (score > bestScore) { bestScore = score; best = f; }
       }
     }
-
-    return {
-      ...result,
-      localFood: best,
-      mapped: best != null,
-    };
+    return { ...result, localFood: best, mapped: best != null };
   });
 }
