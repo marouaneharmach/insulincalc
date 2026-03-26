@@ -4,6 +4,7 @@ import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants';
 import { normalizeGlycemia, getGlycemiaStatus, validateCarbs, validateDose } from '../utils/validation';
 import DoseAnimation from './DoseAnimation';
 import PostMealCorrector from './PostMealCorrector';
+import PhotoMeal from './PhotoMeal';
 
 function stripDiacritics(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -388,6 +389,9 @@ export default function MealBuilder({
           </div>
         </>
       )}
+
+      {/* ═══ PHOTO MEAL ═══ */}
+      <PhotoMeal allFoods={allFoods} toggleFood={toggleFood} isDark={isDark} t={t} />
 
       {/* ═══ FOOD SELECTION ═══ */}
       <div className={cardClass}>
