@@ -395,6 +395,17 @@ const ar = {
   aucuneCorrection: "لا حاجة للتصحيح",
   enregistrerCorrection: "تسجيل التصحيح في الجدول الزمني",
   resumeEvolution: "تطور السكر",
+
+  // V4.4
+  photoRepas: "صورة الوجبة",
+  prendrePhoto: "التقاط صورة للوجبة",
+  iaReconnaitraAliments: "الذكاء الاصطناعي سيتعرف على الأطعمة",
+  analyseEnCours: "جاري التحليل...",
+  tapPourAjouter: "اضغط لإضافة للوجبة",
+  planInjection: "خطة الحقن",
+  rechercherAliment: "البحث عن طعام...",
+  vider: "إفراغ",
+  digestionHabituelle: "الهضم المعتاد",
 };
 
 export default ar;

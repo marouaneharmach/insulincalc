@@ -398,6 +398,17 @@ const fr = {
   aucuneCorrection: "Aucune correction nécessaire",
   enregistrerCorrection: "Enregistrer correction dans la timeline",
   resumeEvolution: "Évolution glycémique",
+
+  // V4.4 — Photo repas, InjectionTracker, recherche
+  photoRepas: "Photo du repas",
+  prendrePhoto: "Photographier votre repas",
+  iaReconnaitraAliments: "L'IA reconnaîtra les aliments",
+  analyseEnCours: "Analyse en cours...",
+  tapPourAjouter: "Tapez pour ajouter au repas",
+  planInjection: "Plan d'injection",
+  rechercherAliment: "Rechercher un aliment...",
+  vider: "Vider",
+  digestionHabituelle: "Digestion habituelle",
 };
 
 export default fr;
