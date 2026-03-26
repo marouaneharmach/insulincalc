@@ -112,6 +112,23 @@ export default function Settings({
               </div>
             )}
           </div>
+          {/* Digestion habituelle */}
+          <div className={cardClass}>
+            <label className={labelClass}>🍽 {t('digestionHabituelle') || 'Digestion habituelle'}</label>
+            <div className="grid grid-cols-4 gap-2">
+              {Object.entries(DIGESTION_PROFILES).map(([key, dp]) => (
+                <button key={key} onClick={() => setDigestion(key)}
+                  className={`p-2 rounded-xl text-center border transition ${
+                    digestion === key
+                      ? 'border-teal-400 bg-teal-50' + (isDark ? ' !bg-teal-900/30 !border-teal-600' : '')
+                      : isDark ? 'border-slate-700 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
+                  }`}>
+                  <span className="text-lg">{dp.icon}</span>
+                  <p className={`text-[10px] font-medium mt-0.5 ${digestion === key ? 'text-teal-600' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>{dp.label}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -164,23 +181,6 @@ export default function Settings({
             </div>
             <div className={`text-center text-xs font-medium p-1.5 rounded-xl ${isDark ? 'bg-emerald-900/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
               🎯 {targetGMin.toFixed(1)} — {targetGMax.toFixed(1)} g/L (correction → {targetGMid.toFixed(2)})
-            </div>
-          </div>
-          <div className={cardClass}>
-            <label className={labelClass}>{t('digestionDefaut')}</label>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(DIGESTION_PROFILES).map(([key, dp]) => (
-                <button key={key} onClick={() => setDigestion(key)}
-                  className={`p-2 rounded-xl border text-left transition ${
-                    digestion === key
-                      ? 'border-teal-400 bg-teal-50' + (isDark ? ' !bg-teal-900/30 !border-teal-600' : '')
-                      : isDark ? 'border-slate-700 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
-                  }`}>
-                  <span className="text-lg">{dp.icon}</span>
-                  <p className={`text-sm font-medium mt-1 ${digestion === key ? 'text-teal-600' : isDark ? 'text-slate-300' : 'text-slate-600'}`}>{dp.label}</p>
-                  <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{dp.desc}</p>
-                </button>
-              ))}
             </div>
           </div>
           <div className={cardClass}>

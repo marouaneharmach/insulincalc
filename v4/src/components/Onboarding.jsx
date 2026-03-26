@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DIGESTION_PROFILES } from '../data/constants';
 
 export default function Onboarding({
   setPatientName,
@@ -10,6 +11,7 @@ export default function Onboarding({
   setIsf,
   setTargetGMin,
   setTargetGMax,
+  setDigestion,
   onComplete,
   t,
   isDark,
@@ -23,6 +25,7 @@ export default function Onboarding({
   const [sex, sexState] = useState('M');
   const [height, heightState] = useState('');
   const [weight, weightState] = useState('');
+  const [digestionLocal, setDigestionLocal] = useState('normal');
 
   // Step 3 - Insulin parameters
   const [ratio, ratioState] = useState(10);
@@ -53,6 +56,7 @@ export default function Onboarding({
     setIsf(isf);
     setTargetGMin(targetGMin);
     setTargetGMax(targetGMax);
+    if (setDigestion) setDigestion(digestionLocal);
 
     // Mark onboarding as complete
     onComplete();
@@ -196,6 +200,29 @@ export default function Onboarding({
                     className={`w-full px-3 py-2.5 rounded-lg border ${inputClass} focus:outline-none focus:ring-2 text-sm`}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Digestion habituelle */}
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                {t('onb_digestion') || 'Votre digestion habituelle'}
+              </label>
+              <p className={`text-xs mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                {t('onb_digestion_desc') || 'Influence le timing de vos injections'}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {Object.entries(DIGESTION_PROFILES).map(([key, dp]) => (
+                  <button key={key} onClick={() => setDigestionLocal(key)}
+                    className={`p-2 rounded-xl text-center border transition ${
+                      digestionLocal === key
+                        ? 'border-teal-400 bg-teal-50' + (isDark ? ' !bg-teal-900/30 !border-teal-600' : '')
+                        : isDark ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
+                    }`}>
+                    <span className="text-lg">{dp.icon}</span>
+                    <p className={`text-[10px] font-medium mt-0.5 ${digestionLocal === key ? 'text-teal-600' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>{dp.label}</p>
+                  </button>
+                ))}
               </div>
             </div>
 

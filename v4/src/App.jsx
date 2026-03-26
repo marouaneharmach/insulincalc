@@ -3,6 +3,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTheme } from './hooks/useTheme';
 import { useI18n } from './i18n/useI18n';
 import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR } from './utils/calculations';
+import { normalizeGlycemia } from './utils/validation';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants';
 import FOOD_DB from './data/foods';
 import { scheduleFromPlan, cancelAll, setFallbackHandler } from './utils/notifications';
@@ -104,8 +105,10 @@ export default function App() {
   const dominantFat = useMemo(() => getOverallFat(selections), [selections]);
   const dominantGI = useMemo(() => getDominantGI(selections), [selections]);
 
-  const gVal = parseFloat(glycemia);
-  const glycOk = !isNaN(gVal) && gVal >= 0.3 && gVal <= 6.0;
+  const glycNorm = normalizeGlycemia(glycemia);
+  const gVal = glycNorm ? glycNorm.gL : NaN;
+  const glycOk = glycNorm != null && gVal >= 0.3 && gVal <= 6.0;
+  const glycDisplay = glycNorm?.display || null; // "102 mg → 1.02 g/L" hint
   const canCalc = glycOk && totalCarbs > 0;
 
   const result = useMemo(() => {
@@ -210,6 +213,7 @@ export default function App() {
         setIsf={setIsf}
         setTargetGMin={setTargetGMin}
         setTargetGMax={setTargetGMax}
+        setDigestion={setDigestion}
         onComplete={() => setOnboarded(true)}
         t={t}
         isDark={isDark}
@@ -273,9 +277,11 @@ export default function App() {
             wSugg={wSugg}
             gVal={gVal}
             glycOk={glycOk}
+            glycDisplay={glycDisplay}
             targetGMid={targetGMid}
             isf={isf}
             ratio={ratio}
+            weight={weight}
             journal={journal}
             setJournal={setJournal}
             t={t}
