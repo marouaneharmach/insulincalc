@@ -54,15 +54,6 @@ function handleVersionMigration() {
     }
 
     console.log('[InsulinCalc] Migration v' + APP_VERSION + ' terminée. Données utilisateur préservées.');
-
-    // Force reload after cache clear to pick up new assets
-    // Use a flag to prevent infinite reload loop
-    const reloadKey = 'insulincalc_reload_' + APP_VERSION;
-    if (!sessionStorage.getItem(reloadKey)) {
-      sessionStorage.setItem(reloadKey, '1');
-      window.location.reload(true);
-      return; // stop execution, reload will restart
-    }
   }
 }
 
