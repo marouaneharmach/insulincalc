@@ -152,7 +152,7 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
 
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-medium capitalize ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                    {item.name}
+                    {item.nameFr || item.name}
                   </p>
                   {item.mapped ? (
                     <p className={`text-[10px] ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
@@ -160,7 +160,7 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
                     </p>
                   ) : (
                     <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                      Non trouvé dans la base locale
+                      {item.name} — non trouvé dans la base
                     </p>
                   )}
                 </div>

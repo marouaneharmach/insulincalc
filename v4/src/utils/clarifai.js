@@ -91,21 +91,75 @@ export async function recognizeFood(imageFile) {
     .map(c => ({ name: c.name, confidence: Math.round(c.value * 100), id: c.id }));
 }
 
+// English → French food name mapping for Clarifai results
+const EN_FR_FOOD = {
+  banana: 'banane', apple: 'pomme', orange: 'orange', grape: 'raisin', strawberry: 'fraise',
+  pear: 'poire', peach: 'pêche', watermelon: 'pastèque', melon: 'melon', lemon: 'citron',
+  pineapple: 'ananas', mango: 'mangue', cherry: 'cerise', fig: 'figue', date: 'datte',
+  apricot: 'abricot', plum: 'prune', avocado: 'avocat', coconut: 'noix de coco',
+  bread: 'pain', rice: 'riz', pasta: 'pâtes', couscous: 'couscous', noodle: 'nouilles',
+  chicken: 'poulet', beef: 'bœuf', lamb: 'agneau', fish: 'poisson', egg: 'œuf',
+  cheese: 'fromage', milk: 'lait', yogurt: 'yaourt', butter: 'beurre', cream: 'crème',
+  potato: 'pomme de terre', tomato: 'tomate', onion: 'oignon', carrot: 'carotte',
+  cucumber: 'concombre', pepper: 'poivron', lettuce: 'laitue', cabbage: 'chou',
+  broccoli: 'brocoli', spinach: 'épinard', corn: 'maïs', pea: 'petit pois',
+  bean: 'haricot', lentil: 'lentille', chickpea: 'pois chiche',
+  cake: 'gâteau', cookie: 'biscuit', chocolate: 'chocolat', candy: 'bonbon',
+  pizza: 'pizza', hamburger: 'hamburger', sandwich: 'sandwich', fries: 'frites',
+  salad: 'salade', soup: 'soupe', stew: 'ragoût', sauce: 'sauce',
+  coffee: 'café', tea: 'thé', juice: 'jus', soda: 'soda', water: 'eau',
+  almond: 'amande', walnut: 'noix', peanut: 'cacahuète', olive: 'olive',
+  honey: 'miel', sugar: 'sucre', salt: 'sel', oil: 'huile',
+  croissant: 'croissant', baguette: 'baguette', pancake: 'pancake', waffle: 'gaufre',
+  sushi: 'sushi', ramen: 'ramen', kebab: 'kefta', taco: 'taco',
+  steak: 'steak', salmon: 'saumon', shrimp: 'crevette', tuna: 'thon',
+  mushroom: 'champignon', garlic: 'ail', ginger: 'gingembre',
+  'ice cream': 'glace', dessert: 'dessert', pastry: 'pâtisserie',
+  omelette: 'omelette', bacon: 'bacon', sausage: 'saucisse', ham: 'jambon',
+  radish: 'radis', kale: 'chou frisé', zucchini: 'courgette', eggplant: 'aubergine',
+};
+
+function translateFoodName(enName) {
+  const lower = enName.toLowerCase();
+  // Direct match
+  if (EN_FR_FOOD[lower]) return EN_FR_FOOD[lower];
+  // Partial match (e.g. "french fries" contains "fries")
+  for (const [en, fr] of Object.entries(EN_FR_FOOD)) {
+    if (lower.includes(en) || en.includes(lower)) return fr;
+  }
+  return enName; // Keep original if no translation
+}
+
 /**
- * Map Clarifai names to local food DB
+ * Map Clarifai names to local food DB with EN→FR translation
  */
 export function mapToLocalFoods(clarifaiResults, allFoods) {
   const foods = Object.values(allFoods);
+
   return clarifaiResults.map(result => {
-    const name = result.name.toLowerCase();
+    const enName = result.name.toLowerCase();
+    const frName = translateFoodName(enName).toLowerCase();
+
     let best = null, bestScore = 0;
+
     for (const f of foods) {
-      const fn = f.name.toLowerCase();
-      if (fn.includes(name) || name.includes(fn)) {
-        const score = Math.max(fn.length, name.length);
-        if (score > bestScore) { bestScore = score; best = f; }
-      }
+      const fn = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const frNorm = frName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const enNorm = enName;
+
+      // Match against French translated name OR English name
+      let score = 0;
+      if (fn.includes(frNorm) || frNorm.includes(fn)) score = frNorm.length + fn.length;
+      else if (fn.includes(enNorm) || enNorm.includes(fn)) score = enNorm.length + fn.length;
+
+      if (score > bestScore) { bestScore = score; best = f; }
     }
-    return { ...result, localFood: best, mapped: best != null };
+
+    return {
+      ...result,
+      nameFr: translateFoodName(result.name),
+      localFood: best,
+      mapped: best != null,
+    };
   });
 }
