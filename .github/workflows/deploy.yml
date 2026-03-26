@@ -37,6 +37,7 @@ jobs:
         working-directory: v4
         env:
           VITE_CLARIFAI_PAT: ${{ secrets.VITE_CLARIFAI_PAT }}
+          VITE_CLARIFAI_PROXY: https://clarifai-proxy.marouane-harmach.workers.dev/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

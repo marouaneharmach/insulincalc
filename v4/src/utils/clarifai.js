@@ -1,7 +1,11 @@
-// V4.4 — Clarifai Food Recognition via gRPC-web (bypasses CORS)
-import { ClarifaiStub } from 'clarifai-web-grpc';
+// V4.4 — Clarifai Food Recognition via serverless proxy (bypasses CORS)
+// The proxy URL handles auth server-side so no CORS issues
 
+// Proxy URL (val.town, Cloudflare Worker, or Netlify Function)
+const PROXY_URL = import.meta.env.VITE_CLARIFAI_PROXY || '';
+// Fallback: direct API call (works in dev/localhost only, blocked by CORS in production)
 const CLARIFAI_PAT = import.meta.env.VITE_CLARIFAI_PAT || '';
+const DIRECT_URL = 'https://api.clarifai.com/v2/models/food-item-recognition/versions/1d5fd481e0cf4826aa72ec3ff049e044/outputs';
 
 /**
  * Compress image to JPEG, max 800px
@@ -35,48 +39,56 @@ function blobToBase64(blob) {
 }
 
 /**
- * Recognize food via Clarifai gRPC-web (no CORS issues)
+ * Recognize food via proxy or direct API
  */
 export async function recognizeFood(imageFile) {
-  if (!CLARIFAI_PAT) {
-    throw new Error('Clé API Clarifai non configurée');
+  if (!PROXY_URL && !CLARIFAI_PAT) {
+    throw new Error('Configuration Clarifai manquante. Configurez VITE_CLARIFAI_PROXY ou VITE_CLARIFAI_PAT.');
   }
 
   const compressed = await compressImage(imageFile);
   const base64 = await blobToBase64(compressed);
 
-  const stub = ClarifaiStub.grpc();
-
-  return new Promise((resolve, reject) => {
-    stub.PostModelOutputs(
-      {
-        user_app_id: { user_id: 'clarifai', app_id: 'main' },
-        model_id: 'food-item-recognition',
-        version_id: '1d5fd481e0cf4826aa72ec3ff049e044',
-        inputs: [{
-          data: { image: { base64 } }
-        }]
-      },
-      { authorization: `Key ${CLARIFAI_PAT}` },
-      (err, response) => {
-        if (err) {
-          reject(new Error(err.message || 'Erreur Clarifai'));
-          return;
-        }
-        if (!response || response.status?.code !== 10000) {
-          reject(new Error(response?.status?.description || 'Erreur API'));
-          return;
-        }
-        const concepts = response.outputs?.[0]?.data?.concepts || [];
-        resolve(
-          concepts
-            .filter(c => c.value > 0.1)
-            .slice(0, 10)
-            .map(c => ({ name: c.name, confidence: Math.round(c.value * 100), id: c.id }))
-        );
-      }
-    );
+  const requestBody = JSON.stringify({
+    user_app_id: { user_id: 'clarifai', app_id: 'main' },
+    inputs: [{ data: { image: { base64 } } }]
   });
+
+  let response;
+
+  if (PROXY_URL) {
+    // Use serverless proxy (val.town / Cloudflare Worker / Netlify)
+    response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: requestBody,
+    });
+  } else {
+    // Direct call (dev only — blocked by CORS in production)
+    response = await fetch(DIRECT_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${CLARIFAI_PAT}`,
+        'Content-Type': 'application/json',
+      },
+      body: requestBody,
+    });
+  }
+
+  if (!response.ok) {
+    throw new Error(`Erreur API: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status && data.status.code !== 10000) {
+    throw new Error(data.status.description || 'Erreur Clarifai');
+  }
+
+  const concepts = data.outputs?.[0]?.data?.concepts || [];
+  return concepts
+    .filter(c => c.value > 0.1)
+    .slice(0, 10)
+    .map(c => ({ name: c.name, confidence: Math.round(c.value * 100), id: c.id }));
 }
 
 /**
