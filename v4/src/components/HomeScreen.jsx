@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { APP_VERSION } from '../version';
 import GlycemiaChart from './GlycemiaChart';
 import TrendChart from './TrendChart';
@@ -77,6 +77,17 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
     const m = mins % 60;
     return m > 0 ? `${h}h${m.toString().padStart(2,'0')}` : `${h}h`;
   };
+
+  // Ref for auto-scroll to result
+  const resultRef = useRef(null);
+  const prevResultTotalRef = useRef(null);
+
+  useEffect(() => {
+    if (result && result.total !== prevResultTotalRef.current && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevResultTotalRef.current = result ? result.total : null;
+  }, [result]);
 
   return (
     <div className="px-4 pt-3 space-y-2">
@@ -190,7 +201,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
 
       {/* Active result card if meal in progress */}
       {result && (
-        <div className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-slate-800 border-teal-600/50' : 'bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-200'}`}>
+        <div ref={resultRef} className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-slate-800 border-teal-600/50' : 'bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-200'}`}>
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs uppercase tracking-wider font-semibold ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
               {t('doseTotale')}
