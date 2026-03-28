@@ -489,6 +489,18 @@ const ar = {
   cl_postPrandialGood: 'تصحيح جيد',
   cl_postPrandialUnder: 'تصحيح ناقص',
   cl_postPrandialOver: 'تصحيح زائد',
+
+  // Hardcoded strings fix
+  cl_glucides: 'كربوهيدرات',
+  cl_gras: 'دهون',
+  enregistrerInjecter: '💉 تسجيل والحقن',
+  prendreUnePhoto: 'التقاط صورة',
+  choisirDepuisAlbum: 'اختيار من الألبوم',
+  nonTrouveDansBase: 'غير موجود في القاعدة',
+  fatAucun: 'لا شيء',
+  fatFaible: 'منخفض',
+  fatMoyen: 'متوسط',
+  fatEleve: 'مرتفع',
 };
 
 export default ar;

@@ -113,12 +113,12 @@ export default function ClinicalResponse({ result, t, isDark = true }) {
           {analysis.totalCarbs != null && (
             <span>
               <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{analysis.totalCarbs} g</span>
-              {' '}glucides
+              {' '}{t('cl_glucides') || 'glucides'}
             </span>
           )}
           {analysis.fatLevel && analysis.fatLevel !== 'aucun' && (
             <span>
-              Gras{' '}
+              {t('cl_gras') || 'Gras'}{' '}
               <span className={`font-semibold capitalize ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{analysis.fatLevel}</span>
             </span>
           )}

@@ -167,7 +167,7 @@ export default function ConsultationScreen({
       {result && !result.recommendation.blocked && (
         <button onClick={handleSave}
           className="w-full py-3 rounded-xl bg-green-500 text-white font-bold">
-          💉 Enregistrer & Injecter
+          {t('enregistrerInjecter') || '💉 Enregistrer & Injecter'}
         </button>
       )}
 

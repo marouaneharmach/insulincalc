@@ -492,6 +492,18 @@ const fr = {
   cl_postPrandialGood: 'Bonne correction',
   cl_postPrandialUnder: 'Sous-corrigé',
   cl_postPrandialOver: 'Sur-corrigé',
+
+  // Hardcoded strings fix
+  cl_glucides: 'glucides',
+  cl_gras: 'Gras',
+  enregistrerInjecter: '💉 Enregistrer & Injecter',
+  prendreUnePhoto: 'Prendre une photo',
+  choisirDepuisAlbum: "Choisir depuis l'album",
+  nonTrouveDansBase: 'non trouvé dans la base',
+  fatAucun: 'Aucun',
+  fatFaible: 'Faible',
+  fatMoyen: 'Moyen',
+  fatEleve: 'Élevé',
 };
 
 export default fr;

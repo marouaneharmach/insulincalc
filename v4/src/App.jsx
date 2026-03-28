@@ -7,6 +7,7 @@ import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
 import { setFallbackHandler } from './utils/notifications';
 import { needsMigration, migrateAllEntries } from './utils/migration';
+import { recognizeFood, mapToLocalFoods } from './utils/clarifai';
 
 import DayTimeline from './components/DayTimeline';
 import Settings from './components/Settings';
@@ -125,6 +126,22 @@ export default function App() {
     setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: Math.max(0.25, Math.min(mult, 10)) } : s));
   }, [setSelections]);
 
+  // Photo meal recognition handler
+  const handlePhotoMeal = useCallback(async (file) => {
+    try {
+      const results = await recognizeFood(file);
+      const mapped = mapToLocalFoods(results, allFoods);
+      const matchedFoods = mapped.filter(r => r.mapped).map(r => r.localFood);
+      matchedFoods.forEach(food => {
+        toggleFood(food);
+      });
+      return mapped;
+    } catch (err) {
+      console.error('[PhotoMeal]', err);
+      return [];
+    }
+  }, [allFoods, toggleFood]);
+
   // Bridge: convert selections array to object map for ConsultationScreen
   const selectionsMap = useMemo(() => {
     const map = {};
@@ -185,6 +202,15 @@ export default function App() {
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className={`min-h-screen ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-[#F7FAFB] text-slate-800'} font-sans`}>
+      {/* Header with version */}
+      <div className={`px-4 py-2 flex items-center justify-between border-b ${isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-gray-100'}`}>
+        <div>
+          <span className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>InsulinCalc</span>
+          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${isDark ? 'bg-teal-900/40 text-teal-400 border border-teal-800' : 'bg-teal-50 text-teal-600 border border-teal-200'}`}>v5.3</span>
+        </div>
+        <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('appSubtitle')}</span>
+      </div>
+
       {/* Legal disclaimer */}
       <div className={`px-4 py-1.5 text-center text-[10px] ${isDark ? 'bg-red-950/30 text-red-300 border-b border-red-900/30' : 'bg-red-50 text-red-700 border-b border-red-100'}`}>
         ⚕️ {t('disclaimerBanner')}
@@ -207,7 +233,7 @@ export default function App() {
             updateMult={updateMult}
             timeProfiles={timeProfiles}
             onSaveToJournal={onSaveToJournalV5}
-            onPhotoMeal={null}
+            onPhotoMeal={handlePhotoMeal}
             t={t} isRTL={isRTL} isDark={isDark}
           />
         )}
