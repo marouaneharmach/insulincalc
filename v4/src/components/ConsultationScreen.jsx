@@ -144,7 +144,7 @@ export default function ConsultationScreen({
         : null,
       iobAuMoment: parseFloat(iobTotal.toFixed(1)),
       doseSuggeree: result.recommendation.dose,
-      doseReelle: parseFloat(actualDose) || result.recommendation.dose,
+      doseReelle: !isNaN(parseFloat(actualDose)) ? parseFloat(actualDose) : result.recommendation.dose,
       bolusType: result.recommendation.split.type,
       activitePhysique: activity,
       alertes: [...result.vigilance.risks, ...result.vigilance.warnings],
