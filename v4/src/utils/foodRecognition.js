@@ -1,10 +1,10 @@
-// V5.5 — Groq + Llama 3.2 Vision Food Recognition
+// V5.5 — Groq + Llama 4 Scout Vision Food Recognition
 // Free, ultra-fast inference via Groq API
-// Model: llama-3.2-90b-vision-preview (best open-source vision model)
+// Model: meta-llama/llama-4-scout-17b-16e-instruct (current Groq vision model)
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const VISION_MODEL = 'llama-3.2-90b-vision-preview';
+const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 /**
  * Compress image to JPEG, max 800px
