@@ -406,6 +406,89 @@ const ar = {
   rechercherAliment: "البحث عن طعام...",
   vider: "إفراغ",
   digestionHabituelle: "الهضم المعتاد",
+
+  // Clinical response
+  cl_analyse: 'التحليل',
+  cl_recommandation: 'التوصية',
+  cl_vigilance: 'الحذر',
+  cl_prochaineEtape: 'الخطوة التالية',
+  cl_analyser: 'تحليل',
+
+  // Glycemia status
+  cl_hypoSevere: 'انخفاض حاد في السكر',
+  cl_hypo: 'انخفاض السكر',
+  cl_hypoProche: 'سكر منخفض',
+  cl_cible: 'في النطاق المستهدف',
+  cl_elevee: 'سكر مرتفع',
+  cl_haute: 'سكر مرتفع جداً',
+  cl_hyperSevere: 'ارتفاع حاد في السكر',
+  cl_sousCible: 'تحت المستهدف',
+
+  // Recommendation
+  cl_doseUnique: 'حقنة واحدة',
+  cl_doseFractionnee: 'حقنة مجزأة',
+  cl_immediat: 'فوري',
+  cl_differe: 'مؤجل',
+  cl_fractionne: 'مجزأ',
+  cl_bolusRepas: 'جرعة الوجبة',
+  cl_correction: 'التصحيح',
+  cl_bonusGras: 'إضافة الدهون',
+  cl_iobSoustraite: 'الأنسولين النشط المخصوم',
+
+  // Safety
+  cl_antiHypo: 'لا تحقن. تناول 15غ من السكر السريع.',
+  cl_hypoProcheDose: 'الجرعة مخفضة 50% (سكر منخفض).',
+  cl_antiStacking: 'أنسولين نشط. تم خصمه من التصحيح.',
+  cl_alerteTiming: 'آخر حقنة منذ أقل من ساعتين. توخ الحذر.',
+  cl_surdosage: 'الجرعة تتجاوز حد الأمان.',
+  cl_surCorrection: 'اتجاه نحو الانخفاض. تصحيح مخفض.',
+  cl_postKeto: 'نظام كيتو سابق: انتبه للارتفاعات المتأخرة.',
+  cl_activiteModere: 'نشاط معتدل: جرعة مخفضة 20%.',
+  cl_activiteIntense: 'نشاط مكثف: جرعة مخفضة 30%.',
+
+  // Next step
+  cl_recontrole: 'أعد قياس السكر خلال',
+  cl_recontroleResucrage: 'أعد القياس بعد {min} دقيقة من تناول السكر',
+  cl_minutes: 'د',
+
+  // IOB
+  cl_iobActive: 'الأنسولين النشط',
+  cl_unites: 'و',
+
+  // Context
+  cl_activite: 'النشاط البدني',
+  cl_aucune: 'لا شيء',
+  cl_legere: 'خفيف',
+  cl_moderee: 'معتدل',
+  cl_intense: 'مكثف',
+
+  // Trend
+  cl_tendance: 'الاتجاه',
+  cl_tendanceInconnue: 'غير معروف',
+
+  // Meal input
+  cl_modeExpert: 'كربوهيدرات مباشرة',
+  cl_modeAssiste: 'قاعدة الأغذية',
+  cl_glucidesTotal: 'إجمالي الكربوهيدرات (غ)',
+  cl_niveauGras: 'مستوى الدهون',
+
+  // Settings - new fields
+  cl_insulineBasale: 'الأنسولين القاعدي',
+  cl_insulineRapide: 'الأنسولين السريع',
+  cl_doseBasale: 'الجرعة القاعدية اليومية',
+  cl_profilPostKeto: 'نظام كيتو سابق',
+  cl_digestionLente: 'هضم بطيء معتاد',
+  cl_dureeAction: 'مدة تأثير الأنسولين السريع',
+
+  // Consultation
+  cl_consultation: 'الاستشارة',
+  cl_journal: 'السجل',
+  cl_reglages: 'الإعدادات',
+
+  // Post-prandial
+  cl_postPrandialGood: 'تصحيح جيد',
+  cl_postPrandialUnder: 'تصحيح ناقص',
+  cl_postPrandialOver: 'تصحيح زائد',
 };
 
 export default ar;
