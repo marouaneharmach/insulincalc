@@ -26,6 +26,9 @@ export default function Settings({
   t, colors, isRTL
 }) {
   const [section, setSection] = useState('profil');
+  const [notifPermission, setNotifPermission] = useState(() =>
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
   const labelClass = `text-[10px] uppercase tracking-wider font-semibold mb-1 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`;
@@ -39,13 +42,10 @@ export default function Settings({
     { key: 'display', icon: '🎨', label: t('apparence') },
   ];
 
-  const handleNotifToggle = async () => {
-    if (!notifEnabled) {
-      const perm = await requestNotificationPermission();
-      if (perm === 'granted') setNotifEnabled(true);
-    } else {
-      setNotifEnabled(false);
-    }
+  const handleRequestPermission = async () => {
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+    if (perm === 'granted') setNotifEnabled(true);
   };
 
   return (
@@ -276,18 +276,37 @@ export default function Settings({
       {section === 'notif' && (
         <div className="space-y-2">
           <div className={cardClass}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{t('rappelPostRepas')}</p>
-                <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('rappelMesurer')}</p>
+            {notifPermission === 'granted' ? (
+              <div className="flex items-center gap-2 text-sm text-teal-600">
+                <span>✅</span>
+                <span>{t('notifActivees') || 'Notifications activées'}</span>
               </div>
-              <button onClick={handleNotifToggle}
-                className={`w-12 h-7 rounded-full transition relative ${notifEnabled ? 'bg-teal-500' : isDark ? 'bg-slate-600' : 'bg-gray-300'}`}>
-                <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-1 transition-all ${notifEnabled ? 'left-6' : 'left-1'}`} />
+            ) : notifPermission === 'denied' ? (
+              <div className={`px-3 py-2 rounded-xl text-sm ${isDark ? 'bg-amber-900/20 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+                ⚠️ {t('notifBloquees') || 'Notifications bloquées par le navigateur. Autorisez-les dans les paramètres.'}
+              </div>
+            ) : (
+              <button onClick={handleRequestPermission}
+                className="w-full py-2 px-4 rounded-xl bg-teal-500 text-white font-medium text-sm">
+                🔔 {t('autoriserNotifications') || 'Autoriser les notifications'}
               </button>
-            </div>
+            )}
           </div>
-          {notifEnabled && (
+          {notifPermission === 'granted' && (
+            <div className={cardClass}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{t('rappelPostRepas')}</p>
+                  <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('rappelMesurer')}</p>
+                </div>
+                <button onClick={() => setNotifEnabled(!notifEnabled)}
+                  className={`w-12 h-7 rounded-full transition relative ${notifEnabled ? 'bg-teal-500' : isDark ? 'bg-slate-600' : 'bg-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-1 transition-all ${notifEnabled ? 'left-6' : 'left-1'}`} />
+                </button>
+              </div>
+            </div>
+          )}
+          {notifEnabled && notifPermission === 'granted' && (
             <div className={cardClass}>
               <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'} mb-2`}>
                 ✅ Les notifications sont liées au planning d'injection de chaque repas.
