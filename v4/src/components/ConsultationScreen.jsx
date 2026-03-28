@@ -1,5 +1,5 @@
 // v4/src/components/ConsultationScreen.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import GlycemiaInput from './GlycemiaInput';
 import MealInput from './MealInput';
 import ContextInput from './ContextInput';
@@ -26,6 +26,15 @@ export default function ConsultationScreen({
   const [manualCarbs, setManualCarbs] = useState(0);
   const [result, setResult] = useState(null);
   const [showOverdoseDialog, setShowOverdoseDialog] = useState(false);
+  const resultRef = useRef(null);
+  const prevResultRef = useRef(null);
+
+  useEffect(() => {
+    if (result && result !== prevResultRef.current && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevResultRef.current = result;
+  }, [result]);
 
   // Calculate total carbs (expert mode: manual, assisted mode: from selections)
   const totalCarbs = useMemo(() => {
@@ -162,7 +171,9 @@ export default function ConsultationScreen({
         {t('cl_analyser') || 'Analyser'}
       </button>
 
-      <ClinicalResponse result={result} t={t} isDark={isDark} />
+      <div ref={resultRef}>
+        <ClinicalResponse result={result} t={t} isDark={isDark} />
+      </div>
 
       {result && !result.recommendation.blocked && (
         <button onClick={handleSave}
