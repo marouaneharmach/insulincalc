@@ -99,3 +99,112 @@ export function calculateDose({
     doseSuggeree,
   };
 }
+
+// ─── Safety Rules ─────────────────────────────────────────────────────────────
+
+/** Trends considered as falling (sur-correction risk). */
+const FALLING_TRENDS = new Set(['↓', '↘']);
+
+/**
+ * Apply safety rules to a computed dose and return an adjusted dose with
+ * structured risk/warning lists.
+ *
+ * Rules evaluated in order:
+ *  1. Anti-hypo       : glycemia < 0.70 → blocked, dose = 0 (early return)
+ *  2. Hypo-proche     : 0.70 ≤ glycemia < 0.90 → total dose × 50% (risk)
+ *  3. Surdosage       : adjustedDose > maxDose → blocked (risk)
+ *  4. Sur-correction  : falling trend AND correction > 0 → subtract round05(correction×0.5) (warning)
+ *  5. Anti-stacking   : iobTotal > 2 AND correction > 0 (warning)
+ *  6. Alerte-timing   : lastInjectionMinutesAgo < 120 (warning)
+ *  7. Post-keto       : postKeto flag (warning)
+ *
+ * @param {object} ctx
+ * @param {number}      ctx.glycemia
+ * @param {number}      ctx.doseSuggeree
+ * @param {number}      ctx.correction          - Raw correction component (before IOB)
+ * @param {number}      ctx.iobTotal
+ * @param {string|null} ctx.trend               - '↑','↗','→','↘','↓','?' or null
+ * @param {string}      ctx.activity
+ * @param {boolean}     ctx.postKeto
+ * @param {number}      ctx.maxDose             - Maximum allowed single dose (units)
+ * @param {number|null} ctx.lastInjectionMinutesAgo
+ * @returns {{
+ *   blocked: boolean,
+ *   adjustedDose: number,
+ *   risks: Array<{type: string, message: string}>,
+ *   warnings: Array<{type: string, message: string}>,
+ * }}
+ */
+export function applySafetyRules({
+  glycemia, doseSuggeree, correction, iobTotal, trend,
+  activity, postKeto, maxDose, lastInjectionMinutesAgo,
+}) {
+  const risks = [];
+  const warnings = [];
+
+  // Rule 1 — Anti-hypo: glycemia < 0.70 g/L — immediate block, no further checks
+  if (glycemia < 0.70) {
+    risks.push({
+      type: 'anti-hypo',
+      message: 'Glycémie < 0.70 g/L — Ne pas injecter. Resucrage 15 g de glucides rapides immédiat.',
+    });
+    return { blocked: true, adjustedDose: 0, risks, warnings };
+  }
+
+  let adjustedDose = doseSuggeree;
+
+  // Rule 2 — Hypo-proche: 0.70 ≤ glycemia < 0.90 g/L — reduce total dose 50%
+  if (glycemia < 0.90) {
+    adjustedDose = round05(adjustedDose * 0.5);
+    risks.push({
+      type: 'hypo-proche',
+      message: 'Glycémie entre 0.70 et 0.90 g/L — Dose réduite de 50 %. Surveiller de près.',
+    });
+  }
+
+  // Rule 3 — Surdosage: adjusted dose exceeds maximum allowed
+  if (adjustedDose > maxDose) {
+    risks.push({
+      type: 'surdosage',
+      message: `Dose calculée (${adjustedDose} U) dépasse le maximum autorisé (${maxDose} U) — Injection bloquée.`,
+    });
+    return { blocked: true, adjustedDose, risks, warnings };
+  }
+
+  // Rule 4 — Sur-correction: falling trend with active correction
+  const trendIsKnown = trend != null && trend !== '?';
+  if (trendIsKnown && FALLING_TRENDS.has(trend) && correction > 0) {
+    const reduction = round05(correction * 0.5);
+    adjustedDose = Math.max(0, adjustedDose - reduction);
+    warnings.push({
+      type: 'sur-correction',
+      message: "Tendance baissière détectée — correction réduite de 50 % pour éviter l'hypoglycémie.",
+    });
+  }
+
+  // Rule 5 — Anti-stacking: high IOB with active correction
+  if (iobTotal > 2 && correction > 0) {
+    warnings.push({
+      type: 'anti-stacking',
+      message: `Insuline active élevée (${iobTotal} U) avec correction active — risque d'empilement.`,
+    });
+  }
+
+  // Rule 6 — Timing warning: too soon after last injection
+  if (lastInjectionMinutesAgo != null && lastInjectionMinutesAgo < 120) {
+    warnings.push({
+      type: 'alerte-timing',
+      message: `Dernière injection il y a ${lastInjectionMinutesAgo} min (< 2 h) — vérifier l'IOB.`,
+    });
+  }
+
+  // Rule 7 — Post-keto warning
+  if (postKeto) {
+    warnings.push({
+      type: 'post-keto',
+      message: "Période post-cétose — sensibilité à l'insuline potentiellement altérée. Surveiller.",
+    });
+  }
+
+  return { blocked: false, adjustedDose, risks, warnings };
+}

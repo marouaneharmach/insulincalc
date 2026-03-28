@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateDose,
+  applySafetyRules,
   FAT_FACTOR,
   ACTIVITY_REDUCTION,
 } from '../clinicalEngine.js';
@@ -75,5 +76,71 @@ describe('ACTIVITY_REDUCTION', () => {
     expect(ACTIVITY_REDUCTION.legere).toBe(1.0);
     expect(ACTIVITY_REDUCTION.moderee).toBe(0.80);
     expect(ACTIVITY_REDUCTION.intense).toBe(0.70);
+  });
+});
+
+// ─── Task 3: applySafetyRules ─────────────────────────────────────────────────
+
+describe('applySafetyRules', () => {
+  const baseContext = {
+    glycemia: 1.10, doseSuggeree: 4.0, correction: 0, iobTotal: 0,
+    trend: '?', activity: 'aucune', postKeto: false, maxDose: 10,
+    lastInjectionMinutesAgo: null,
+  };
+
+  it('blocks injection for severe hypo', () => {
+    const r = applySafetyRules({ ...baseContext, glycemia: 0.55, doseSuggeree: 2 });
+    expect(r.blocked).toBe(true);
+    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'anti-hypo' }));
+    expect(r.adjustedDose).toBe(0);
+  });
+
+  it('reduces dose 50% for near-hypo', () => {
+    const r = applySafetyRules({ ...baseContext, glycemia: 0.80, doseSuggeree: 4.0 });
+    expect(r.adjustedDose).toBe(2.0);
+    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'hypo-proche' }));
+  });
+
+  it('warns about stacking', () => {
+    const r = applySafetyRules({ ...baseContext, iobTotal: 3, correction: 1 });
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'anti-stacking' }));
+  });
+
+  it('warns about timing', () => {
+    const r = applySafetyRules({ ...baseContext, lastInjectionMinutesAgo: 90 });
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'alerte-timing' }));
+  });
+
+  it('blocks overdose', () => {
+    const r = applySafetyRules({ ...baseContext, doseSuggeree: 12, maxDose: 10 });
+    expect(r.blocked).toBe(true);
+    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'surdosage' }));
+  });
+
+  it('reduces correction for falling trend', () => {
+    const r = applySafetyRules({
+      ...baseContext, glycemia: 1.80, doseSuggeree: 5.0, correction: 1.0, trend: '↓',
+    });
+    expect(r.adjustedDose).toBeLessThan(5.0);
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'sur-correction' }));
+  });
+
+  it('ignores trend when unknown', () => {
+    const r = applySafetyRules({
+      ...baseContext, glycemia: 1.80, doseSuggeree: 5.0, correction: 1.0, trend: '?',
+    });
+    expect(r.warnings.find(w => w.type === 'sur-correction')).toBeUndefined();
+  });
+
+  it('adds post-keto warning', () => {
+    const r = applySafetyRules({ ...baseContext, postKeto: true });
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'post-keto' }));
+  });
+
+  it('returns no issues for normal situation', () => {
+    const r = applySafetyRules(baseContext);
+    expect(r.blocked).toBe(false);
+    expect(r.risks).toHaveLength(0);
+    expect(r.adjustedDose).toBe(4.0);
   });
 });
