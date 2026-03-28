@@ -64,7 +64,7 @@ export default function MealInput({
     setShowSuggestions(false);
   };
 
-  const fatLabels = { aucun: 'Aucun', faible: 'Faible', moyen: 'Moyen', 'élevé': 'Élevé' };
+  const fatLabels = { aucun: t('fatAucun') || 'Aucun', faible: t('fatFaible') || 'Faible', moyen: t('fatMoyen') || 'Moyen', 'élevé': t('fatEleve') || 'Élevé' };
 
   return (
     <div className={cardClass}>
@@ -177,7 +177,7 @@ export default function MealInput({
             </div>
             <button
               onClick={() => cameraRef.current?.click()}
-              title="Prendre une photo"
+              title={t('prendreUnePhoto') || 'Prendre une photo'}
               className={`px-3 py-2.5 rounded-xl border transition ${
                 isDark
                   ? 'border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -188,7 +188,7 @@ export default function MealInput({
             </button>
             <button
               onClick={() => albumRef.current?.click()}
-              title="Choisir depuis l'album"
+              title={t('choisirDepuisAlbum') || "Choisir depuis l'album"}
               className={`px-3 py-2.5 rounded-xl border transition ${
                 isDark
                   ? 'border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600'

@@ -160,7 +160,7 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
                     </p>
                   ) : (
                     <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                      {item.name} — non trouvé dans la base
+                      {item.name} — {t('nonTrouveDansBase') || 'non trouvé dans la base'}
                     </p>
                   )}
                 </div>
