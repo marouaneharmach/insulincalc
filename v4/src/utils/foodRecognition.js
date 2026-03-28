@@ -1,9 +1,9 @@
-// V5.4 — Google Gemini Vision Food Recognition
-// Replaces Clarifai with Gemini 2.0 Flash for better food identification
-// Especially for Moroccan/Mediterranean cuisine
+// V5.4.1 — Google Gemini 2.5 Pro Vision Food Recognition
+// Uses Gemini 2.5 Pro for superior food identification accuracy
+// Especially for Moroccan/Mediterranean/international cuisine
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-06-05:generateContent';
 
 /**
  * Compress image to JPEG, max 800px
@@ -36,27 +36,37 @@ function blobToBase64(blob) {
   });
 }
 
-const FOOD_RECOGNITION_PROMPT = `Tu es un expert en nutrition. Analyse cette photo de repas et identifie tous les aliments visibles.
+const FOOD_RECOGNITION_PROMPT = `Tu es un diététicien expert spécialisé dans l'identification visuelle des aliments pour les patients diabétiques de type 1.
 
-Retourne UNIQUEMENT un JSON valide (pas de markdown, pas d'explication) avec cette structure :
+MISSION : Analyse cette photo et identifie PRÉCISÉMENT chaque aliment visible avec ses glucides estimés.
+
+Retourne UNIQUEMENT un JSON valide (sans markdown, sans explication, sans commentaire) :
 {
   "foods": [
     {
-      "name": "nom anglais de l'aliment",
-      "nameFr": "nom français de l'aliment",
+      "name": "english name",
+      "nameFr": "nom français précis",
       "confidence": 85,
       "estimatedCarbs": 30
     }
   ]
 }
 
-Règles :
-- Identifie chaque aliment séparément (ex: riz + poulet + légumes = 3 entrées)
-- Le champ "confidence" est un pourcentage de 0 à 100 de ta certitude
-- Le champ "estimatedCarbs" est une estimation des glucides en grammes pour la portion visible
-- Inclus les plats marocains et méditerranéens (tagine, couscous, harira, msemen, baghrir, pastilla, rfissa, etc.)
-- Si tu ne reconnais aucun aliment, retourne {"foods": []}
-- Maximum 10 aliments`;
+RÈGLES STRICTES :
+1. Sois PRÉCIS : "Tajine de poulet aux olives" pas juste "plat"
+2. Sépare chaque composant : riz + sauce + viande + légumes = entrées distinctes
+3. Estime les glucides par portion VISIBLE (pas par 100g)
+4. Confidence = ta certitude de 0 à 100
+5. Reconnais TOUS les types de cuisine :
+   - Marocaine : tajine, couscous, harira, pastilla, msemen, baghrir, rfissa, bissara, zaalouk, briouate, chebakia, sellou, méchoui, tanjia
+   - Méditerranéenne : pizza, pâtes, salade, houmous, falafel, taboulé
+   - Fast-food : burger, frites, nuggets, kebab, tacos, pizza
+   - Asiatique : sushi, ramen, riz cantonais, nems, pad thaï
+   - Petit-déjeuner : croissant, pain, céréales, pancakes, œufs
+   - Fruits, légumes, boissons, desserts, snacks
+6. Si la photo n'est PAS un aliment ou est floue, retourne {"foods": []}
+7. Maximum 10 aliments
+8. Ne confonds pas les plats : une assiette de pâtes n'est pas une pizza`;
 
 /**
  * Recognize food via Google Gemini Vision API
@@ -79,7 +89,11 @@ export async function recognizeFood(imageFile) {
           { inlineData: { mimeType: 'image/jpeg', data: base64 } },
           { text: FOOD_RECOGNITION_PROMPT }
         ]
-      }]
+      }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.2
+      }
     })
   });
 
