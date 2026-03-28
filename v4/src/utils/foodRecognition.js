@@ -3,10 +3,11 @@
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-// Stable model that's guaranteed to exist
+// Stable models — try in order
 const GEMINI_MODELS = [
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro-latest',
 ];
 
 function getGeminiUrl(model) {
@@ -103,7 +104,11 @@ export async function recognizeFood(imageFile) {
 
       if (!response.ok) {
         const errText = await response.text().catch(() => '');
-        // If model not found (404), try next model
+        // 429 = quota exceeded — same key, don't bother trying next model
+        if (response.status === 429) {
+          throw new Error('Quota API Gemini dépassé. Réessayez dans quelques minutes.');
+        }
+        // 404 = model not found — try next model
         if (response.status === 404) {
           lastError = new Error(`Modèle ${model} non disponible`);
           continue;
