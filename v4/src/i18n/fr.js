@@ -142,6 +142,8 @@ const fr = {
   rappelPostRepas: "Rappel post-repas",
   rappelMesurer: "Rappel pour mesurer la glycémie après le repas",
   notifBloquees: "⚠ Notifications bloquées par le navigateur. Autorisez-les dans les paramètres.",
+  autoriserNotifications: "Autoriser les notifications",
+  notifActivees: "Notifications activées",
   delaiRappel: "Délai de rappel",
   parametresManuels: "Paramètres manuels",
   ratioInsulineGlucides: "Combien de grammes de glucides pour 1 unité d'insuline ?",

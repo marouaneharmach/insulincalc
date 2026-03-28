@@ -13,6 +13,7 @@ export default function Settings({
   weight, setWeight, height, setHeight, age, setAge, sex, setSex,
   imc,
   notifEnabled, setNotifEnabled,
+  notifPermission, setNotifPermission,
   theme, isDark, toggleTheme,
   locale, setLocale,
   timeProfiles, setTimeProfiles,
@@ -32,13 +33,8 @@ export default function Settings({
     { key: 'display', icon: '🎨', label: t('apparence') },
   ];
 
-  const handleNotifToggle = async () => {
-    if (!notifEnabled) {
-      const perm = await requestNotificationPermission();
-      if (perm === 'granted') setNotifEnabled(true);
-    } else {
-      setNotifEnabled(false);
-    }
+  const handleNotifToggle = () => {
+    setNotifEnabled(prev => !prev);
   };
 
   return (
@@ -219,18 +215,38 @@ export default function Settings({
                 <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-1 transition-all ${notifEnabled ? 'left-6' : 'left-1'}`} />
               </button>
             </div>
+
+            {/* Notification permission UI */}
+            {notifEnabled && notifPermission !== 'granted' && notifPermission !== 'denied' && (
+              <button
+                onClick={async () => {
+                  const perm = await requestNotificationPermission();
+                  setNotifPermission(perm);
+                }}
+                className={`mt-2 w-full py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 ${
+                  isDark
+                    ? 'bg-teal-600 text-white hover:bg-teal-500'
+                    : 'bg-teal-500 text-white hover:bg-teal-600'
+                }`}
+              >
+                🔔 {t('autoriserNotifications') || 'Autoriser les notifications'}
+              </button>
+            )}
+            {notifEnabled && notifPermission === 'granted' && (
+              <p className={`mt-2 text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                ✅ {t('notifActivees') || 'Notifications activées'}
+              </p>
+            )}
+            {notifEnabled && notifPermission === 'denied' && (
+              <div className={`mt-2 p-3 rounded-xl border text-xs ${
+                isDark
+                  ? 'bg-amber-900/20 border-amber-800/40 text-amber-400'
+                  : 'bg-amber-50 border-amber-200 text-amber-700'
+              }`}>
+                ⚠️ {t('notifBloquees')}
+              </div>
+            )}
           </div>
-          {notifEnabled && (
-            <div className={cardClass}>
-              <p className={`text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'} mb-2`}>
-                ✅ Les notifications sont liées au planning d'injection de chaque repas.
-              </p>
-              <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                Chaque contrôle glycémique prévu dans le calendrier d'injection déclenchera une notification.
-                Le timing s'adapte au profil de digestion du repas.
-              </p>
-            </div>
-          )}
         </div>
       )}
 

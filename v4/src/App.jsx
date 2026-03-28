@@ -46,6 +46,7 @@ export default function App() {
   const [sex, setSex] = useLocalStorage('sex', 'M');
   const [patientName, setPatientName] = useLocalStorage('patientName', '');
   const [notifEnabled, setNotifEnabled] = useLocalStorage('notifEnabled', false);
+  const [notifPermission, setNotifPermission] = useLocalStorage('notifPermission', null);
 
   // Journal
   const [journal, setJournal] = useLocalStorage('journal', []);
@@ -347,6 +348,7 @@ export default function App() {
             sex={sex} setSex={setSex}
             imc={imc}
             notifEnabled={notifEnabled} setNotifEnabled={setNotifEnabled}
+            notifPermission={notifPermission} setNotifPermission={setNotifPermission}
             theme={theme} isDark={isDark} toggleTheme={toggleTheme}
             locale={locale} setLocale={setLocale}
             timeProfiles={timeProfiles} setTimeProfiles={setTimeProfiles}
