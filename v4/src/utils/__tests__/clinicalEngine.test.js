@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateDose,
   applySafetyRules,
+  determineSplit,
+  analyzeAndRecommend,
   FAT_FACTOR,
   ACTIVITY_REDUCTION,
 } from '../clinicalEngine.js';
@@ -142,5 +144,138 @@ describe('applySafetyRules', () => {
     expect(r.blocked).toBe(false);
     expect(r.risks).toHaveLength(0);
     expect(r.adjustedDose).toBe(4.0);
+  });
+});
+
+// ─── Task 4: determineSplit ───────────────────────────────────────────────────
+
+describe('determineSplit', () => {
+  it('returns unique for low fat without slow digestion', () => {
+    const r = determineSplit(4.0, 'faible', false);
+    expect(r.type).toBe('unique');
+    expect(r.immediate).toBe(4.0);
+  });
+
+  it('splits 60/40 for medium fat', () => {
+    const r = determineSplit(4.0, 'moyen', false);
+    expect(r.type).toBe('fractionne');
+    expect(r.immediate).toBe(2.5);
+    expect(r.delayed).toBe(1.5);
+    expect(r.delayMinutes).toBe(45);
+  });
+
+  it('splits 50/50 for high fat', () => {
+    const r = determineSplit(4.0, 'élevé', false);
+    expect(r.type).toBe('fractionne');
+    expect(r.immediate).toBe(2.0);
+    expect(r.delayed).toBe(2.0);
+    expect(r.delayMinutes).toBe(60);
+  });
+
+  it('splits 70/30 for slow digestion alone', () => {
+    const r = determineSplit(4.0, 'faible', true);
+    expect(r.type).toBe('fractionne');
+    expect(r.immediate).toBe(3.0);
+    expect(r.delayed).toBe(1.0);
+    expect(r.delayMinutes).toBe(60);
+  });
+
+  it('uses fat scheme when both slow digestion and high fat', () => {
+    const r = determineSplit(4.0, 'élevé', true);
+    expect(r.immediate).toBe(2.0);
+    expect(r.delayed).toBe(2.0);
+  });
+
+  it('returns unique for zero dose', () => {
+    const r = determineSplit(0, 'élevé', true);
+    expect(r.type).toBe('unique');
+    expect(r.immediate).toBe(0);
+  });
+});
+
+// ─── Task 4: analyzeAndRecommend ─────────────────────────────────────────────
+
+describe('analyzeAndRecommend', () => {
+  it('returns all 4 sections', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.40, trend: '→', totalCarbs: 60, fatLevel: 'faible',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r).toHaveProperty('analysis');
+    expect(r).toHaveProperty('recommendation');
+    expect(r).toHaveProperty('vigilance');
+    expect(r).toHaveProperty('nextStep');
+    expect(r.recommendation.dose).toBeGreaterThan(0);
+  });
+
+  it('blocks for hypo', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 0.55, trend: '↓', totalCarbs: 0, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.recommendation.dose).toBe(0);
+    expect(r.vigilance.risks.length).toBeGreaterThan(0);
+  });
+
+  it('analysis section contains expected fields', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.10, trend: '→', totalCarbs: 45, fatLevel: 'moyen',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.analysis.glycemiaStatus).toBe('cible');
+    expect(r.analysis.iob).toBe(0);
+    expect(r.analysis.trend).toBe('→');
+    expect(r.analysis.totalCarbs).toBe(45);
+    expect(r.analysis.fatLevel).toBe('moyen');
+  });
+
+  it('classifies hypo-severe correctly', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 0.50, trend: '↓', totalCarbs: 0, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.analysis.glycemiaStatus).toBe('hypo-severe');
+    expect(r.recommendation.blocked).toBe(true);
+    expect(r.nextStep.checkTime).toBe(15);
+  });
+
+  it('applies split for high-fat meal', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'élevé',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.recommendation.split.type).toBe('fractionne');
+    expect(r.recommendation.split.delayMinutes).toBe(60);
+  });
+
+  it('sets checkTime to 30 for hypo-proche', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 0.82, trend: '→', totalCarbs: 30, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.analysis.glycemiaStatus).toBe('hypo-proche');
+    expect(r.nextStep.checkTime).toBe(30);
+  });
+
+  it('sets checkTime to 60 when timing warning present', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: 90, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.nextStep.checkTime).toBe(60);
   });
 });
