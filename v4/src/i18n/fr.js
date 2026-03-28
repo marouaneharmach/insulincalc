@@ -1,7 +1,7 @@
 const fr = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "Diabète Type 1 · Cuisine marocaine",
+  appSubtitle: "Calculateur d'insuline",
   glucides: "GLUCIDES",
   aliment: "aliment",
   aliments: "aliments",

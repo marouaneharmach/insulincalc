@@ -1,7 +1,7 @@
 const ar = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "السكري النوع 1 · المطبخ المغربي",
+  appSubtitle: "حاسبة الأنسولين",
   glucides: "الكربوهيدرات",
   aliment: "مكوّن",
   aliments: "مكوّنات",
