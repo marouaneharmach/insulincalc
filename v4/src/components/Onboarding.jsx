@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { DIGESTION_PROFILES } from '../data/constants';
 
 export default function Onboarding({
   setPatientName,
@@ -12,6 +11,8 @@ export default function Onboarding({
   setTargetGMin,
   setTargetGMax,
   setDigestion,
+  setInsulinBasal,
+  setInsulinRapid,
   onComplete,
   t,
   isDark,
@@ -19,34 +20,34 @@ export default function Onboarding({
 }) {
   const [step, setStep] = useState(1);
 
-  // Step 2 - Profile
+  // Step 1 - Profile
   const [name, setName] = useState('');
   const [age, ageState] = useState('');
   const [sex, sexState] = useState('M');
   const [height, heightState] = useState('');
   const [weight, weightState] = useState('');
-  const [digestionLocal, setDigestionLocal] = useState('normal');
+  const [insulinBasalLocal, setInsulinBasalLocal] = useState('Tresiba');
+  const [insulinRapidLocal, setInsulinRapidLocal] = useState('NovoRapid');
 
-  // Step 3 - Insulin parameters
+  // Step 2 - Insulin parameters
   const [ratio, ratioState] = useState(10);
   const [isf, isfState] = useState(50);
   const [targetGMin, targetGMinState] = useState(0.8);
   const [targetGMax, targetGMaxState] = useState(1.3);
 
+  // Step 3 - Disclaimer
+  const [accepted, setAccepted] = useState(false);
+
   const handleNext = () => {
-    if (step < 3) {
-      setStep(step + 1);
-    }
+    if (step < 3) setStep(step + 1);
   };
 
   const handlePrev = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
+    if (step > 1) setStep(step - 1);
   };
 
   const handleComplete = () => {
-    // Save all values
+    if (!accepted) return;
     if (name) setPatientName(name);
     if (age) setAge(parseInt(age));
     setSex(sex);
@@ -56,9 +57,8 @@ export default function Onboarding({
     setIsf(isf);
     setTargetGMin(targetGMin);
     setTargetGMax(targetGMax);
-    if (setDigestion) setDigestion(digestionLocal);
-
-    // Mark onboarding as complete
+    if (setInsulinBasal) setInsulinBasal(insulinBasalLocal);
+    if (setInsulinRapid) setInsulinRapid(insulinRapidLocal);
     onComplete();
   };
 
@@ -68,6 +68,7 @@ export default function Onboarding({
   const inputClass = isDark
     ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500'
     : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500';
+  const labelClass = `block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`;
 
   return (
     <div dir="ltr" className={`min-h-screen ${bgClass} ${textClass} flex items-center justify-center p-3 font-sans`}>
@@ -77,109 +78,76 @@ export default function Onboarding({
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className={`h-2 w-2 rounded-full transition-all ${
-                n === step ? `bg-[${colors.primary}] w-6` : `bg-slate-300`
+              className={`h-2 rounded-full transition-all ${
+                n === step ? 'w-6' : 'w-2 bg-slate-300'
               }`}
               style={{ backgroundColor: n === step ? colors.primary : undefined }}
             />
           ))}
         </div>
 
-        {/* Step 1: Welcome */}
+        {/* Step 1: Profil */}
         {step === 1 && (
-          <div className={`rounded-3xl ${cardClass} border p-6 space-y-6 animate-fade-in`}>
-            <div className="text-center space-y-3">
-              <div className="text-4xl mb-2">💊</div>
-              <h1 className="text-2xl font-bold">InsulinCalc</h1>
-              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                {t('onb_tagline') || 'Calcul intelligent d\'insuline pour diabète type 1'}
-              </p>
-            </div>
-
-            <div className={`rounded-2xl p-4 ${isDark ? 'bg-blue-950/40 border border-blue-900' : 'bg-blue-50 border border-blue-200'}`}>
-              <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
-                ⚕️ {t('onb_disclaimer') || 'Cet outil ne remplace pas l\'avis médical. Consultez toujours votre médecin.'}
-              </p>
-            </div>
-
-            <button
-              onClick={handleNext}
-              className="w-full py-3 rounded-xl font-semibold text-white transition-all"
-              style={{ backgroundColor: colors.primary }}
-            >
-              {t('onb_commencer') || 'Commencer'}
-            </button>
-          </div>
-        )}
-
-        {/* Step 2: Profile */}
-        {step === 2 && (
           <div className={`rounded-3xl ${cardClass} border p-6 space-y-4 animate-fade-in`}>
-            <h2 className="text-xl font-bold">{t('onb_profil') || 'Votre profil'}</h2>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold">{t('onb_profil') || 'Votre profil'}</h2>
+              <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                {t('onb_profil_desc') || 'Informations de base et type d\'insuline'}
+              </p>
+            </div>
 
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  {t('onb_prenom') || 'Votre prénom'}
-                </label>
+                <label className={labelClass}>{t('onb_prenom') || 'Prénom (optionnel)'}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t('onb_prenom') || 'Votre prénom'}
                   className={`w-full px-3 py-2.5 rounded-lg border ${inputClass} focus:outline-none focus:ring-2 text-sm`}
-                  style={{ focusRingColor: colors.primary }}
                 />
               </div>
 
-              {/* Age */}
-              <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  {t('onb_age') || 'Âge'}
-                </label>
-                <input
-                  type="number"
-                  value={age}
-                  onChange={(e) => ageState(e.target.value)}
-                  placeholder="25"
-                  className={`w-full px-3 py-2.5 rounded-lg border ${inputClass} focus:outline-none focus:ring-2 text-sm`}
-                />
-              </div>
-
-              {/* Sex */}
-              <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  {t('onb_sexe') || 'Sexe'}
-                </label>
-                <div className="flex gap-2">
-                  {['M', 'F'].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => sexState(option)}
-                      className={`flex-1 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                        sex === option
-                          ? `text-white`
-                          : isDark
-                          ? 'bg-slate-700 text-slate-300 border border-slate-600'
-                          : 'bg-slate-100 text-slate-700 border border-slate-300'
-                      }`}
-                      style={{
-                        backgroundColor: sex === option ? colors.primary : undefined,
-                      }}
-                    >
-                      {option === 'M' ? 'Homme' : 'Femme'}
-                    </button>
-                  ))}
+              {/* Age + Sex grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>{t('onb_age') || 'Âge'}</label>
+                  <input
+                    type="number"
+                    value={age}
+                    onChange={(e) => ageState(e.target.value)}
+                    placeholder="25"
+                    className={`w-full px-3 py-2.5 rounded-lg border ${inputClass} focus:outline-none focus:ring-2 text-sm`}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('onb_sexe') || 'Sexe'}</label>
+                  <div className="flex gap-2">
+                    {['M', 'F'].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => sexState(option)}
+                        className={`flex-1 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                          sex === option
+                            ? 'text-white'
+                            : isDark
+                            ? 'bg-slate-700 text-slate-300 border border-slate-600'
+                            : 'bg-slate-100 text-slate-700 border border-slate-300'
+                        }`}
+                        style={{ backgroundColor: sex === option ? colors.primary : undefined }}
+                      >
+                        {option === 'M' ? (t('homme') || 'H') : (t('femme') || 'F')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Height & Weight grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    {t('onb_taille') || 'Taille (cm)'}
-                  </label>
+                  <label className={labelClass}>{t('onb_taille') || 'Taille (cm)'}</label>
                   <input
                     type="number"
                     value={height}
@@ -189,9 +157,7 @@ export default function Onboarding({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    {t('onb_poids') || 'Poids (kg)'}
-                  </label>
+                  <label className={labelClass}>{t('onb_poids') || 'Poids (kg)'}</label>
                   <input
                     type="number"
                     value={weight}
@@ -201,58 +167,50 @@ export default function Onboarding({
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Digestion habituelle */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                {t('onb_digestion') || 'Votre digestion habituelle'}
-              </label>
-              <p className={`text-xs mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                {t('onb_digestion_desc') || 'Influence le timing de vos injections'}
-              </p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {Object.entries(DIGESTION_PROFILES).map(([key, dp]) => (
-                  <button key={key} onClick={() => setDigestionLocal(key)}
-                    className={`p-2 rounded-xl text-center border transition ${
-                      digestionLocal === key
-                        ? 'border-teal-400 bg-teal-50' + (isDark ? ' !bg-teal-900/30 !border-teal-600' : '')
-                        : isDark ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
-                    }`}>
-                    <span className="text-lg">{dp.icon}</span>
-                    <p className={`text-[10px] font-medium mt-0.5 ${digestionLocal === key ? 'text-teal-600' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>{dp.label}</p>
-                  </button>
-                ))}
+              {/* Insulin types */}
+              <div>
+                <label className={labelClass}>💉 {t('cl_insulineBasale') || 'Insuline basale'}</label>
+                <input
+                  type="text"
+                  value={insulinBasalLocal}
+                  onChange={(e) => setInsulinBasalLocal(e.target.value)}
+                  placeholder="Tresiba, Lantus, Toujeo…"
+                  className={`w-full px-3 py-2.5 rounded-lg border ${inputClass} focus:outline-none focus:ring-2 text-sm`}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>⚡ {t('cl_insulineRapide') || 'Insuline rapide'}</label>
+                <input
+                  type="text"
+                  value={insulinRapidLocal}
+                  onChange={(e) => setInsulinRapidLocal(e.target.value)}
+                  placeholder="NovoRapid, Humalog, Apidra…"
+                  className={`w-full px-3 py-2.5 rounded-lg border ${inputClass} focus:outline-none focus:ring-2 text-sm`}
+                />
               </div>
             </div>
 
             {/* Navigation */}
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={handlePrev}
-                className={`flex-1 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                  isDark
-                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {t('onb_precedent') || 'Précédent'}
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 py-2.5 rounded-lg font-medium text-white transition-all text-sm"
-                style={{ backgroundColor: colors.primary }}
-              >
-                {t('onb_suivant') || 'Suivant'}
-              </button>
-            </div>
+            <button
+              onClick={handleNext}
+              className="w-full py-3 rounded-xl font-semibold text-white transition-all text-sm"
+              style={{ backgroundColor: colors.primary }}
+            >
+              {t('onb_suivant') || 'Suivant'}
+            </button>
           </div>
         )}
 
-        {/* Step 3: Insulin Settings */}
-        {step === 3 && (
+        {/* Step 2: Paramètres insuline */}
+        {step === 2 && (
           <div className={`rounded-3xl ${cardClass} border p-6 space-y-4 animate-fade-in`}>
-            <h2 className="text-xl font-bold">{t('onb_params') || 'Paramètres insuline'}</h2>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold">{t('onb_params') || 'Paramètres insuline'}</h2>
+              <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                {t('onb_params_desc') || 'Valeurs pré-remplies — modifiables plus tard'}
+              </p>
+            </div>
 
             <div className="space-y-5">
               {/* Ratio */}
@@ -279,9 +237,7 @@ export default function Onboarding({
                   value={ratio}
                   onChange={(e) => ratioState(parseInt(e.target.value))}
                   className="w-full"
-                  style={{
-                    accentColor: colors.primary,
-                  }}
+                  style={{ accentColor: colors.primary }}
                 />
               </div>
 
@@ -309,9 +265,7 @@ export default function Onboarding({
                   value={isf}
                   onChange={(e) => isfState(parseInt(e.target.value))}
                   className="w-full"
-                  style={{
-                    accentColor: colors.primary,
-                  }}
+                  style={{ accentColor: colors.primary }}
                 />
               </div>
 
@@ -349,13 +303,6 @@ export default function Onboarding({
               </div>
             </div>
 
-            {/* Medical disclaimer */}
-            <div className={`rounded-2xl p-4 ${isDark ? 'bg-amber-950/40 border border-amber-900' : 'bg-amber-50 border border-amber-200'}`}>
-              <p className={`text-xs ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>
-                ⚕️ {t('valeursEstim') || 'Valeurs estimatives — validez avec votre médecin'}
-              </p>
-            </div>
-
             {/* Navigation */}
             <div className="flex gap-2 pt-2">
               <button
@@ -369,11 +316,78 @@ export default function Onboarding({
                 {t('onb_precedent') || 'Précédent'}
               </button>
               <button
-                onClick={handleComplete}
-                className="flex-1 py-2.5 rounded-lg font-semibold text-white transition-all text-sm"
+                onClick={handleNext}
+                className="flex-1 py-2.5 rounded-lg font-medium text-white transition-all text-sm"
                 style={{ backgroundColor: colors.primary }}
               >
-                {t('onb_terminer') || 'Terminer'}
+                {t('onb_suivant') || 'Suivant'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Disclaimer */}
+        {step === 3 && (
+          <div className={`rounded-3xl ${cardClass} border p-6 space-y-5 animate-fade-in`}>
+            <div className="text-center space-y-2">
+              <div className="text-4xl">⚕️</div>
+              <h2 className="text-xl font-bold">{t('onb_disclaimer_title') || 'Avertissement médical'}</h2>
+            </div>
+
+            <div className={`rounded-2xl p-4 space-y-3 ${isDark ? 'bg-red-950/30 border border-red-900/40' : 'bg-red-50 border border-red-200'}`}>
+              <p className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-800'}`}>
+                {t('onb_disclaimer_head') || 'Cet outil ne remplace pas un suivi médical'}
+              </p>
+              <ul className={`text-xs space-y-1.5 list-disc list-inside ${isDark ? 'text-red-400' : 'text-red-700'}`}>
+                <li>{t('onb_disc_1') || 'Les doses calculées sont des suggestions basées sur vos paramètres.'}</li>
+                <li>{t('onb_disc_2') || 'Validez toujours les doses avec votre diabétologue ou médecin traitant.'}</li>
+                <li>{t('onb_disc_3') || 'En cas de doute ou symptôme inhabituel, consultez un professionnel de santé.'}</li>
+                <li>{t('onb_disc_4') || 'Ne modifiez jamais votre traitement sans avis médical.'}</li>
+              </ul>
+            </div>
+
+            {/* Mandatory acceptance */}
+            <button
+              onClick={() => setAccepted(!accepted)}
+              className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition ${
+                accepted
+                  ? isDark ? 'border-teal-600 bg-teal-900/20' : 'border-teal-400 bg-teal-50'
+                  : isDark ? 'border-slate-600 bg-slate-800' : 'border-slate-200 bg-white'
+              }`}
+            >
+              <div className={`mt-0.5 w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition ${
+                accepted
+                  ? 'bg-teal-500 border-teal-500'
+                  : isDark ? 'border-slate-500' : 'border-slate-300'
+              }`}>
+                {accepted && <span className="text-white text-xs font-bold">✓</span>}
+              </div>
+              <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                {t('onb_accept') || 'Je comprends que cet outil est une aide au calcul et non un dispositif médical certifié. J\'utilise ces données sous ma propre responsabilité.'}
+              </p>
+            </button>
+
+            {/* Navigation */}
+            <div className="flex gap-2">
+              <button
+                onClick={handlePrev}
+                className={`flex-1 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                  isDark
+                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {t('onb_precedent') || 'Précédent'}
+              </button>
+              <button
+                onClick={handleComplete}
+                disabled={!accepted}
+                className={`flex-1 py-2.5 rounded-lg font-semibold text-white transition-all text-sm ${
+                  !accepted ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
+                style={{ backgroundColor: accepted ? colors.primary : undefined, backgroundColor: !accepted ? (isDark ? '#374151' : '#9ca3af') : colors.primary }}
+              >
+                {t('onb_terminer') || 'Commencer'}
               </button>
             </div>
           </div>
@@ -382,14 +396,8 @@ export default function Onboarding({
 
       <style>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in {
           animation: fadeIn 0.3s ease-out;

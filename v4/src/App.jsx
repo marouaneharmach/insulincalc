@@ -235,6 +235,8 @@ export default function App() {
         setTargetGMin={setTargetGMin}
         setTargetGMax={setTargetGMax}
         setDigestion={setDigestion}
+        setInsulinBasal={setInsulinBasal}
+        setInsulinRapid={setInsulinRapid}
         onComplete={() => setOnboarded(true)}
         t={t}
         isDark={isDark}
