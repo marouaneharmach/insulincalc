@@ -35,7 +35,7 @@ describe('[V4.3] Intégration — Pipeline calcul avec validation', () => {
   it('dose + validation seuil sécurité', () => {
     const dose = validateDose('25', 20);
     expect(dose.valid).toBe(true);
-    expect(dose.warning).toBe('doseDepasseSeuil');
+    expect(dose.warning).toBe('Dose > seuil (20U)');
   });
 });
 
