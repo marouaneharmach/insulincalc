@@ -1,9 +1,17 @@
-// V5.4.1 — Google Gemini 2.5 Pro Vision Food Recognition
-// Uses Gemini 2.5 Pro for superior food identification accuracy
-// Especially for Moroccan/Mediterranean/international cuisine
+// V5.4.2 — Google Gemini Vision Food Recognition
+// Uses Gemini 2.0 Flash (stable) with fallback, errors propagated to UI
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-06-05:generateContent';
+
+// Stable model that's guaranteed to exist
+const GEMINI_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
+
+function getGeminiUrl(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
 
 /**
  * Compress image to JPEG, max 800px
@@ -36,11 +44,9 @@ function blobToBase64(blob) {
   });
 }
 
-const FOOD_RECOGNITION_PROMPT = `Tu es un diététicien expert spécialisé dans l'identification visuelle des aliments pour les patients diabétiques de type 1.
+const FOOD_RECOGNITION_PROMPT = `You are a food identification expert for a diabetes app. Analyze this meal photo.
 
-MISSION : Analyse cette photo et identifie PRÉCISÉMENT chaque aliment visible avec ses glucides estimés.
-
-Retourne UNIQUEMENT un JSON valide (sans markdown, sans explication, sans commentaire) :
+Return ONLY valid JSON (no markdown, no explanation):
 {
   "foods": [
     {
@@ -52,81 +58,108 @@ Retourne UNIQUEMENT un JSON valide (sans markdown, sans explication, sans commen
   ]
 }
 
-RÈGLES STRICTES :
-1. Sois PRÉCIS : "Tajine de poulet aux olives" pas juste "plat"
-2. Sépare chaque composant : riz + sauce + viande + légumes = entrées distinctes
-3. Estime les glucides par portion VISIBLE (pas par 100g)
-4. Confidence = ta certitude de 0 à 100
-5. Reconnais TOUS les types de cuisine :
-   - Marocaine : tajine, couscous, harira, pastilla, msemen, baghrir, rfissa, bissara, zaalouk, briouate, chebakia, sellou, méchoui, tanjia
-   - Méditerranéenne : pizza, pâtes, salade, houmous, falafel, taboulé
-   - Fast-food : burger, frites, nuggets, kebab, tacos, pizza
-   - Asiatique : sushi, ramen, riz cantonais, nems, pad thaï
-   - Petit-déjeuner : croissant, pain, céréales, pancakes, œufs
-   - Fruits, légumes, boissons, desserts, snacks
-6. Si la photo n'est PAS un aliment ou est floue, retourne {"foods": []}
-7. Maximum 10 aliments
-8. Ne confonds pas les plats : une assiette de pâtes n'est pas une pizza`;
+Rules:
+- Identify each food item separately (burger bun + patty + fries = separate entries)
+- "confidence" is 0-100 certainty percentage
+- "estimatedCarbs" = estimated carbs in grams for the visible portion
+- Be specific: "cheeseburger" not "food", "french fries" not "side dish"
+- Recognize ALL cuisines: Moroccan (tagine, couscous, harira, msemen, pastilla), Mediterranean, Asian, fast-food, etc.
+- If no food visible, return {"foods": []}
+- Max 10 items`;
 
 /**
  * Recognize food via Google Gemini Vision API
- * Returns same interface as the old Clarifai module: [{name, confidence, id}]
+ * Throws on error so caller can display to user
  */
 export async function recognizeFood(imageFile) {
   if (!GEMINI_API_KEY) {
-    throw new Error('Clé API Gemini manquante. Configurez VITE_GEMINI_API_KEY.');
+    throw new Error('Clé API Gemini manquante (VITE_GEMINI_API_KEY). Vérifiez la configuration dans GitHub Secrets.');
   }
 
   const compressed = await compressImage(imageFile);
   const base64 = await blobToBase64(compressed);
 
-  const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-          { text: FOOD_RECOGNITION_PROMPT }
-        ]
-      }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.2
-      }
-    })
+  const requestBody = JSON.stringify({
+    contents: [{
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64 } },
+        { text: FOOD_RECOGNITION_PROMPT }
+      ]
+    }],
+    generationConfig: {
+      temperature: 0.2
+    }
   });
 
-  if (!response.ok) {
-    const err = await response.text().catch(() => '');
-    throw new Error(`Erreur Gemini API: ${response.status} ${err}`);
+  // Try models in order until one works
+  let lastError = null;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await fetch(`${getGeminiUrl(model)}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        // If model not found (404), try next model
+        if (response.status === 404) {
+          lastError = new Error(`Modèle ${model} non disponible`);
+          continue;
+        }
+        throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
+      }
+
+      const data = await response.json();
+
+      // Check for API-level errors
+      if (data.error) {
+        throw new Error(`Gemini: ${data.error.message || JSON.stringify(data.error)}`);
+      }
+
+      const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      if (!textContent) {
+        // Check for blocked content
+        const blockReason = data.candidates?.[0]?.finishReason;
+        if (blockReason === 'SAFETY') {
+          throw new Error('Image bloquée par le filtre de sécurité Gemini');
+        }
+        throw new Error('Réponse vide de Gemini');
+      }
+
+      // Parse JSON from response (may be wrapped in markdown code blocks)
+      let parsed;
+      try {
+        const jsonStr = textContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        parsed = JSON.parse(jsonStr);
+      } catch {
+        console.warn('[FoodRecognition] Raw response:', textContent);
+        throw new Error('Réponse Gemini mal formatée. Réessayez.');
+      }
+
+      if (!parsed.foods || !Array.isArray(parsed.foods)) return [];
+
+      return parsed.foods
+        .filter(f => f.confidence > 20)
+        .slice(0, 10)
+        .map((f, i) => ({
+          name: f.name || f.nameFr || 'unknown',
+          nameFr: f.nameFr || f.name,
+          confidence: f.confidence || 80,
+          estimatedCarbs: f.estimatedCarbs || null,
+          id: `gemini_${i}_${Date.now()}`
+        }));
+
+    } catch (err) {
+      lastError = err;
+      // Only continue to next model for 404 errors
+      if (!err.message?.includes('non disponible')) throw err;
+    }
   }
 
-  const data = await response.json();
-  const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-  // Extract JSON from response (Gemini may wrap it in markdown code blocks)
-  let parsed;
-  try {
-    const jsonStr = textContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    console.warn('[FoodRecognition] Failed to parse Gemini response:', textContent);
-    return [];
-  }
-
-  if (!parsed.foods || !Array.isArray(parsed.foods)) return [];
-
-  return parsed.foods
-    .filter(f => f.confidence > 20)
-    .slice(0, 10)
-    .map((f, i) => ({
-      name: f.name || f.nameFr || 'unknown',
-      nameFr: f.nameFr || f.name,
-      confidence: f.confidence || 80,
-      estimatedCarbs: f.estimatedCarbs || null,
-      id: `gemini_${i}_${Date.now()}`
-    }));
+  throw lastError || new Error('Aucun modèle Gemini disponible');
 }
 
 /**

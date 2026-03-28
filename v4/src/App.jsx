@@ -127,15 +127,11 @@ export default function App() {
   }, [setSelections]);
 
   // Photo meal recognition handler — returns results for MealInput to display
+  // Errors are propagated to MealInput for display to user
   const handlePhotoMeal = useCallback(async (file) => {
-    try {
-      const results = await recognizeFood(file);
-      const mapped = mapToLocalFoods(results, allFoods);
-      return mapped;
-    } catch (err) {
-      console.error('[PhotoMeal]', err);
-      return [];
-    }
+    const results = await recognizeFood(file);
+    const mapped = mapToLocalFoods(results, allFoods);
+    return mapped;
   }, [allFoods]);
 
   // Bridge: convert selections array to object map for ConsultationScreen

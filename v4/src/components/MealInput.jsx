@@ -28,6 +28,7 @@ export default function MealInput({
   const [mealPhoto, setMealPhoto] = useState(null);
   const [photoResults, setPhotoResults] = useState(null); // null=no photo, []=empty results, [...]= results
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState('');
   const cameraRef = useRef(null);
   const albumRef = useRef(null);
 
@@ -37,11 +38,14 @@ export default function MealInput({
     const url = URL.createObjectURL(file);
     setMealPhoto(url);
     setPhotoResults(null);
+    setPhotoError('');
     setPhotoLoading(true);
     try {
       const mapped = onPhotoMeal ? await onPhotoMeal(file) : [];
       setPhotoResults(mapped || []);
-    } catch {
+    } catch (err) {
+      console.error('[PhotoMeal]', err);
+      setPhotoError(err.message || 'Erreur lors de la reconnaissance');
       setPhotoResults([]);
     } finally {
       setPhotoLoading(false);
@@ -52,6 +56,7 @@ export default function MealInput({
     setMealPhoto(null);
     setPhotoResults(null);
     setPhotoLoading(false);
+    setPhotoError('');
   };
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
@@ -239,8 +244,20 @@ export default function MealInput({
                 </div>
               )}
 
-              {/* No results */}
-              {photoResults !== null && photoResults.length === 0 && !photoLoading && (
+              {/* Error */}
+              {photoError && !photoLoading && (
+                <div className={`mt-2 p-3 rounded-xl border ${isDark ? 'border-red-800 bg-red-900/20' : 'border-red-200 bg-red-50'}`}>
+                  <p className={`text-sm font-medium ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                    ❌ Erreur reconnaissance
+                  </p>
+                  <p className={`text-[10px] mt-1 break-all ${isDark ? 'text-red-300/70' : 'text-red-500/70'}`}>
+                    {photoError}
+                  </p>
+                </div>
+              )}
+
+              {/* No results (but no error) */}
+              {photoResults !== null && photoResults.length === 0 && !photoLoading && !photoError && (
                 <div className={`mt-2 p-3 rounded-xl text-center border border-dashed ${isDark ? 'border-slate-600 bg-slate-700/30' : 'border-gray-200 bg-gray-50'}`}>
                   <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     😕 {t('aucunAlimentReconnu') || 'Aucun aliment reconnu'}
