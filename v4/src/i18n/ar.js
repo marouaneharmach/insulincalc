@@ -411,6 +411,7 @@ const ar = {
   doseReelleAccueil: "الجرعة المحقونة",
   confirmerDose: "تأكيد",
   doseSuggereeCourte: "مقترحة",
+  voirTimeline: "عرض الجدول الزمني →",
 };
 
 export default ar;

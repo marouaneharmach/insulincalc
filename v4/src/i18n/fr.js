@@ -414,6 +414,7 @@ const fr = {
   doseReelleAccueil: "Dose injectée",
   confirmerDose: "Confirmer",
   doseSuggereeCourte: "Suggérée",
+  voirTimeline: "Voir la timeline →",
 };
 
 export default fr;

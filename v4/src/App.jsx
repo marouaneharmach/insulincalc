@@ -259,6 +259,7 @@ export default function App() {
             setTab={setTab}
             onQuickAdd={openQuickAdd}
             activeProfile={activeProfile}
+            onSave={saveToJournal}
             t={t}
             colors={colors}
             isDark={isDark}

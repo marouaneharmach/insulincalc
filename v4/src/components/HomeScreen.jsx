@@ -1,10 +1,10 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import { APP_VERSION } from '../version';
 import GlycemiaChart from './GlycemiaChart';
 import TrendChart from './TrendChart';
 import DoseAnimation from './DoseAnimation';
 
-export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, targetGMin, targetGMax, targetGMid, result, totalCarbs, selections, setTab, onQuickAdd, activeProfile, t, colors, isDark }) {
+export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, targetGMin, targetGMax, targetGMid, result, totalCarbs, selections, setTab, onQuickAdd, activeProfile, onSave, t, colors, isDark }) {
 
   // Compute stats directly from in-memory journal (uses glycPre/glycPost field names)
   const stats = useMemo(() => {
@@ -88,6 +88,23 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
     }
     prevResultTotalRef.current = result ? result.total : null;
   }, [result]);
+
+  const [actualDose, setActualDose] = useState('');
+  const [doseSaved, setDoseSaved] = useState(false);
+
+  // Reset when a new result arrives
+  useEffect(() => {
+    if (result) {
+      setActualDose(String(result.total));
+      setDoseSaved(false);
+    }
+  }, [result?.total]);
+
+  const handleConfirmDose = () => {
+    const dose = parseFloat(actualDose);
+    if (onSave) onSave(isNaN(dose) ? result.total : dose);
+    setDoseSaved(true);
+  };
 
   return (
     <div className="px-4 pt-3 space-y-2">
@@ -202,6 +219,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
       {/* Active result card if meal in progress */}
       {result && (
         <div ref={resultRef} className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-slate-800 border-teal-600/50' : 'bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-200'}`}>
+          {/* Header */}
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs uppercase tracking-wider font-semibold ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
               {t('doseTotale')}
@@ -214,8 +232,12 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
               {result.bolusType === 'dual' ? '⚡ Dual' : '💉 Standard'}
             </span>
           </div>
+
+          {/* Dose animation */}
           <DoseAnimation dose={result.total} bolusType={result.bolusType} isDark={isDark} />
-          <div className="grid grid-cols-3 gap-1.5 mb-4">
+
+          {/* Bolus detail grid */}
+          <div className="grid grid-cols-3 gap-1.5 mb-3">
             {[
               { label: t('repas'), val: `${result.bolusRepas}U`, color: 'text-teal-600' },
               { label: t('correction'), val: result.correction > 0 ? `+${result.correction}U` : '—', color: result.correction > 0 ? 'text-amber-500' : 'text-slate-400' },
@@ -227,14 +249,62 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
               </div>
             ))}
           </div>
+
           {/* Warnings */}
           {result.warnings.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1 mb-3">
               {result.warnings.map((w, i) => (
                 <p key={i} className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 px-3 py-1.5 rounded-lg">
                   {w.txt}
                 </p>
               ))}
+            </div>
+          )}
+
+          {/* Dose réelle + bouton confirmer */}
+          {!doseSaved ? (
+            <div className={`p-3 rounded-xl ${isDark ? 'bg-slate-700/50' : 'bg-white/70'}`}>
+              <p className={`text-[10px] uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {t('doseReelleAccueil')}
+                <span className={`ml-2 normal-case font-normal ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                  ({t('doseSuggereeCourte')} : {result.total}U)
+                </span>
+              </p>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  min="0"
+                  max="50"
+                  value={actualDose}
+                  onChange={e => setActualDose(e.target.value)}
+                  className={`flex-1 text-xl font-bold text-center p-2.5 rounded-xl border-2 outline-none transition ${
+                    isDark
+                      ? 'bg-slate-800 border-slate-600 text-white focus:border-teal-500'
+                      : 'bg-white border-gray-200 text-slate-800 focus:border-teal-500'
+                  }`}
+                />
+                <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>U</span>
+                <button
+                  onClick={handleConfirmDose}
+                  className="px-4 py-2.5 rounded-xl bg-teal-500 text-white text-sm font-semibold hover:bg-teal-600 transition active:scale-95"
+                >
+                  {t('confirmerDose')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={`p-3 rounded-xl text-center ${isDark ? 'bg-emerald-900/20 border border-emerald-800/30' : 'bg-emerald-50 border border-emerald-200'}`}>
+              <p className={`text-sm font-semibold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                ✅ {t('enregistre')} — {actualDose}U
+              </p>
+              <button
+                onClick={() => setTab('timeline')}
+                className={`mt-1 text-xs underline ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+              >
+                {t('voirTimeline') || 'Voir la timeline →'}
+              </button>
             </div>
           )}
         </div>
