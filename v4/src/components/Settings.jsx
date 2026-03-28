@@ -17,6 +17,12 @@ export default function Settings({
   locale, setLocale,
   timeProfiles, setTimeProfiles,
   journal,
+  insulinBasal, setInsulinBasal,
+  insulinRapid, setInsulinRapid,
+  basalDose, setBasalDose,
+  postKeto, setPostKeto,
+  slowDigestion, setSlowDigestion,
+  dia, setDia,
   t, colors, isRTL
 }) {
   const [section, setSection] = useState('profil');
@@ -27,6 +33,7 @@ export default function Settings({
 
   const sections = [
     { key: 'profil', icon: '👤', label: t('profil') },
+    { key: 'medical', icon: '🩺', label: t('cl_insulineBasale') ? 'Profil médical' : 'Profil médical' },
     { key: 'insulin', icon: '💉', label: t('parametresManuels') },
     { key: 'notif', icon: '🔔', label: t('notifications') },
     { key: 'display', icon: '🎨', label: t('apparence') },
@@ -127,6 +134,66 @@ export default function Settings({
                   <p className={`text-[10px] font-medium mt-0.5 ${digestion === key ? 'text-teal-600' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>{dp.label}</p>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROFIL MÉDICAL */}
+      {section === 'medical' && (
+        <div className="space-y-2">
+          <div className={cardClass}>
+            <label className={labelClass}>💉 {t('cl_insulineBasale')}</label>
+            <input type="text" placeholder="Tresiba, Lantus, Toujeo…" value={insulinBasal}
+              onChange={e => setInsulinBasal(e.target.value)} className={inputClass} />
+          </div>
+          <div className={cardClass}>
+            <label className={labelClass}>⚡ {t('cl_insulineRapide')}</label>
+            <input type="text" placeholder="NovoRapid, Humalog, Apidra…" value={insulinRapid}
+              onChange={e => setInsulinRapid(e.target.value)} className={inputClass} />
+          </div>
+          <div className={cardClass}>
+            <label className={labelClass}>📊 {t('cl_doseBasale')} (U/jour)</label>
+            <div className="flex items-center gap-3">
+              <input type="range" min={1} max={100} step={1} value={basalDose}
+                onChange={e => setBasalDose(Number(e.target.value))}
+                className="flex-1 accent-teal-500" />
+              <span className={`text-sm font-bold min-w-[50px] text-center px-2 py-0.5 rounded-xl ${isDark ? 'bg-slate-700 text-teal-400' : 'bg-teal-50 text-teal-700'}`}>
+                {basalDose}U
+              </span>
+            </div>
+          </div>
+          <div className={cardClass}>
+            <label className={labelClass}>⏱ {t('cl_dureeAction')} (DIA)</label>
+            <div className="flex items-center gap-3">
+              <input type="range" min={2} max={8} step={0.5} value={dia}
+                onChange={e => setDia(Number(e.target.value))}
+                className="flex-1 accent-purple-500" />
+              <span className={`text-sm font-bold min-w-[55px] text-center px-2 py-0.5 rounded-xl ${isDark ? 'bg-slate-700 text-purple-400' : 'bg-purple-50 text-purple-700'}`}>
+                {dia}h
+              </span>
+            </div>
+          </div>
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{t('cl_profilPostKeto')}</p>
+                <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Régime cétogène antérieur</p>
+              </div>
+              <button onClick={() => setPostKeto(!postKeto)}
+                className={`w-12 h-7 rounded-full transition relative ${postKeto ? 'bg-teal-500' : isDark ? 'bg-slate-600' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-1 transition-all ${postKeto ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{t('cl_digestionLente')}</p>
+                <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Digestion plus lente que la normale</p>
+              </div>
+              <button onClick={() => setSlowDigestion(!slowDigestion)}
+                className={`w-12 h-7 rounded-full transition relative ${slowDigestion ? 'bg-teal-500' : isDark ? 'bg-slate-600' : 'bg-gray-300'}`}>
+                <div className={`w-5 h-5 rounded-full bg-white shadow absolute top-1 transition-all ${slowDigestion ? 'left-6' : 'left-1'}`} />
+              </button>
             </div>
           </div>
         </div>

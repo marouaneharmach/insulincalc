@@ -47,6 +47,14 @@ export default function App() {
   const [patientName, setPatientName] = useLocalStorage('patientName', '');
   const [notifEnabled, setNotifEnabled] = useLocalStorage('notifEnabled', false);
 
+  // Medical profile
+  const [insulinBasal, setInsulinBasal] = useLocalStorage('insulinBasal', 'Tresiba');
+  const [insulinRapid, setInsulinRapid] = useLocalStorage('insulinRapid', 'NovoRapid');
+  const [basalDose, setBasalDose] = useLocalStorage('basalDose', 12);
+  const [postKeto, setPostKeto] = useLocalStorage('postKeto', false);
+  const [slowDigestion, setSlowDigestion] = useLocalStorage('slowDigestion', false);
+  const [dia, setDia] = useLocalStorage('dia', 4.5);
+
   // Journal
   const [journal, setJournal] = useLocalStorage('journal', []);
 
@@ -350,6 +358,12 @@ export default function App() {
             locale={locale} setLocale={setLocale}
             timeProfiles={timeProfiles} setTimeProfiles={setTimeProfiles}
             journal={journal}
+            insulinBasal={insulinBasal} setInsulinBasal={setInsulinBasal}
+            insulinRapid={insulinRapid} setInsulinRapid={setInsulinRapid}
+            basalDose={basalDose} setBasalDose={setBasalDose}
+            postKeto={postKeto} setPostKeto={setPostKeto}
+            slowDigestion={slowDigestion} setSlowDigestion={setSlowDigestion}
+            dia={dia} setDia={setDia}
             t={t} colors={colors} isRTL={isRTL}
           />
         )}
