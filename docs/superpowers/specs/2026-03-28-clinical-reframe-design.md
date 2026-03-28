@@ -30,7 +30,7 @@ Transformer InsulinCalc d'un calculateur de dose en un **coach diabétologique i
 
 ### 2.2 Écran Consultation — flux utilisateur
 
-1. **Saisie glycémie** — champ numérique avec auto-conversion mg/dL→g/L, sélecteur de tendance (↑ ↗ → ↘ ↓), heure auto-remplie
+1. **Saisie glycémie** — champ numérique avec auto-conversion mg/dL→g/L, sélecteur de tendance (↑ ↗ → ↘ ↓ + option "?" = inconnue, défaut), heure auto-remplie. Si tendance = inconnue, le moteur clinique ignore les règles liées à la tendance.
 2. **Saisie repas** — deux modes basculables :
    - **Mode expert** (défaut) : saisie directe glucides (g) + sélecteur niveau de gras (aucun/faible/moyen/élevé)
    - **Mode assisté** : recherche alimentaire par autocomplétion + reconnaissance photo (Clarifai)
@@ -56,51 +56,102 @@ Nouveau module `src/utils/clinicalEngine.js` — logique médicale déterministe
 
 ### 3.1 Insuline Active (IOB)
 
-- Modèle de décroissance curvilinéaire pour insuline rapide (NovoRapid)
-- Durée d'action configurable (défaut 4h30)
+- **Modèle Walsh** (référence : Walsh et al., "Guidelines for Optimal Bolus Calculator Settings in Adults") pour insuline rapide (NovoRapid)
+- Courbe : décroissance sigmoïde inversée. Formule :
+  ```
+  si T >= DIA : IOB = 0
+  sinon :
+    peak = 75  // minutes pour NovoRapid
+    a = 2.0 * (DIA - peak) / 5.0
+    IOB = dose * (1 - 0.5 * ((T^2) / (a * (DIA - T))))
+    IOB = max(0, min(dose, IOB))  // clamp
+  ```
+- Durée d'action (DIA) configurable (défaut 270 min = 4h30)
 - `iob(dose, minutesEcoulees, dureeAction)` → unités restantes
-- Calcul automatique depuis l'historique des injections du journal
+- IOB totale = somme des IOB de toutes les injections des dernières `DIA` minutes (depuis le journal)
 
 ### 3.2 Détection anti-stacking
 
+L'IOB est soustraite **uniquement de la correction**, pas du bolus repas (un repas nécessite sa propre couverture indépendamment de l'insuline active) :
+
+```
+correctionNette = max(0, correction - iobTotale)
+doseSuggeree = bolusRepas + correctionNette + bonusGras
+```
+
+Alertes supplémentaires :
 - Dernière injection < 2h → alerte "correction trop rapprochée"
-- IOB > 50% de la dose recommandée → réduction automatique
-- `doseEffective = max(0, doseCalculee - iobRestante)`
+- IOB > 2u ET correction demandée → avertissement stacking avec explication
 
 ### 3.3 Bolus fractionné
 
-Déclenché si gras "moyen"/"élevé" OU digestion "lent"/"très lent" :
+Déclenché si gras "moyen"/"élevé" OU flag profil "digestion lente habituelle" activé :
 
 | Condition | Schéma |
 |-----------|--------|
 | Gras moyen | 60% immédiat + 40% à +45min |
 | Gras élevé | 50% immédiat + 50% à +60min |
+| Digestion lente (flag profil, sans gras élevé) | 70% immédiat + 30% à +60min |
+| Digestion lente + gras moyen/élevé | Utiliser le schéma gras (prioritaire, plus conservateur) |
+
+Le flag "digestion lente habituelle" dans le profil est un booléen on/off. Il n'y a pas de sélecteur par repas — si activé, il s'applique à tous les repas. La patiente peut le désactiver dans les réglages si sa digestion se normalise.
 
 Notifications programmées pour rappel de la 2e dose.
 
 ### 3.4 Calcul de dose
 
 ```
-bolusRepas   = totalGlucides / ratio
-correction   = (glycemie - cibleMoyenne) / ISF    // si glycémie > cible haute
-bonusGras    = bolusRepas × FAT_FACTOR[niveauGras]
-doseCalculee = bolusRepas + correction + bonusGras
-doseSuggeree = max(0, doseCalculee - IOB)
+bolusRepas     = totalGlucides / ratio
+correction     = (glycemie - cibleHaute) / ISF    // seulement si glycémie > cibleHaute (1.20)
+bonusGras      = bolusRepas × FAT_FACTOR[niveauGras]
+correctionNette = max(0, correction - iobTotale)   // IOB soustrait de la correction uniquement
+doseSuggeree   = bolusRepas + correctionNette + bonusGras
 ```
 
-Arrondi au 0.5u le plus proche. Profils horaires : ratio/ISF peuvent varier par tranche (matin, midi, soir, nuit).
+**FAT_FACTOR** (bonus gras appliqué au bolus repas) :
+
+| Niveau | Facteur | Exemple |
+|--------|---------|---------|
+| aucun  | 0.00    | Fruits, légumes |
+| faible | 0.04    | Tajine léger |
+| moyen  | 0.14    | Couscous avec viande |
+| élevé  | 0.27    | Fritures, pâtisseries |
+
+**Réduction activité physique** (appliquée sur doseSuggeree finale) :
+
+| Activité | Réduction |
+|----------|-----------|
+| aucune   | 0% |
+| légère   | 0% |
+| modérée  | -20% |
+| intense  | -30% |
+
+Arrondi au 0.5u le plus proche.
+
+**Profils horaires** : ratio/ISF peuvent varier par tranche horaire. Tranches par défaut :
+
+| Tranche | Heures |
+|---------|--------|
+| Matin   | 06:00–11:59 |
+| Midi    | 12:00–17:59 |
+| Soir    | 18:00–22:59 |
+| Nuit    | 23:00–05:59 |
+
+Le moteur sélectionne le ratio/ISF en fonction de l'heure de la consultation.
 
 ### 3.5 Règles de sécurité
 
 | Règle | Condition | Action |
 |-------|-----------|--------|
-| Anti-hypo | glycémie < 0.70 g/L | Bloquer injection, recommander resucrage |
+| Anti-hypo | glycémie < 0.70 g/L | Bloquer toute injection, recommander resucrage 15g |
 | Hypo proche | 0.70–0.90 g/L | Réduire dose de 50%, avertissement |
-| Anti-stacking | IOB > 2u ET correction demandée | Soustraire IOB, expliquer |
+| Anti-stacking | IOB > 2u ET correction demandée | IOB déjà soustraite (§3.2), afficher avertissement explicatif |
+| Alerte timing | dernière injection < 2h | Avertissement "correction trop rapprochée" |
 | Surdosage | dose > maxDose | Bloquer, demander confirmation |
-| Sur-correction | tendance ↓/↘ ET correction demandée | Réduire ou abstenir |
+| Sur-correction | tendance ↓/↘ ET correction demandée (tendance ≠ inconnue) | Réduire correction de 50% ou abstenir |
 | Post-keto | flag activé dans profil | Messages spécifiques hausses retardées |
-| Activité physique | modérée/intense | Réduire dose 20–30%, alerter risque hypo retardée |
+| Activité modérée | activité = "moderee" | Réduire dose de 20%, alerter hypo retardée |
+| Activité intense | activité = "intense" | Réduire dose de 30%, alerter hypo retardée |
 
 ### 3.6 Fonction principale
 
@@ -170,7 +221,8 @@ Profils horaires conservés : override ratio/ISF par tranche horaire.
   doseSuggeree, doseReelle,
   bolusType,         // "unique" | "fractionne"
   activitePhysique,  // "aucune" | "legere" | "moderee" | "intense"
-  alertes            // risques identifiés par le moteur clinique
+  alertes,           // risques identifiés par le moteur clinique
+  notes              // texte libre optionnel (contexte : stress, maladie, etc.)
 }
 ```
 
@@ -234,8 +286,9 @@ Modules existants conservés et adaptés : `calculations.js`, `colors.js`, `noti
 
 ### 7.1 localStorage
 
-- Détection version (`app_version`)
-- Migration entrées existantes : ajout champs manquants avec valeurs par défaut (`tendance: null`, `iobAuMoment: null`, `activitePhysique: "aucune"`, `alertes: []`)
+- Clé `app_version` dans localStorage. Format semver : v4 actuel = "4.4.3", v5 = "5.0.0"
+- Si `app_version` absente ou < "5.0.0" → migration automatique
+- Migration entrées existantes : ajout champs manquants avec valeurs par défaut (`tendance: null`, `iobAuMoment: null`, `activitePhysique: "aucune"`, `alertes: []`, `notes: ""`)
 - Paramètres existants (ratio, ISF, cible, poids) conservés — mêmes clés
 - Nouveaux champs profil → valeurs par défaut
 
