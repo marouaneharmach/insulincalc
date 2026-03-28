@@ -13,6 +13,13 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
   const [showPrintView, setShowPrintView] = useState(false);
 
   const computeStats = () => {
+    // Accessor functions for backwards compatibility (v5 field names with v4 fallbacks)
+    const getGlycPre = (e) => e.glycPre ?? e.preMealGlycemia;
+    const getGlycPost = (e) => e.glycPost ?? e.postMealGlycemia;
+    const getTotalCarbs = (e) => e.totalGlucides ?? e.totalCarbs;
+    const getDoseSuggested = (e) => e.doseSuggeree ?? e.doseCalculated ?? e.doseSuggested;
+    const getDoseActual = (e) => e.doseReelle ?? e.doseInjected ?? e.doseActual;
+
     if (!journal || journal.length === 0) {
       return {
         entries: [],
@@ -21,13 +28,15 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
         estimatedHbA1c: 0,
         totalEntries: 0,
         dateRange: 'Aucune donnée',
+        getGlycPre, getGlycPost, getTotalCarbs, getDoseSuggested, getDoseActual,
       };
     }
 
     // Get last 30 days of data
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recentEntries = journal.filter(e => e.id >= thirtyDaysAgo);
-    const validGlycPreEntries = recentEntries.filter(e => e.glycPre && !isNaN(parseFloat(e.glycPre)));
+
+    const validGlycPreEntries = recentEntries.filter(e => getGlycPre(e) && !isNaN(parseFloat(getGlycPre(e))));
 
     if (validGlycPreEntries.length === 0) {
       return {
@@ -37,11 +46,12 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
         estimatedHbA1c: 0,
         totalEntries: recentEntries.length,
         dateRange: 'Aucune donnée',
+        getGlycPre, getGlycPost, getTotalCarbs, getDoseSuggested, getDoseActual,
       };
     }
 
     // Average glycemia
-    const glycValues = validGlycPreEntries.map(e => parseFloat(e.glycPre));
+    const glycValues = validGlycPreEntries.map(e => parseFloat(getGlycPre(e)));
     const avgGlycemia = (glycValues.reduce((s, v) => s + v, 0) / glycValues.length).toFixed(2);
 
     // Time in range %
@@ -65,6 +75,7 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
       estimatedHbA1c: parseFloat(estimatedHbA1c),
       totalEntries: recentEntries.length,
       dateRange,
+      getGlycPre, getGlycPost, getTotalCarbs, getDoseSuggested, getDoseActual,
     };
   };
 
@@ -236,18 +247,36 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
                       <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#000', borderBottom: '2px solid #000' }}>
                         Glyc. post
                       </th>
+                      <th style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#000', borderBottom: '2px solid #000' }}>
+                        Tendance
+                      </th>
                       <th style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold', color: '#000', borderBottom: '2px solid #000' }}>
                         Aliments
+                      </th>
+                      <th style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold', color: '#000', borderBottom: '2px solid #000' }}>
+                        Notes
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.entries.map((entry) => {
-                      const preColor = getGlycemiaColor(entry.glycPre, targetGMin, targetGMax);
-                      const postColor = getGlycemiaColor(entry.glycPost, targetGMin, targetGMax);
+                      const glycPre = stats.getGlycPre(entry);
+                      const glycPost = stats.getGlycPost(entry);
+                      const totalCarbs = stats.getTotalCarbs(entry);
+                      const doseSuggested = stats.getDoseSuggested(entry);
+                      const doseActual = stats.getDoseActual(entry);
+                      const preColor = getGlycemiaColor(glycPre, targetGMin, targetGMax);
+                      const postColor = getGlycemiaColor(glycPost, targetGMin, targetGMax);
                       const entryDate = new Date(entry.date);
                       const dateStr = entryDate.toLocaleDateString('fr-FR');
                       const timeStr = entryDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                      // Build tendance display with optional activity/bolus info
+                      const tendanceParts = [];
+                      if (entry.tendance) tendanceParts.push(entry.tendance);
+                      if (entry.activitePhysique && entry.activitePhysique !== 'aucune') tendanceParts.push(`Act: ${entry.activitePhysique}`);
+                      if (entry.bolusType && entry.bolusType !== 'unique') tendanceParts.push(`Bolus: ${entry.bolusType}`);
+                      const tendanceStr = tendanceParts.join(' / ') || '—';
 
                       return (
                         <tr key={entry.id} style={{ borderBottom: '1px solid #eee' }}>
@@ -265,30 +294,36 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
                               fontWeight: 'bold',
                             }}
                           >
-                            {entry.glycPre} g/L
+                            {glycPre} g/L
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center', color: '#000' }}>
-                            {entry.totalCarbs}
+                            {totalCarbs}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center', color: '#000' }}>
-                            {entry.doseSuggested ? entry.doseSuggested.toFixed(1) : '—'} U
+                            {doseSuggested ? parseFloat(doseSuggested).toFixed(1) : '—'} U
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center', color: '#000' }}>
-                            {entry.doseActual ? entry.doseActual.toFixed(1) : '—'} U
+                            {doseActual ? parseFloat(doseActual).toFixed(1) : '—'} U
                           </td>
                           <td
                             style={{
                               padding: '8px',
                               textAlign: 'center',
-                              backgroundColor: entry.glycPost ? postColor.bg : '#fff',
-                              color: entry.glycPost ? postColor.text : '#999',
-                              fontWeight: entry.glycPost ? 'bold' : 'normal',
+                              backgroundColor: glycPost ? postColor.bg : '#fff',
+                              color: glycPost ? postColor.text : '#999',
+                              fontWeight: glycPost ? 'bold' : 'normal',
                             }}
                           >
-                            {entry.glycPost ? `${entry.glycPost} g/L` : '—'}
+                            {glycPost ? `${glycPost} g/L` : '—'}
                           </td>
-                          <td style={{ padding: '8px', color: '#000', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '8px', textAlign: 'center', color: '#000', fontSize: '11px' }}>
+                            {tendanceStr}
+                          </td>
+                          <td style={{ padding: '8px', color: '#000', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {entry.aliments || '—'}
+                          </td>
+                          <td style={{ padding: '8px', color: '#666', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px' }}>
+                            {entry.notes || '—'}
                           </td>
                         </tr>
                       );
