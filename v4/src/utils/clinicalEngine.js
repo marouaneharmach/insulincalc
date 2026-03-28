@@ -186,7 +186,7 @@ export function applySafetyRules({
   if (iobTotal > 2 && correction > 0) {
     warnings.push({
       type: 'anti-stacking',
-      message: `Insuline active élevée (${iobTotal} U) avec correction active — risque d'empilement.`,
+      message: `Insuline active élevée (${Math.round(iobTotal * 10) / 10} U) avec correction active — risque d'empilement.`,
     });
   }
 
@@ -194,7 +194,7 @@ export function applySafetyRules({
   if (lastInjectionMinutesAgo != null && lastInjectionMinutesAgo < 120) {
     warnings.push({
       type: 'alerte-timing',
-      message: `Dernière injection il y a ${lastInjectionMinutesAgo} min (< 2 h) — vérifier l'IOB.`,
+      message: `Dernière injection il y a ${Math.round(lastInjectionMinutesAgo)} min (< 2 h) — vérifier l'IOB.`,
     });
   }
 

@@ -275,6 +275,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                 isDark ? 'border-slate-600 text-slate-400 hover:border-teal-500 hover:text-teal-400' : 'border-gray-300 text-gray-400 hover:border-teal-400 hover:text-teal-600'
               }`}>
               + {t('saisieRapide') || 'Saisie rapide glycémie / injection'}
+
             </button>
           ) : (
             <div className="space-y-2">
@@ -390,61 +391,52 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                       {/* Glycemia pre */}
                       {!isNaN(glycPre) && glycPre > 0 && (
                         <p className="text-xs mb-1" style={{ color: glycColor(glycPre) }}>
-                          🩸 {t('glycPre') || 'Avant'} : {glycPre.toFixed(2)} g/L
+                          🩸 Glyc. pré : {glycPre.toFixed(2)} g/L
                           {entry.tendance && entry.tendance !== '?' && (
                             <span className="ml-1 text-sm">{entry.tendance}</span>
                           )}
                         </p>
                       )}
-                      {/* Dose — editable, shows proposed vs actual */}
-                      {((entry.doseActual || entry.doseReelle || 0) > 0 || (entry.doseSuggested || entry.doseSuggeree || 0) > 0) && (
-                        <div className="flex items-center gap-2 mb-1">
-                          {editingDose === entry.id ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-blue-500">💉</span>
-                              <input type="number" step="0.5" min="0" value={doseValue}
-                                onChange={e => setDoseValue(e.target.value)} autoFocus
-                                className={`w-16 text-center text-sm p-1 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200'}`} />
-                              <span className="text-xs text-gray-400">U</span>
-                              <button onClick={() => saveDose(entry.id)}
-                                className="text-xs px-2 py-1 bg-blue-500 text-white rounded-lg">✓</button>
-                              <button onClick={() => setEditingDose(null)}
-                                className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual || entry.doseReelle || 0)); }}
-                              className="text-xs text-blue-500 hover:underline">
-                              💉 {(entry.doseActual || entry.doseReelle || 0) > 0 ? (
-                                <>
-                                  <span className="font-bold">{entry.doseActual || entry.doseReelle}U</span>
-                                  {(entry.doseSuggested || entry.doseSuggeree || 0) > 0 && (entry.doseSuggested || entry.doseSuggeree) !== (entry.doseActual || entry.doseReelle) && (
-                                    <span className={`ml-1 ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>
-                                      (proposé: {entry.doseSuggested || entry.doseSuggeree}U)
-                                    </span>
-                                  )}
-                                </>
-                              ) : (entry.doseSuggested || entry.doseSuggeree || 0) > 0 ? (
-                                <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>
-                                  proposé: {entry.doseSuggested || entry.doseSuggeree}U — <span className="text-amber-500">en attente</span>
-                                </span>
-                              ) : null}
-                              {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
-                                <span className="ml-1 text-amber-500">({entry.bolusType === 'fractionne' ? 'fractionné' : 'dual'})</span>
-                              }
-                              <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      {/* Dose — simplified */}
+                      {(() => {
+                        const dose = entry.doseActual || entry.doseReelle || 0;
+                        if (dose <= 0) return null;
+                        return (
+                          <div className="flex items-center gap-2 mb-1">
+                            {editingDose === entry.id ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-blue-500">💉</span>
+                                <input type="number" step="0.5" min="0" value={doseValue}
+                                  onChange={e => setDoseValue(e.target.value)} autoFocus
+                                  className={`w-16 text-center text-sm p-1 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-gray-200'}`} />
+                                <span className="text-xs text-gray-400">U</span>
+                                <button onClick={() => saveDose(entry.id)}
+                                  className="text-xs px-2 py-1 bg-blue-500 text-white rounded-lg">✓</button>
+                                <button onClick={() => setEditingDose(null)}
+                                  className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose)); }}
+                                className="text-xs text-blue-500 hover:underline">
+                                💉 <span className="font-bold">{dose}U</span>
+                                {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
+                                  <span className="ml-1 text-amber-500">(fractionné)</span>
+                                }
+                                <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {/* IOB */}
                       {entry.iob > 0 && (
-                        <p className="text-[10px] text-blue-400 mb-1">IOB: {entry.iob.toFixed(1)}U {t('restant') || 'restant'}</p>
+                        <p className="text-[10px] text-blue-400 mb-1">IOB: {entry.iob.toFixed(1)}U restant</p>
                       )}
                       {/* Post-meal glycemia */}
                       {glycPost > 0 ? (
                         <>
                           <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
-                            🩸 {t('glycPost') || 'Après'} : {glycPost.toFixed(2)} g/L
+                            🩸 post : {glycPost.toFixed(2)} g/L
                             {!isNaN(glycPre) && glycPre > 0 && (
                               <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
                                 ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
