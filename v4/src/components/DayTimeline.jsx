@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { calcIOB } from '../utils/calculations';
 import { DIGESTION_PROFILES } from '../data/constants';
 import GlycEvolutionChart from './GlycEvolutionChart';
-import InjectionTracker from './InjectionTracker';
 
 function glycColor(v) {
   if (!v || isNaN(v)) return '#94A3B8';
@@ -474,18 +473,8 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           📝 {entry.notes}
                         </p>
                       )}
-                      {/* Interactive injection tracker (V4.4) or legacy schedule */}
-                      {entry.scheduleSteps && entry.scheduleSteps.length > 0 ? (
-                        <div className="mt-2">
-                          <InjectionTracker
-                            entry={entry}
-                            journal={journal}
-                            setJournal={setJournal}
-                            isDark={isDark}
-                            t={t}
-                          />
-                        </div>
-                      ) : entry.schedule && entry.schedule.length > 0 ? (
+                      {/* Legacy schedule display */}
+                      {entry.schedule && entry.schedule.length > 0 ? (
                         <div className="mt-2">
                           <button onClick={() => setExpandedSchedule(expandedSchedule === entry.id ? null : entry.id)}
                             className={`text-[10px] font-medium flex items-center gap-1 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
