@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { APP_VERSION } from '../version';
 import GlycemiaChart from './GlycemiaChart';
 import TrendChart from './TrendChart';
 import DoseAnimation from './DoseAnimation';
@@ -88,7 +89,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
             </p>
           )}
           <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            InsulinCalc <span className={`text-xs font-normal ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>v4.3</span>
+            InsulinCalc <span className={`text-xs font-normal ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>v{APP_VERSION}</span>
           </h1>
         </div>
         {/* Current carbs badge if meal in progress */}
@@ -169,7 +170,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           { type: 'glycemia', icon: '🩸', label: t('ajouterGlycemie'), color: 'bg-pink-50 text-pink-600 border-pink-100', darkColor: 'bg-pink-900/20 text-pink-400 border-pink-800/30' },
           { type: 'meal', icon: '🍽', label: t('ajouterRepas'), color: 'bg-emerald-50 text-emerald-600 border-emerald-100', darkColor: 'bg-emerald-900/20 text-emerald-400 border-emerald-800/30' },
@@ -181,7 +182,7 @@ export default function HomeScreen({ patientName, lastGlyc, glycemia, journal, t
             onClick={() => action.type === 'meal' ? setTab('repas') : onQuickAdd(action.type)}
             className={`flex flex-col items-center gap-1 p-2 rounded-2xl border transition-all hover:scale-105 active:scale-95 ${isDark ? action.darkColor : action.color}`}
           >
-            <span className="text-2xl">{action.icon}</span>
+            <span className="text-xl">{action.icon}</span>
             <span className="text-[10px] font-medium leading-tight text-center">{action.label}</span>
           </button>
         ))}
