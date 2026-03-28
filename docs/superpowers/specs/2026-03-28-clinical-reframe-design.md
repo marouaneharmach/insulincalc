@@ -317,3 +317,12 @@ Modules existants conservés et adaptés : `calculations.js`, `colors.js`, `noti
 ## 9. Stack technique
 
 Inchangée : React 19 + Vite 8 + Tailwind CSS 4 + Vitest. Pas de nouvelle dépendance.
+
+---
+
+## 10. Notes d'implémentation
+
+1. **Hypo proche (0.70–0.90 g/L)** : la réduction de 50% s'applique à la `doseSuggeree` totale (repas + correction + bonus), pas uniquement à la correction.
+2. **Tendance inconnue** : le moteur clinique doit traiter `null` ET `"?"` comme tendance inconnue (compatibilité migration v4 → v5).
+3. **Arrondi bolus fractionné** : arrondir la dose totale au 0.5u d'abord, puis appliquer le split, puis arrondir chaque fraction au 0.5u. La somme des fractions peut différer de ±0.5u du total — acceptable.
+4. **Schema aliment dans journal** : chaque item de `aliments[]` = `{ id, name, carbs, qty, fat, gi }` (mêmes champs que `foods.js` + quantité choisie).
