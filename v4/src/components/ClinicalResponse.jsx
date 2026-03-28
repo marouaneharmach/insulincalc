@@ -7,12 +7,12 @@
 
 // ─── Sub-component: Section card ──────────────────────────────────────────────
 
-function Section({ icon, title, children }) {
+function Section({ icon, title, children, isDark }) {
   return (
-    <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-white/5">
+    <div className={`rounded-xl overflow-hidden border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
+      <div className={`flex items-center gap-2 px-4 py-3 border-b ${isDark ? 'border-white/10 bg-white/5' : 'border-gray-100 bg-gray-50'}`}>
         <span className="text-base leading-none">{icon}</span>
-        <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-300">
+        <h3 className={`text-xs uppercase tracking-wider font-semibold ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
           {title}
         </h3>
       </div>
@@ -59,7 +59,7 @@ function StatusBadge({ status, t }) {
 
 // ─── Sub-component: DoseBreakdown ─────────────────────────────────────────────
 
-function DoseBreakdown({ reasoning, t }) {
+function DoseBreakdown({ reasoning, t, isDark }) {
   if (!reasoning) return null;
 
   const items = [
@@ -73,9 +73,9 @@ function DoseBreakdown({ reasoning, t }) {
   return (
     <div className="mt-3 space-y-1">
       {items.map(({ key, value }) => (
-        <div key={key} className="flex items-center justify-between text-xs text-slate-400">
+        <div key={key} className={`flex items-center justify-between text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           <span>{t(key)}</span>
-          <span className="font-medium text-slate-300 tabular-nums">
+          <span className={`font-medium tabular-nums ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
             {value > 0 ? `+${value}` : value} U
           </span>
         </div>
@@ -86,7 +86,7 @@ function DoseBreakdown({ reasoning, t }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function ClinicalResponse({ result, t }) {
+export default function ClinicalResponse({ result, t, isDark = true }) {
   if (!result) return null;
 
   const { analysis, recommendation, vigilance, nextStep } = result;
@@ -98,45 +98,45 @@ export default function ClinicalResponse({ result, t }) {
     <div className="space-y-3">
 
       {/* ── Section 1 : Analyse ─────────────────────────────────────────────── */}
-      <Section icon="🔍" title={t('cl_analyse')}>
+      <Section icon="🔍" title={t('cl_analyse')} isDark={isDark}>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={analysis.glycemiaStatus} t={t} />
 
           {analysis.iob > 0 && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
-              {t('cl_iobActive')} {analysis.iob} {t('cl_unites')}
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              {t('cl_iobActive')} {Math.round(analysis.iob * 10) / 10} {t('cl_unites')}
             </span>
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-4 text-xs text-slate-400">
+        <div className={`mt-3 flex items-center gap-4 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           {analysis.totalCarbs != null && (
             <span>
-              <span className="text-slate-200 font-semibold">{analysis.totalCarbs} g</span>
+              <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{analysis.totalCarbs} g</span>
               {' '}glucides
             </span>
           )}
           {analysis.fatLevel && analysis.fatLevel !== 'aucun' && (
             <span>
               Gras{' '}
-              <span className="text-slate-200 font-semibold capitalize">{analysis.fatLevel}</span>
+              <span className={`font-semibold capitalize ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{analysis.fatLevel}</span>
             </span>
           )}
           {analysis.trend && (
             <span>
               {t('cl_tendance')}{' '}
-              <span className="text-slate-200 font-semibold">{analysis.trend}</span>
+              <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{analysis.trend}</span>
             </span>
           )}
         </div>
       </Section>
 
       {/* ── Section 2 : Recommandation ──────────────────────────────────────── */}
-      <Section icon="💉" title={t('cl_recommandation')}>
+      <Section icon="💉" title={t('cl_recommandation')} isDark={isDark}>
         {recommendation.blocked ? (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/15 border border-red-500/30">
             <span className="text-red-400 text-base leading-none mt-0.5">🚫</span>
-            <p className="text-sm text-red-300 font-medium leading-snug">
+            <p className={`text-sm font-medium leading-snug ${isDark ? 'text-red-300' : 'text-red-600'}`}>
               {recommendation.reasoning?.bolusRepas ?? recommendation.blocked}
             </p>
           </div>
@@ -144,17 +144,17 @@ export default function ClinicalResponse({ result, t }) {
           <>
             {/* Large dose number */}
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-white tabular-nums leading-none">
+              <span className={`text-4xl font-bold tabular-nums leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 {recommendation.dose}
               </span>
-              <span className="text-lg text-slate-400 font-medium">U</span>
+              <span className={`text-lg font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>U</span>
 
               {recommendation.split?.type === 'fractionne' ? (
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wide">
+                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-500 border border-purple-500/30 uppercase tracking-wide">
                   {t('cl_doseFractionnee')}
                 </span>
               ) : (
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase tracking-wide">
+                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/20 text-teal-500 border border-teal-500/30 uppercase tracking-wide">
                   {t('cl_doseUnique')}
                 </span>
               )}
@@ -164,19 +164,19 @@ export default function ClinicalResponse({ result, t }) {
             {recommendation.split?.type === 'fractionne' && (
               <div className="mt-3 flex items-center gap-3">
                 <div className="flex-1 flex flex-col items-center p-2.5 rounded-lg bg-teal-500/10 border border-teal-500/20">
-                  <span className="text-[10px] uppercase tracking-wider text-teal-400 mb-1">
+                  <span className="text-[10px] uppercase tracking-wider text-teal-500 mb-1">
                     {t('cl_immediat')}
                   </span>
-                  <span className="text-xl font-bold text-teal-300 tabular-nums">
+                  <span className="text-xl font-bold text-teal-400 tabular-nums">
                     {recommendation.split.immediate} U
                   </span>
                 </div>
-                <span className="text-slate-500 text-lg">+</span>
+                <span className={`text-lg ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>+</span>
                 <div className="flex-1 flex flex-col items-center p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <span className="text-[10px] uppercase tracking-wider text-purple-400 mb-1">
+                  <span className="text-[10px] uppercase tracking-wider text-purple-500 mb-1">
                     +{recommendation.split.delayMinutes} min
                   </span>
-                  <span className="text-xl font-bold text-purple-300 tabular-nums">
+                  <span className="text-xl font-bold text-purple-400 tabular-nums">
                     {recommendation.split.delayed} U
                   </span>
                 </div>
@@ -184,31 +184,31 @@ export default function ClinicalResponse({ result, t }) {
             )}
 
             {/* Dose breakdown */}
-            <DoseBreakdown reasoning={recommendation.reasoning} t={t} />
+            <DoseBreakdown reasoning={recommendation.reasoning} t={t} isDark={isDark} />
           </>
         )}
       </Section>
 
       {/* ── Section 3 : Vigilance (conditional) ─────────────────────────────── */}
       {hasVigilance && (
-        <Section icon="⚠️" title={t('cl_vigilance')}>
+        <Section icon="⚠️" title={t('cl_vigilance')} isDark={isDark}>
           <div className="space-y-2">
             {vigilance.risks?.map((risk, i) => (
               <div
                 key={`risk-${i}`}
-                className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/25"
+                className={`flex items-start gap-2 p-2.5 rounded-lg border ${isDark ? 'bg-red-500/10 border-red-500/25' : 'bg-red-50 border-red-200'}`}
               >
-                <span className="text-red-400 text-sm leading-none mt-0.5 shrink-0">🔴</span>
-                <p className="text-xs text-red-300 leading-snug">{risk.message}</p>
+                <span className="text-red-500 text-sm leading-none mt-0.5 shrink-0">🔴</span>
+                <p className={`text-xs leading-snug ${isDark ? 'text-red-300' : 'text-red-600'}`}>{risk.message}</p>
               </div>
             ))}
             {vigilance.warnings?.map((warn, i) => (
               <div
                 key={`warn-${i}`}
-                className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25"
+                className={`flex items-start gap-2 p-2.5 rounded-lg border ${isDark ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50 border-amber-200'}`}
               >
-                <span className="text-amber-400 text-sm leading-none mt-0.5 shrink-0">🟡</span>
-                <p className="text-xs text-amber-300 leading-snug">{warn.message}</p>
+                <span className="text-amber-500 text-sm leading-none mt-0.5 shrink-0">🟡</span>
+                <p className={`text-xs leading-snug ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>{warn.message}</p>
               </div>
             ))}
           </div>
@@ -217,20 +217,20 @@ export default function ClinicalResponse({ result, t }) {
 
       {/* ── Section 4 : Prochaine étape ──────────────────────────────────────── */}
       {nextStep && (
-        <Section icon="⏱️" title={t('cl_prochaineEtape')}>
+        <Section icon="⏱️" title={t('cl_prochaineEtape')} isDark={isDark}>
           <div className="flex items-center gap-3">
             {nextStep.checkTime != null && (
-              <div className="flex flex-col items-center px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600/40 shrink-0">
-                <span className="text-2xl font-bold text-slate-200 tabular-nums leading-none">
+              <div className={`flex flex-col items-center px-4 py-2 rounded-lg border shrink-0 ${isDark ? 'bg-slate-700/50 border-slate-600/40' : 'bg-gray-100 border-gray-200'}`}>
+                <span className={`text-2xl font-bold tabular-nums leading-none ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                   {nextStep.checkTime}
                 </span>
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">
+                <span className={`text-[10px] uppercase tracking-wider mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                   {t('cl_minutes')}
                 </span>
               </div>
             )}
             {nextStep.instruction && (
-              <p className="text-sm text-slate-300 leading-snug flex-1">
+              <p className={`text-sm leading-snug flex-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {nextStep.instruction}
               </p>
             )}

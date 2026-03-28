@@ -14,7 +14,7 @@ export default function ConsultationScreen({
   glycemia, setGlycemia, ratio, isf, targetGMin, targetGMax,
   maxDose, postKeto, slowDigestion, dia,
   journal, selections, foods, customFoods, toggleFood, updateMult,
-  timeProfiles, onSaveToJournal, onPhotoMeal, t, isRTL,
+  timeProfiles, onSaveToJournal, onPhotoMeal, t, isRTL, isDark,
 }) {
   const [trend, setTrend] = useState('?');
   const [hour, setHour] = useState(() => {
@@ -76,6 +76,16 @@ export default function ConsultationScreen({
     }
     return { ratio, isf };
   }, [hour, timeProfiles, ratio, isf]);
+
+  // Convert selections object map {id: {mult}} to array [{food, mult}] for MealInput
+  const selectionsArray = useMemo(() => {
+    if (!selections || typeof selections !== 'object') return [];
+    const allFoods = [...foods, ...(customFoods || [])];
+    return Object.entries(selections).map(([id, sel]) => {
+      const food = allFoods.find(f => f.id === id);
+      return food ? { food, mult: sel.mult || 1 } : null;
+    }).filter(Boolean);
+  }, [selections, foods, customFoods]);
 
   const gVal = parseFloat(glycemia);
 
@@ -139,9 +149,9 @@ export default function ConsultationScreen({
 
       <MealInput totalCarbs={manualCarbs} setTotalCarbs={setManualCarbs}
         fatLevel={fatLevel} setFatLevel={setFatLevel}
-        foods={foods} selections={selections} toggleFood={toggleFood}
+        foods={foods} selections={selectionsArray} toggleFood={toggleFood}
         updateMult={updateMult} customFoods={customFoods}
-        onPhotoMeal={onPhotoMeal} t={t} />
+        onPhotoMeal={onPhotoMeal} t={t} isDark={isDark} />
 
       <ContextInput activity={activity} setActivity={setActivity}
         iobTotal={iobTotal} t={t} />
@@ -152,7 +162,7 @@ export default function ConsultationScreen({
         {t('cl_analyser') || 'Analyser'}
       </button>
 
-      <ClinicalResponse result={result} t={t} />
+      <ClinicalResponse result={result} t={t} isDark={isDark} />
 
       {result && !result.recommendation.blocked && (
         <button onClick={handleSave}

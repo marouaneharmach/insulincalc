@@ -364,8 +364,12 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                     <>
                       <div className="flex items-center justify-between mb-2">
                         <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                          {entry.aliments ? entry.aliments.split(',').slice(0, 3).join(', ') : 'Repas'}
-                          {entry.aliments && entry.aliments.split(',').length > 3 && '...'}
+                          {entry.aliments
+                            ? Array.isArray(entry.aliments)
+                              ? entry.aliments.slice(0, 3).map(a => a.name || a).join(', ')
+                              : entry.aliments.split(',').slice(0, 3).join(', ')
+                            : 'Repas'}
+                          {entry.aliments && (Array.isArray(entry.aliments) ? entry.aliments.length : entry.aliments.split(',').length) > 3 && '...'}
                         </p>
                         <div className="flex items-center">
                           {entry.activitePhysique && entry.activitePhysique !== 'aucune' && (
