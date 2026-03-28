@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTheme } from './hooks/useTheme';
 import { useI18n } from './i18n/useI18n';
@@ -6,6 +6,7 @@ import { calcIMC } from './utils/calculations';
 import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
 import { setFallbackHandler } from './utils/notifications';
+import { needsMigration, migrateAllEntries } from './utils/migration';
 
 import DayTimeline from './components/DayTimeline';
 import Settings from './components/Settings';
@@ -51,6 +52,16 @@ export default function App() {
 
   // Journal
   const [journal, setJournal] = useLocalStorage('journal', []);
+
+  // v4 → v5 data migration (run once on mount)
+  useEffect(() => {
+    const version = localStorage.getItem('insulincalc_v4_app_version');
+    if (needsMigration(version)) {
+      const migrated = migrateAllEntries(journal);
+      setJournal(migrated);
+      localStorage.setItem('insulincalc_v4_app_version', '5.0.0');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Time-based profiles
   const [timeProfiles, setTimeProfiles] = useLocalStorage('timeProfiles', []);
