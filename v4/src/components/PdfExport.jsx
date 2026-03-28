@@ -320,7 +320,11 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
                             {tendanceStr}
                           </td>
                           <td style={{ padding: '8px', color: '#000', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {entry.aliments || '—'}
+                            {entry.aliments
+                              ? Array.isArray(entry.aliments)
+                                ? entry.aliments.map(a => a.name || a).join(', ')
+                                : entry.aliments
+                              : '—'}
                           </td>
                           <td style={{ padding: '8px', color: '#666', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px' }}>
                             {entry.notes || '—'}
