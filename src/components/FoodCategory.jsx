@@ -2,9 +2,8 @@ import { memo } from 'react';
 import { C, GI_COLOR } from '../utils/colors.js';
 import QtyStepper from './QtyStepper.jsx';
 
-const GI_BADGE_LABEL = { faible: "IG Bas", moyen: "IG Moy", "élevé": "IG Haut" };
-
 const FoodCategory = memo(function FoodCategory({ cat, foods, selections, openCat, setOpenCat, search, expandedId, toggleFood, updateMult, colors, theme, t }) {
+  const GI_BADGE_LABEL = { faible: t ? t("igBas") : "IG Bas", moyen: t ? t("igMoy") : "IG Moy", "élevé": t ? t("igHaut") : "IG Haut" };
   const cc = colors || C;
   const isDark = theme === 'dark' || !theme;
   const isOpen = openCat === cat || !!search.trim();

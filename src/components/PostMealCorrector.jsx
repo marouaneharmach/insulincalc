@@ -33,7 +33,7 @@ export default function PostMealCorrector({ initialDose, isf, targetG, digestion
 
       {/* Time selector */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: cc.muted, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Temps écoulé</div>
+        <div style={{ fontSize: 12, color: cc.muted, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>{tl("tempsEcoule")}</div>
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
           {timeOptions.map(opt => (
             <button key={opt.v} onClick={() => setPmTime(opt.v)} style={{ flex: 1, minWidth: 50, padding: "8px 4px", border: `1px solid ${pmTime === opt.v ? cc.accent : cc.border}`, borderRadius: 8, background: pmTime === opt.v ? `${cc.accent}20` : (isDark ? "#070c12" : "#f8fafc"), color: pmTime === opt.v ? cc.accent : cc.muted, fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, cursor: "pointer", fontWeight: pmTime === opt.v ? 700 : 400 }}>
@@ -67,67 +67,67 @@ export default function PostMealCorrector({ initialDose, isf, targetG, digestion
       {corr && (() => {
         if (corr.status === "ok_low" && pmG < 0.8) return (
           <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "2px solid rgba(239,68,68,0.5)" }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: cc.red, marginBottom: 6 }}>🚨 HYPOGLYCÉMIE — Agir immédiatement</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: cc.red, marginBottom: 6 }}>🚨 {tl("hypoAlerte")}</div>
             <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.7 }}>
-              Glycémie critique : <strong>{pmG.toFixed(1)} g/L</strong><br />
-              → Prendre 15g de sucres rapides<br />
-              → Contrôler à nouveau dans 15 minutes<br />
-              → Ne pas injecter d'insuline
+              {tl("glycemieCritique")} : <strong>{pmG.toFixed(1)} g/L</strong><br />
+              → {tl("prendre15gSucre")}<br />
+              → {tl("controler15min")}<br />
+              → {tl("pasInjection")}
             </div>
           </div>
         );
 
         if (corr.status === "ok_low") return (
           <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: cc.green, marginBottom: 6 }}>✅ Aucune correction nécessaire</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: cc.green, marginBottom: 6 }}>✅ {tl("aucuneCorrectionNecessaire")}</div>
             <div style={{ fontSize: 11, color: isDark ? "#3d6b4a" : "#166534", lineHeight: 1.6 }}>
-              Glycémie à <strong>{pmG.toFixed(1)} g/L</strong> — dans la cible ({targetG.toFixed(1)} g/L)<br />
-              IOB : {iob} U · Pas d'injection supplémentaire.
+              {tl("glycemieMesuree")} <strong>{pmG.toFixed(1)} g/L</strong> — {tl("dansCible")} ({targetG.toFixed(1)} g/L)<br />
+              IOB : {iob} U · {tl("pasInjectionSupp")}
             </div>
           </div>
         );
 
         if (corr.status === "urgent_override") return (
           <div role="alert" style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(220,38,38,0.15)", border: "2px solid rgba(220,38,38,0.6)" }}>
-            <div style={{ fontSize: 12, letterSpacing: 1, color: "#dc2626", marginBottom: 8, textTransform: "uppercase" }}>🏥 URGENCE — Correction immédiate</div>
+            <div style={{ fontSize: 12, letterSpacing: 1, color: "#dc2626", marginBottom: 8, textTransform: "uppercase" }}>🏥 {tl("urgenceCorrectionImmediate")}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 48, fontWeight: 900, fontFamily: "'Syne Mono',monospace", color: "#dc2626", lineHeight: 1 }}>{corr.units}</span>
               <span style={{ fontSize: 16, color: cc.muted }}>{tl("unites")}</span>
             </div>
             <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.7 }}>
-              Glycémie : <strong style={{ color: "#dc2626" }}>{pmG.toFixed(1)} g/L</strong> — seuil critique ≥ 3.0 g/L<br />
-              Correction brute : {corr.rawUnits} U · IOB : {iob} U<br />
-              → Contrôler dans 45 min. Consultez votre médecin si ≥ 3.0 g/L persiste.
+              {tl("glycemieMesuree")} : <strong style={{ color: "#dc2626" }}>{pmG.toFixed(1)} g/L</strong> — {tl("seuilCritique")} ≥ 3.0 g/L<br />
+              {tl("correctionBrute")} : {corr.rawUnits} U · IOB : {iob} U<br />
+              → {tl("controler45min")}
             </div>
           </div>
         );
 
         if (corr.status === "high_override") return (
           <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(239,68,68,0.12)", border: "2px solid rgba(239,68,68,0.5)" }}>
-            <div style={{ fontSize: 12, letterSpacing: 1, color: cc.red, marginBottom: 8, textTransform: "uppercase" }}>🚨 Hyperglycémie sévère — Injection recommandée</div>
+            <div style={{ fontSize: 12, letterSpacing: 1, color: cc.red, marginBottom: 8, textTransform: "uppercase" }}>🚨 {tl("hyperSevereInjection")}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 48, fontWeight: 900, fontFamily: "'Syne Mono',monospace", color: cc.red, lineHeight: 1 }}>{corr.units}</span>
               <span style={{ fontSize: 16, color: cc.muted }}>{tl("unites")}</span>
             </div>
             <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.7 }}>
-              Glycémie : <strong>{pmG.toFixed(1)} g/L</strong> — 2.5–3.0 g/L<br />
-              Correction brute : {corr.rawUnits} U · IOB : {iob} U<br />
-              → Contrôler dans 45–60 min.
+              {tl("glycemieMesuree")} : <strong>{pmG.toFixed(1)} g/L</strong> — 2.5–3.0 g/L<br />
+              {tl("correctionBrute")} : {corr.rawUnits} U · IOB : {iob} U<br />
+              → {tl("controler45_60min")}
             </div>
           </div>
         );
 
         if (corr.status === "warn_override") return (
           <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(249,115,22,0.10)", border: "1px solid rgba(249,115,22,0.5)" }}>
-            <div style={{ fontSize: 12, letterSpacing: 1, color: "#f97316", marginBottom: 8, textTransform: "uppercase" }}>⚠️ Hyperglycémie — Injection recommandée</div>
+            <div style={{ fontSize: 12, letterSpacing: 1, color: "#f97316", marginBottom: 8, textTransform: "uppercase" }}>⚠️ {tl("hyperInjection")}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 48, fontWeight: 900, fontFamily: "'Syne Mono',monospace", color: "#f97316", lineHeight: 1 }}>{corr.units}</span>
               <span style={{ fontSize: 16, color: cc.muted }}>{tl("unites")}</span>
             </div>
             <div style={{ fontSize: 11, color: "#fdba74", lineHeight: 1.7 }}>
-              Glycémie : <strong>{pmG.toFixed(1)} g/L</strong> — au-dessus de 2.0 g/L<br />
-              Correction brute : {corr.rawUnits} U · IOB : {iob} U<br />
-              → Contrôler dans 1h.
+              {tl("glycemieMesuree")} : <strong>{pmG.toFixed(1)} g/L</strong> — {tl("auDessusDe")} 2.0 g/L<br />
+              {tl("correctionBrute")} : {corr.rawUnits} U · IOB : {iob} U<br />
+              → {tl("controler1h")}
             </div>
           </div>
         );
@@ -142,12 +142,12 @@ export default function PostMealCorrector({ initialDose, isf, targetG, digestion
             </div>
             <div style={{ background: isDark ? "#070c12" : "#f1f5f9", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
               {[
-                { label: "Glycémie mesurée", val: `${pmG.toFixed(1)} g/L` },
-                { label: "Cible", val: `${targetG.toFixed(1)} g/L` },
-                { label: "Écart", val: `+${corr.ecartGL} g/L` },
-                { label: "Correction brute", val: `${corr.rawUnits} U` },
-                { label: `IOB déduit (${tMin}min)`, val: `−${corr.iob} U` },
-                { label: "Correction nette", val: `${corr.units} U`, bold: true },
+                { label: tl("glycemieMesuree"), val: `${pmG.toFixed(1)} g/L` },
+                { label: tl("cible"), val: `${targetG.toFixed(1)} g/L` },
+                { label: tl("ecart"), val: `+${corr.ecartGL} g/L` },
+                { label: tl("correctionBrute"), val: `${corr.rawUnits} U` },
+                { label: `${tl("iobDeduit")} (${tMin}min)`, val: `−${corr.iob} U` },
+                { label: tl("correctionNette"), val: `${corr.units} U`, bold: true },
               ].map((row, i, arr) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0", color: row.bold ? glycColor(pmG) : cc.muted, fontWeight: row.bold ? 700 : 400, borderTop: i === arr.length - 1 ? `1px solid ${cc.border}` : "none", marginTop: i === arr.length - 1 ? 4 : 0, paddingTop: i === arr.length - 1 ? 7 : 3 }}>
                   <span>{row.label}</span><span>{row.val}</span>
@@ -155,7 +155,7 @@ export default function PostMealCorrector({ initialDose, isf, targetG, digestion
               ))}
             </div>
             <div style={{ fontSize: 11, color: cc.muted, padding: "6px 10px", borderRadius: 7, borderLeft: `2px solid ${glycColor(pmG)}44` }}>
-              ⚕️ Vérifiez toujours avec votre médecin avant de corriger.
+              ⚕️ {tl("verifierMedecin")}
             </div>
           </div>
         );

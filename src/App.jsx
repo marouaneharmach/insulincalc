@@ -17,6 +17,7 @@ import ReglagesPanel from './components/ReglagesPanel.jsx';
 import FavoriteMeals from './components/FavoriteMeals.jsx';
 import CustomFoodForm from './components/CustomFoodForm.jsx';
 import Onboarding from './components/Onboarding.jsx';
+import PhotoMeal from './components/PhotoMeal.jsx';
 
 export default function App() {
   const { theme, colors: cc, toggleTheme } = useTheme();
@@ -408,6 +409,13 @@ export default function App() {
               ))}
             </div>
           </div>
+
+          {/* Photo recognition */}
+          <PhotoMeal
+            allFoods={allFoods}
+            toggleFood={toggleFood}
+            t={t} colors={cc} theme={theme}
+          />
 
           {/* Food list */}
           <FoodList
