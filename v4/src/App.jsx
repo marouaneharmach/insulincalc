@@ -208,7 +208,7 @@ export default function App() {
             timeProfiles={timeProfiles}
             onSaveToJournal={onSaveToJournalV5}
             onPhotoMeal={null}
-            t={t} isRTL={isRTL}
+            t={t} isRTL={isRTL} isDark={isDark}
           />
         )}
         {tab === 'journal' && (
