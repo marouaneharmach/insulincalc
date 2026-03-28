@@ -7,6 +7,7 @@ import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
 import { setFallbackHandler } from './utils/notifications';
 import { needsMigration, migrateAllEntries } from './utils/migration';
+import { APP_VERSION } from './version';
 import { recognizeFood, mapToLocalFoods } from './utils/foodRecognition';
 
 import DayTimeline from './components/DayTimeline';
@@ -60,7 +61,7 @@ export default function App() {
     if (needsMigration(version)) {
       const migrated = migrateAllEntries(journal);
       setJournal(migrated);
-      localStorage.setItem('insulincalc_v4_app_version', '5.0.0');
+      localStorage.setItem('insulincalc_v4_app_version', APP_VERSION);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -197,8 +198,7 @@ export default function App() {
       {/* Header with version */}
       <div className={`px-4 py-2 flex items-center justify-between border-b ${isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-gray-100'}`}>
         <div>
-          <span className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>InsulinCalc</span>
-          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${isDark ? 'bg-teal-900/40 text-teal-400 border border-teal-800' : 'bg-teal-50 text-teal-600 border border-teal-200'}`}>v5.4</span>
+          <span className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>InsulinCalc <span className={`text-xs font-mono font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>v{APP_VERSION}</span></span>
         </div>
         <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('appSubtitle')}</span>
       </div>
