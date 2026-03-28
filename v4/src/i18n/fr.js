@@ -1,7 +1,7 @@
 const fr = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "Diabète Type 1 · Cuisine marocaine",
+  appSubtitle: "Calculateur d'insuline",
   glucides: "GLUCIDES",
   aliment: "aliment",
   aliments: "aliments",
@@ -409,6 +409,11 @@ const fr = {
   rechercherAliment: "Rechercher un aliment...",
   vider: "Vider",
   digestionHabituelle: "Digestion habituelle",
+
+  // V4.4+ — Accueil & dose réelle
+  doseReelleAccueil: "Dose injectée",
+  confirmerDose: "Confirmer",
+  doseSuggereeCourte: "Suggérée",
 };
 
 export default fr;

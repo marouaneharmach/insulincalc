@@ -1,7 +1,7 @@
 const ar = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "السكري النوع 1 · المطبخ المغربي",
+  appSubtitle: "حاسبة الأنسولين",
   glucides: "الكربوهيدرات",
   aliment: "مكوّن",
   aliments: "مكوّنات",
@@ -406,6 +406,11 @@ const ar = {
   rechercherAliment: "البحث عن طعام...",
   vider: "إفراغ",
   digestionHabituelle: "الهضم المعتاد",
+
+  // V4.4+ — Accueil & dose réelle
+  doseReelleAccueil: "الجرعة المحقونة",
+  confirmerDose: "تأكيد",
+  doseSuggereeCourte: "مقترحة",
 };
 
 export default ar;
