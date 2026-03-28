@@ -26,6 +26,7 @@ export default function ConsultationScreen({
   const [manualCarbs, setManualCarbs] = useState(0);
   const [result, setResult] = useState(null);
   const [showOverdoseDialog, setShowOverdoseDialog] = useState(false);
+  const [actualDose, setActualDose] = useState('');
   const resultRef = useRef(null);
   const prevResultRef = useRef(null);
 
@@ -35,6 +36,12 @@ export default function ConsultationScreen({
     }
     prevResultRef.current = result;
   }, [result]);
+
+  useEffect(() => {
+    if (result?.recommendation?.dose != null) {
+      setActualDose(String(result.recommendation.dose));
+    }
+  }, [result?.recommendation?.dose]);
 
   // Calculate total carbs (expert mode: manual, assisted mode: from selections)
   const totalCarbs = useMemo(() => {
@@ -137,6 +144,7 @@ export default function ConsultationScreen({
         : null,
       iobAuMoment: parseFloat(iobTotal.toFixed(1)),
       doseSuggeree: result.recommendation.dose,
+      doseReelle: parseFloat(actualDose) || result.recommendation.dose,
       bolusType: result.recommendation.split.type,
       activitePhysique: activity,
       alertes: [...result.vigilance.risks, ...result.vigilance.warnings],
@@ -149,6 +157,7 @@ export default function ConsultationScreen({
     setFatLevel('aucun');
     setManualCarbs(0);
     setShowOverdoseDialog(false);
+    setActualDose('');
   };
 
   return (
@@ -176,10 +185,31 @@ export default function ConsultationScreen({
       </div>
 
       {result && !result.recommendation.blocked && (
-        <button onClick={handleSave}
-          className="w-full py-3 rounded-xl bg-green-500 text-white font-bold">
-          {t('enregistrerInjecter') || '💉 Enregistrer & Injecter'}
-        </button>
+        <div className="space-y-2">
+          <label className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {t('doseReelle') || 'Dose réellement injectée'} (u)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              step="0.5"
+              min="0"
+              value={actualDose}
+              onChange={e => setActualDose(e.target.value)}
+              className={`flex-1 rounded-xl border px-3 py-2 text-center text-xl font-bold ${
+                isDark
+                  ? 'bg-slate-700 border-slate-600 text-slate-100'
+                  : 'bg-white border-gray-300 text-slate-800'
+              }`}
+            />
+            <button
+              onClick={handleSave}
+              className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold"
+            >
+              {t('confirmerEnregistrer') || '💉 Confirmer'}
+            </button>
+          </div>
+        </div>
       )}
 
       {showOverdoseDialog && (
