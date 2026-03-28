@@ -16,7 +16,7 @@ async function findAvailableModel() {
       const data = await res.json();
       if (!data.models) continue;
 
-      // Find a model that supports generateContent and vision
+      // Find models that support generateContent
       const visionModels = data.models
         .filter(m =>
           m.supportedGenerationMethods?.includes('generateContent') &&
@@ -24,14 +24,29 @@ async function findAvailableModel() {
         )
         .map(m => ({ name: m.name.replace('models/', ''), displayName: m.displayName, version: apiVersion }));
 
-      // Prefer flash models (faster), then pro
-      const preferred = ['gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+      console.log('[FoodRecognition] Available models:', visionModels.map(m => m.name).join(', '));
+
+      // Prefer newer versioned models (deprecated base names like "gemini-2.0-flash" are excluded)
+      const preferred = [
+        'gemini-2.5-flash',
+        'gemini-2.5-pro',
+        'gemini-2.0-flash-001',
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash-001',
+        'gemini-1.5-flash-8b',
+        'gemini-1.5-pro-001',
+        'gemini-pro-vision',
+      ];
       for (const pref of preferred) {
-        const found = visionModels.find(m => m.name.includes(pref));
+        const found = visionModels.find(m => m.name === pref || m.name.startsWith(pref));
         if (found) return { model: found.name, apiVersion: found.version };
       }
 
-      // Fallback: first available model with generateContent
+      // Fallback: pick any model that has a version suffix (avoid deprecated base names)
+      const versioned = visionModels.filter(m => /\d{3}|lite|exp|preview/.test(m.name));
+      if (versioned.length > 0) return { model: versioned[0].name, apiVersion };
+
+      // Last resort: first available model
       if (visionModels.length > 0) return { model: visionModels[0].name, apiVersion };
     } catch {
       continue;
@@ -40,8 +55,9 @@ async function findAvailableModel() {
   return null;
 }
 
-// Cache discovered model
+// Cache discovered model + retry guard
 let cachedModel = null;
+let retryCount = 0;
 
 /**
  * Compress image to JPEG, max 800px
@@ -139,10 +155,14 @@ export async function recognizeFood(imageFile) {
     if (response.status === 429) {
       throw new Error('Quota API Gemini dépassé. Réessayez dans quelques minutes.');
     }
-    // Reset cached model on 404 (model may have been deprecated)
-    if (response.status === 404) {
+    // Reset cached model on 404 (model deprecated) and retry once
+    if (response.status === 404 && retryCount < 2) {
+      retryCount++;
+      console.warn(`[FoodRecognition] Model ${model} returned 404, retrying discovery...`);
       cachedModel = null;
+      return recognizeFood(imageFile);
     }
+    retryCount = 0;
     throw new Error(`Erreur Gemini (${model}): ${response.status} — ${errText.slice(0, 150)}`);
   }
 
