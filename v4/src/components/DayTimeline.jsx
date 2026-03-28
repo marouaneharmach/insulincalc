@@ -438,32 +438,33 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                       )}
                       {/* Post-meal glycemia */}
                       {glycPost > 0 ? (
-                        <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
-                          🩸 {t('glycPost') || 'Après'} : {glycPost.toFixed(2)} g/L
-                          {!isNaN(glycPre) && glycPre > 0 && (
-                            <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
-                              ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
-                            </span>
-                          )}
-                        </p>
-                        {/* Post-prandial feedback */}
-                        {glycPost > 0 && glycPre > 0 && (() => {
-                          const feedback = evaluatePostPrandial(glycPre, glycPost, 1.00, 1.80);
-                          if (!feedback) return null;
-                          const feedbackColors = {
-                            good: isDark ? 'text-green-400 bg-green-900/20' : 'text-green-600 bg-green-50',
-                            under: isDark ? 'text-orange-400 bg-orange-900/20' : 'text-orange-600 bg-orange-50',
-                            over: isDark ? 'text-red-400 bg-red-900/20' : 'text-red-600 bg-red-50',
-                          };
-                          return (
-                            <div className={`mt-1 px-2 py-1 rounded-lg text-[10px] ${feedbackColors[feedback.verdict]}`}>
-                              <span className="font-medium">{feedback.message}</span>
-                              {feedback.ratioSuggestion && (
-                                <p className="opacity-70 mt-0.5">{feedback.ratioSuggestion}</p>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        <>
+                          <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
+                            🩸 {t('glycPost') || 'Après'} : {glycPost.toFixed(2)} g/L
+                            {!isNaN(glycPre) && glycPre > 0 && (
+                              <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
+                                ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
+                              </span>
+                            )}
+                          </p>
+                          {glycPre > 0 && (() => {
+                            const feedback = evaluatePostPrandial(glycPre, glycPost, 1.00, 1.80);
+                            if (!feedback) return null;
+                            const feedbackColors = {
+                              good: isDark ? 'text-green-400 bg-green-900/20' : 'text-green-600 bg-green-50',
+                              under: isDark ? 'text-orange-400 bg-orange-900/20' : 'text-orange-600 bg-orange-50',
+                              over: isDark ? 'text-red-400 bg-red-900/20' : 'text-red-600 bg-red-50',
+                            };
+                            return (
+                              <div className={`mt-1 px-2 py-1 rounded-lg text-[10px] ${feedbackColors[feedback.verdict]}`}>
+                                <span className="font-medium">{feedback.message}</span>
+                                {feedback.ratioSuggestion && (
+                                  <p className="opacity-70 mt-0.5">{feedback.ratioSuggestion}</p>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </>
                       ) : (
                         <div className="mt-2">
                           {editingPost === entry.id ? (
