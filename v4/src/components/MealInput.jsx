@@ -26,15 +26,32 @@ export default function MealInput({
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mealPhoto, setMealPhoto] = useState(null);
+  const [photoResults, setPhotoResults] = useState(null); // null=no photo, []=empty results, [...]= results
+  const [photoLoading, setPhotoLoading] = useState(false);
   const cameraRef = useRef(null);
   const albumRef = useRef(null);
 
-  const handlePhotoCapture = (e) => {
+  const handlePhotoCapture = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
     setMealPhoto(url);
-    if (onPhotoMeal) onPhotoMeal(file);
+    setPhotoResults(null);
+    setPhotoLoading(true);
+    try {
+      const mapped = onPhotoMeal ? await onPhotoMeal(file) : [];
+      setPhotoResults(mapped || []);
+    } catch {
+      setPhotoResults([]);
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const clearPhoto = () => {
+    setMealPhoto(null);
+    setPhotoResults(null);
+    setPhotoLoading(false);
   };
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
@@ -203,12 +220,86 @@ export default function MealInput({
               onChange={handlePhotoCapture} className="hidden" />
           </div>
 
-          {/* Photo preview */}
+          {/* Photo preview + recognition results */}
           {mealPhoto && (
-            <div className="relative">
-              <img src={mealPhoto} alt="Photo repas" className="w-full h-32 object-cover rounded-xl" />
-              <button onClick={() => setMealPhoto(null)}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">✕</button>
+            <div>
+              <div className="relative">
+                <img src={mealPhoto} alt="Photo repas" className="w-full h-32 object-cover rounded-xl" />
+                <button onClick={clearPhoto}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">✕</button>
+              </div>
+
+              {/* Loading */}
+              {photoLoading && (
+                <div className="flex items-center gap-2 mt-2 py-2">
+                  <div className="animate-spin w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full" />
+                  <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {t('analyseEnCours') || 'Analyse en cours...'}
+                  </span>
+                </div>
+              )}
+
+              {/* No results */}
+              {photoResults !== null && photoResults.length === 0 && !photoLoading && (
+                <div className={`mt-2 p-3 rounded-xl text-center border border-dashed ${isDark ? 'border-slate-600 bg-slate-700/30' : 'border-gray-200 bg-gray-50'}`}>
+                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    😕 {t('aucunAlimentReconnu') || 'Aucun aliment reconnu'}
+                  </p>
+                  <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                    {t('essayerAutrePhoto') || 'Essayez avec une autre photo ou ajoutez manuellement'}
+                  </p>
+                </div>
+              )}
+
+              {/* Recognition results */}
+              {photoResults !== null && photoResults.length > 0 && !photoLoading && (
+                <div className="mt-2">
+                  <p className={`text-[10px] mb-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {photoResults.length} {t('alimentsDetectes') || 'aliment(s) détecté(s)'} — {t('tapPourAjouter') || 'Tapez pour ajouter au repas'}
+                  </p>
+                  <div className="space-y-1">
+                    {photoResults.map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={() => item.mapped && toggleFood(item.localFood)}
+                        disabled={!item.mapped}
+                        className={`w-full flex items-center gap-2 p-2 rounded-xl text-left transition ${
+                          item.mapped
+                            ? isDark ? 'hover:bg-teal-900/20 border border-slate-700' : 'hover:bg-teal-50 border border-gray-100'
+                            : 'opacity-50 cursor-not-allowed border border-dashed ' + (isDark ? 'border-slate-700' : 'border-gray-200')
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                          item.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                          item.confidence >= 50 ? 'bg-amber-100 text-amber-700' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>
+                          {item.confidence}%
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium capitalize truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                            {item.nameFr || item.name}
+                          </p>
+                          {item.mapped ? (
+                            <p className={`text-[10px] truncate ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
+                              → {item.localFood.name} ({item.localFood.carbs}g {t('cl_glucides') || 'glucides'})
+                            </p>
+                          ) : (
+                            <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                              {t('nonTrouveDansBase') || 'non trouvé dans la base'}
+                            </p>
+                          )}
+                        </div>
+                        {item.mapped && (
+                          <span className={`text-xs font-bold shrink-0 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
+                            + {item.localFood.carbs}g
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

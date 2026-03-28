@@ -126,21 +126,17 @@ export default function App() {
     setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: Math.max(0.25, Math.min(mult, 10)) } : s));
   }, [setSelections]);
 
-  // Photo meal recognition handler
+  // Photo meal recognition handler — returns results for MealInput to display
   const handlePhotoMeal = useCallback(async (file) => {
     try {
       const results = await recognizeFood(file);
       const mapped = mapToLocalFoods(results, allFoods);
-      const matchedFoods = mapped.filter(r => r.mapped).map(r => r.localFood);
-      matchedFoods.forEach(food => {
-        toggleFood(food);
-      });
       return mapped;
     } catch (err) {
       console.error('[PhotoMeal]', err);
       return [];
     }
-  }, [allFoods, toggleFood]);
+  }, [allFoods]);
 
   // Bridge: convert selections array to object map for ConsultationScreen
   const selectionsMap = useMemo(() => {

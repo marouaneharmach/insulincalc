@@ -501,6 +501,9 @@ const ar = {
   fatFaible: 'منخفض',
   fatMoyen: 'متوسط',
   fatEleve: 'مرتفع',
+  aucunAlimentReconnu: 'لم يتم التعرف على أي طعام',
+  essayerAutrePhoto: 'جرب صورة أخرى أو أضف يدويًا',
+  alimentsDetectes: 'أطعمة تم اكتشافها',
 };
 
 export default ar;

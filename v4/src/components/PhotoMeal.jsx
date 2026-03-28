@@ -125,8 +125,19 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
             <img src={photoPreview} alt="Repas" className="w-full h-40 object-cover rounded-xl mb-3" />
           )}
 
+          {results.length === 0 ? (
+            <div className={`p-3 rounded-xl text-center border border-dashed ${isDark ? 'border-slate-600 bg-slate-700/30' : 'border-gray-200 bg-gray-50'}`}>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                😕 {t?.('aucunAlimentReconnu') || 'Aucun aliment reconnu'}
+              </p>
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                {t?.('essayerAutrePhoto') || 'Essayez avec une autre photo ou ajoutez manuellement'}
+              </p>
+            </div>
+          ) : (
+          <>
           <p className={`text-[10px] mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            {results.length} aliment{results.length > 1 ? 's' : ''} détecté{results.length > 1 ? 's' : ''} — {t?.('tapPourAjouter') || 'Tapez pour ajouter au repas'}
+            {results.length} {t?.('alimentsDetectes') || 'aliment(s) détecté(s)'} — {t?.('tapPourAjouter') || 'Tapez pour ajouter au repas'}
           </p>
 
           <div className="space-y-1">
@@ -173,6 +184,8 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
               </button>
             ))}
           </div>
+          </>
+          )}
 
           {/* Actions */}
           <div className="flex gap-2 mt-3">

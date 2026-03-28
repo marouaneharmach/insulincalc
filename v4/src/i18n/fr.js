@@ -504,6 +504,9 @@ const fr = {
   fatFaible: 'Faible',
   fatMoyen: 'Moyen',
   fatEleve: 'Élevé',
+  aucunAlimentReconnu: 'Aucun aliment reconnu',
+  essayerAutrePhoto: 'Essayez avec une autre photo ou ajoutez manuellement',
+  alimentsDetectes: 'aliment(s) détecté(s)',
 };
 
 export default fr;
