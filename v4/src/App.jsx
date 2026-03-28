@@ -1,23 +1,20 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTheme } from './hooks/useTheme';
 import { useI18n } from './i18n/useI18n';
-import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR } from './utils/calculations';
-import { normalizeGlycemia } from './utils/validation';
-import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants';
+import { calcIMC } from './utils/calculations';
+import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
-import { scheduleFromPlan, cancelAll, setFallbackHandler } from './utils/notifications';
-import { getActiveProfile } from './components/TimeProfiles';
+import { setFallbackHandler } from './utils/notifications';
+import { needsMigration, migrateAllEntries } from './utils/migration';
 
-import HomeScreen from './components/HomeScreen';
-import MealBuilder from './components/MealBuilder';
 import DayTimeline from './components/DayTimeline';
 import Settings from './components/Settings';
-import BottomNav from './components/BottomNav';
-import QuickAddSheet from './components/QuickAddSheet';
+import BottomNav3 from './components/BottomNav3';
 import Onboarding from './components/Onboarding';
 import PdfExport from './components/PdfExport';
 import OverdoseDialog from './components/OverdoseDialog';
+import ConsultationScreen from './components/ConsultationScreen';
 
 export default function App() {
   const { theme, isDark, colors, toggleTheme } = useTheme();
@@ -25,9 +22,7 @@ export default function App() {
 
   const [onboarded, setOnboarded] = useLocalStorage('onboarded', false);
 
-  const [tab, setTab] = useState('home');
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [quickAddType, setQuickAddType] = useState(null);
+  const [tab, setTab] = useState('consultation');
 
   // Core parameters
   const [glycemia, setGlycemia] = useLocalStorage('glycemia', '');
@@ -47,12 +42,29 @@ export default function App() {
   const [patientName, setPatientName] = useLocalStorage('patientName', '');
   const [notifEnabled, setNotifEnabled] = useLocalStorage('notifEnabled', false);
 
+  // Medical profile
+  const [insulinBasal, setInsulinBasal] = useLocalStorage('insulinBasal', 'Tresiba');
+  const [insulinRapid, setInsulinRapid] = useLocalStorage('insulinRapid', 'NovoRapid');
+  const [basalDose, setBasalDose] = useLocalStorage('basalDose', 12);
+  const [postKeto, setPostKeto] = useLocalStorage('postKeto', false);
+  const [slowDigestion, setSlowDigestion] = useLocalStorage('slowDigestion', false);
+  const [dia, setDia] = useLocalStorage('dia', 4.5);
+
   // Journal
   const [journal, setJournal] = useLocalStorage('journal', []);
 
+  // v4 → v5 data migration (run once on mount)
+  useEffect(() => {
+    const version = localStorage.getItem('insulincalc_v4_app_version');
+    if (needsMigration(version)) {
+      const migrated = migrateAllEntries(journal);
+      setJournal(migrated);
+      localStorage.setItem('insulincalc_v4_app_version', '5.0.0');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Time-based profiles
   const [timeProfiles, setTimeProfiles] = useLocalStorage('timeProfiles', []);
-  const activeProfile = useMemo(() => getActiveProfile(timeProfiles, ratio, isf), [timeProfiles, ratio, isf]);
 
   // Overdose dialog
   const [overdoseDialog, setOverdoseDialog] = useState(null);
@@ -96,92 +108,8 @@ export default function App() {
   // Derived calculations
   const weightKg = parseFloat(weight);
   const heightCm = parseFloat(height);
-  const ageNum = parseInt(age);
   const weightOk = !isNaN(weightKg) && weightKg >= 20 && weightKg <= 200;
-  const wSugg = weightOk ? calcWeightSuggestions(weightKg, ageNum, sex) : null;
   const imc = (weightOk && heightCm > 50) ? calcIMC(weightKg, heightCm) : null;
-
-  const totalCarbs = useMemo(() => Math.round(selections.reduce((s, sel) => s + sel.food.carbs * sel.mult, 0)), [selections]);
-  const dominantFat = useMemo(() => getOverallFat(selections), [selections]);
-  const dominantGI = useMemo(() => getDominantGI(selections), [selections]);
-
-  const glycNorm = normalizeGlycemia(glycemia);
-  const gVal = glycNorm ? glycNorm.gL : NaN;
-  const glycOk = glycNorm != null && gVal >= 0.3 && gVal <= 6.0;
-  const glycDisplay = glycNorm?.display || null; // "102 mg → 1.02 g/L" hint
-  const canCalc = glycOk && totalCarbs > 0;
-
-  const result = useMemo(() => {
-    if (!canCalc) return null;
-    const effectiveRatio = activeProfile.ratio;
-    const effectiveIsf = activeProfile.isf;
-    const bolusRepas = totalCarbs / effectiveRatio;
-    const ecart = gVal - targetGMid;
-    const correction = ecart > 0 ? (ecart * 100) / effectiveIsf : 0;
-    const fatBonus = (totalCarbs / effectiveRatio) * FAT_FACTOR[dominantFat];
-    const total = round05(bolusRepas + correction + fatBonus);
-    const hasFat = dominantFat === 'élevé' || dominantFat === 'moyen';
-    const bolusType = hasFat ? 'dual' : 'standard';
-    const schedule = buildSchedule(totalCarbs, bolusRepas, correction, fatBonus, gVal, targetGMid, digestion, bolusType, dominantGI);
-    const warnings = [];
-    if (gVal < 1.0) warnings.push({ t: 'w', txt: t('glycemieBasse') });
-    if (gVal > 2.0) warnings.push({ t: 'w', txt: t('glycemieElevee') });
-    if (bolusType === 'dual') warnings.push({ t: 'i', txt: t('repasGras') });
-    if (dominantGI === 'élevé') warnings.push({ t: 'c', txt: t('igEleve') });
-    if (total > 20) warnings.push({ t: 'w', txt: t('doseElevee') });
-    return { total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) };
-  }, [canCalc, totalCarbs, activeProfile, gVal, targetGMid, dominantFat, dominantGI, digestion, t]);
-
-  // Save to journal with overdose check
-  const doSaveToJournal = useCallback((doseActual) => {
-    if (!result) return;
-    // Build interactive schedule steps (patient validates each injection)
-    const scheduleSteps = result.schedule.map(step => ({
-      ...step,
-      status: 'pending',  // 'pending' | 'done' | 'skipped'
-      actualDose: null,
-      completedAt: null,
-    }));
-
-    const entry = {
-      id: Date.now(),
-      date: new Date().toISOString(),
-      glycPre: gVal.toFixed(2),
-      glycPost: '',
-      totalCarbs,
-      doseSuggested: result.total,
-      doseActual: doseActual != null ? doseActual : 0, // Start at 0, patient validates each step
-      aliments: selections.map(s => s.food.name).join(', '),
-      alimentIds: selections.map(s => s.food.id),
-      bolusType: result.bolusType,
-      digestion,
-      schedule: result.schedule,
-      scheduleSteps,
-      mealType: 'dejeuner',
-    };
-    setJournal(prev => {
-      if (prev.length > 0 && Date.now() - prev[0].id < 120000) return prev;
-      return [entry, ...prev].slice(0, 200);
-    });
-
-    if (notifEnabled && result.schedule) {
-      scheduleFromPlan(result.schedule);
-    }
-  }, [result, gVal, totalCarbs, selections, digestion, notifEnabled, setJournal]);
-
-  const saveToJournal = useCallback((doseActual) => {
-    const dose = doseActual != null ? doseActual : result?.total;
-    if (dose > maxDose) {
-      setOverdoseDialog({ dose, callback: () => doSaveToJournal(doseActual) });
-    } else {
-      doSaveToJournal(doseActual);
-    }
-  }, [result, maxDose, doSaveToJournal]);
-
-  const resetMeal = () => {
-    setSelections([]);
-    setGlycemia('');
-  };
 
   const toggleFood = useCallback((food) => {
     setSelections(prev => {
@@ -197,22 +125,40 @@ export default function App() {
     setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: Math.max(0.25, Math.min(mult, 10)) } : s));
   }, [setSelections]);
 
-  const openQuickAdd = (type) => {
-    setQuickAddType(type);
-    setShowQuickAdd(true);
-  };
+  // Bridge: convert selections array to object map for ConsultationScreen
+  const selectionsMap = useMemo(() => {
+    const map = {};
+    selections.forEach(s => { map[s.food.id] = { mult: s.mult }; });
+    return map;
+  }, [selections]);
 
-  // Get last glycemia — prefer current meal glycemia, then journal
-  const lastGlyc = useMemo(() => {
-    // If user typed glycemia in meal builder right now, show it as "current"
-    if (glycOk && gVal > 0) {
-      return { value: gVal, minutesAgo: 0, date: new Date().toISOString(), source: 'current' };
+  // Flat foods array for ConsultationScreen
+  const foodsFlat = useMemo(() => Object.values(FOOD_DB).flat(), []);
+
+  // V5 journal save handler for ConsultationScreen
+  const onSaveToJournalV5 = useCallback((entry) => {
+    const fullEntry = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      ...entry,
+      doseReelle: entry.doseSuggeree, // default to suggested, patient can edit
+      glycPost: null,
+    };
+
+    // Overdose check
+    if (fullEntry.doseSuggeree > maxDose) {
+      setOverdoseDialog({ dose: fullEntry.doseSuggeree, callback: () => {
+        setJournal(prev => [fullEntry, ...prev].slice(0, 200));
+      }});
+    } else {
+      setJournal(prev => [fullEntry, ...prev].slice(0, 200));
     }
-    const last = journal.find(e => e.glycPre && parseFloat(e.glycPre) > 0);
-    if (!last) return null;
-    const minAgo = Math.round((Date.now() - new Date(last.date).getTime()) / 60000);
-    return { value: parseFloat(last.glycPre), minutesAgo: minAgo, date: last.date, source: 'journal' };
-  }, [journal, glycOk, gVal]);
+
+    // Schedule split bolus notification if applicable
+    if (notifEnabled && entry.bolusType === 'fractionne') {
+      // Will be implemented in Task 14
+    }
+  }, [maxDose, setJournal, notifEnabled]);
 
   if (!onboarded) {
     return (
@@ -227,6 +173,8 @@ export default function App() {
         setTargetGMin={setTargetGMin}
         setTargetGMax={setTargetGMax}
         setDigestion={setDigestion}
+        setInsulinBasal={setInsulinBasal}
+        setInsulinRapid={setInsulinRapid}
         onComplete={() => setOnboarded(true)}
         t={t}
         isDark={isDark}
@@ -244,66 +192,26 @@ export default function App() {
 
       {/* Main content */}
       <div className="max-w-lg mx-auto pb-24 px-0 sm:px-2">
-        {tab === 'home' && (
-          <HomeScreen
-            patientName={patientName}
-            lastGlyc={lastGlyc}
-            glycemia={glycemia}
+        {tab === 'consultation' && (
+          <ConsultationScreen
+            glycemia={glycemia} setGlycemia={setGlycemia}
+            ratio={ratio} isf={isf}
+            targetGMin={targetGMin} targetGMax={targetGMax}
+            maxDose={maxDose}
+            postKeto={postKeto} slowDigestion={slowDigestion} dia={dia}
             journal={journal}
-            targetGMin={targetGMin}
-            targetGMax={targetGMax}
-            targetGMid={targetGMid}
-            result={result}
-            totalCarbs={totalCarbs}
-            selections={selections}
-            setTab={setTab}
-            onQuickAdd={openQuickAdd}
-            activeProfile={activeProfile}
-            t={t}
-            colors={colors}
-            isDark={isDark}
-          />
-        )}
-        {tab === 'repas' && (
-          <MealBuilder
-            glycemia={glycemia}
-            setGlycemia={setGlycemia}
-            weight={weight}
-            setWeight={setWeight}
-            selections={selections}
+            selections={selectionsMap}
+            foods={foodsFlat}
+            customFoods={customFoods}
             toggleFood={toggleFood}
             updateMult={updateMult}
-            resetMeal={resetMeal}
-            totalCarbs={totalCarbs}
-            dominantFat={dominantFat}
-            dominantGI={dominantGI}
-            digestion={digestion}
-            setDigestion={setDigestion}
-            result={result}
-            maxDose={maxDose}
-            onSave={saveToJournal}
-            favorites={favorites}
-            setFavorites={setFavorites}
-            customFoods={customFoods}
-            setCustomFoods={setCustomFoods}
-            allFoods={allFoods}
-            wSugg={wSugg}
-            gVal={gVal}
-            glycOk={glycOk}
-            glycDisplay={glycDisplay}
-            targetGMid={targetGMid}
-            isf={isf}
-            ratio={ratio}
-            weight={weight}
-            journal={journal}
-            setJournal={setJournal}
-            t={t}
-            colors={colors}
-            isDark={isDark}
-            isRTL={isRTL}
+            timeProfiles={timeProfiles}
+            onSaveToJournal={onSaveToJournalV5}
+            onPhotoMeal={null}
+            t={t} isRTL={isRTL}
           />
         )}
-        {tab === 'timeline' && (
+        {tab === 'journal' && (
           <>
             <DayTimeline
               journal={journal}
@@ -330,7 +238,7 @@ export default function App() {
             />
           </>
         )}
-        {tab === 'settings' && (
+        {tab === 'reglages' && (
           <Settings
             ratio={ratio} setRatio={setRatio}
             isf={isf} setIsf={setIsf}
@@ -350,13 +258,19 @@ export default function App() {
             locale={locale} setLocale={setLocale}
             timeProfiles={timeProfiles} setTimeProfiles={setTimeProfiles}
             journal={journal}
+            insulinBasal={insulinBasal} setInsulinBasal={setInsulinBasal}
+            insulinRapid={insulinRapid} setInsulinRapid={setInsulinRapid}
+            basalDose={basalDose} setBasalDose={setBasalDose}
+            postKeto={postKeto} setPostKeto={setPostKeto}
+            slowDigestion={slowDigestion} setSlowDigestion={setSlowDigestion}
+            dia={dia} setDia={setDia}
             t={t} colors={colors} isRTL={isRTL}
           />
         )}
       </div>
 
       {/* Bottom navigation */}
-      <BottomNav tab={tab} setTab={setTab} t={t} colors={colors} isDark={isDark} selections={selections} />
+      <BottomNav3 tab={tab} setTab={setTab} t={t} />
 
       {/* Overdose safety dialog */}
       {overdoseDialog && (
@@ -381,22 +295,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Quick add overlay */}
-      {showQuickAdd && (
-        <QuickAddSheet
-          type={quickAddType}
-          onClose={() => setShowQuickAdd(false)}
-          setTab={setTab}
-          setGlycemia={setGlycemia}
-          journal={journal}
-          setJournal={setJournal}
-          targetGMid={targetGMid}
-          isf={isf}
-          t={t}
-          colors={colors}
-          isDark={isDark}
-        />
-      )}
     </div>
   );
 }

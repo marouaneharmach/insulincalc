@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { calcIOB } from '../utils/calculations';
 import { DIGESTION_PROFILES } from '../data/constants';
+import { evaluatePostPrandial } from '../utils/clinicalEngine';
 import GlycEvolutionChart from './GlycEvolutionChart';
-import InjectionTracker from './InjectionTracker';
 
 function glycColor(v) {
   if (!v || isNaN(v)) return '#94A3B8';
@@ -27,10 +27,11 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const entriesWithIOB = useMemo(() => {
     const now = Date.now();
     return dayEntries.map(entry => {
-      if (!entry.doseActual || entry.doseActual <= 0) return { ...entry, iob: 0 };
+      if ((!entry.doseActual || entry.doseActual <= 0) && (!entry.doseReelle || entry.doseReelle <= 0)) return { ...entry, iob: 0 };
+      const dose = entry.doseActual || entry.doseReelle || 0;
       const minutesElapsed = (now - new Date(entry.date).getTime()) / 60000;
       const digProfile = DIGESTION_PROFILES[entry.digestion || 'normal'];
-      const iob = calcIOB(entry.doseActual, minutesElapsed, digProfile.tail);
+      const iob = calcIOB(dose, minutesElapsed, digProfile.tail);
       return { ...entry, iob };
     });
   }, [dayEntries]);
@@ -49,15 +50,16 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
     let injectionCount = 0;
 
     dayEntries.forEach(e => {
-      if (e.doseActual > 0) {
-        totalDose += e.doseActual;
+      const dose = e.doseActual || e.doseReelle || 0;
+      if (dose > 0) {
+        totalDose += dose;
         injectionCount++;
         if (e.mealType === 'injection') {
-          if (e.injectionType === 'correction') corrections += e.doseActual;
-          else if (e.injectionType === 'basal') basalCount += e.doseActual;
-          else corrections += e.doseActual;
-        } else if (e.totalCarbs > 0) {
-          mealBolus += e.doseActual;
+          if (e.injectionType === 'correction') corrections += dose;
+          else if (e.injectionType === 'basal') basalCount += dose;
+          else corrections += dose;
+        } else if ((e.totalCarbs || e.totalGlucides || 0) > 0) {
+          mealBolus += dose;
         }
       }
     });
@@ -87,7 +89,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const getEventType = (entry) => {
     if (entry.mealType === 'mesure') return 'glycemia';
     if (entry.mealType === 'injection') return 'insulin';
-    if (entry.totalCarbs > 0) return 'meal';
+    if ((entry.totalCarbs || entry.totalGlucides || 0) > 0) return 'meal';
     return 'glycemia';
   };
 
@@ -365,16 +367,33 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           {entry.aliments ? entry.aliments.split(',').slice(0, 3).join(', ') : 'Repas'}
                           {entry.aliments && entry.aliments.split(',').length > 3 && '...'}
                         </p>
-                        <span className="text-xs font-bold text-emerald-600">{entry.totalCarbs}g</span>
+                        <div className="flex items-center">
+                          {entry.activitePhysique && entry.activitePhysique !== 'aucune' && (
+                            <span className="text-xs ml-2">
+                              {entry.activitePhysique === 'legere' ? '🚶‍♀️' :
+                               entry.activitePhysique === 'moderee' ? '🏃' :
+                               entry.activitePhysique === 'intense' ? '🏋️' : ''}
+                            </span>
+                          )}
+                          {entry.alertes && entry.alertes.length > 0 && (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold ml-1">
+                              {entry.alertes.length}
+                            </span>
+                          )}
+                          <span className="text-xs font-bold text-emerald-600 ml-2">{entry.totalCarbs || entry.totalGlucides || 0}g</span>
+                        </div>
                       </div>
                       {/* Glycemia pre */}
                       {!isNaN(glycPre) && glycPre > 0 && (
                         <p className="text-xs mb-1" style={{ color: glycColor(glycPre) }}>
                           🩸 {t('glycPre') || 'Avant'} : {glycPre.toFixed(2)} g/L
+                          {entry.tendance && entry.tendance !== '?' && (
+                            <span className="ml-1 text-sm">{entry.tendance}</span>
+                          )}
                         </p>
                       )}
                       {/* Dose — editable, shows proposed vs actual */}
-                      {(entry.doseActual > 0 || entry.doseSuggested > 0) && (
+                      {((entry.doseActual || entry.doseReelle || 0) > 0 || (entry.doseSuggested || entry.doseSuggeree || 0) > 0) && (
                         <div className="flex items-center gap-2 mb-1">
                           {editingDose === entry.id ? (
                             <div className="flex items-center gap-1">
@@ -389,23 +408,25 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                 className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual || 0)); }}
+                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual || entry.doseReelle || 0)); }}
                               className="text-xs text-blue-500 hover:underline">
-                              💉 {entry.doseActual > 0 ? (
+                              💉 {(entry.doseActual || entry.doseReelle || 0) > 0 ? (
                                 <>
-                                  <span className="font-bold">{entry.doseActual}U</span>
-                                  {entry.doseSuggested > 0 && entry.doseSuggested !== entry.doseActual && (
+                                  <span className="font-bold">{entry.doseActual || entry.doseReelle}U</span>
+                                  {(entry.doseSuggested || entry.doseSuggeree || 0) > 0 && (entry.doseSuggested || entry.doseSuggeree) !== (entry.doseActual || entry.doseReelle) && (
                                     <span className={`ml-1 ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>
-                                      (proposé: {entry.doseSuggested}U)
+                                      (proposé: {entry.doseSuggested || entry.doseSuggeree}U)
                                     </span>
                                   )}
                                 </>
-                              ) : entry.doseSuggested > 0 ? (
+                              ) : (entry.doseSuggested || entry.doseSuggeree || 0) > 0 ? (
                                 <span className={isDark ? 'text-slate-500' : 'text-gray-400'}>
-                                  proposé: {entry.doseSuggested}U — <span className="text-amber-500">en attente</span>
+                                  proposé: {entry.doseSuggested || entry.doseSuggeree}U — <span className="text-amber-500">en attente</span>
                                 </span>
                               ) : null}
-                              {entry.bolusType === 'dual' && <span className="ml-1 text-amber-500">(dual)</span>}
+                              {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
+                                <span className="ml-1 text-amber-500">({entry.bolusType === 'fractionne' ? 'fractionné' : 'dual'})</span>
+                              }
                               <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
                             </button>
                           )}
@@ -417,14 +438,33 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                       )}
                       {/* Post-meal glycemia */}
                       {glycPost > 0 ? (
-                        <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
-                          🩸 {t('glycPost') || 'Après'} : {glycPost.toFixed(2)} g/L
-                          {!isNaN(glycPre) && glycPre > 0 && (
-                            <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
-                              ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
-                            </span>
-                          )}
-                        </p>
+                        <>
+                          <p className="text-xs mt-1" style={{ color: glycColor(glycPost) }}>
+                            🩸 {t('glycPost') || 'Après'} : {glycPost.toFixed(2)} g/L
+                            {!isNaN(glycPre) && glycPre > 0 && (
+                              <span className={`ml-2 ${glycPost > glycPre ? 'text-red-400' : 'text-green-500'}`}>
+                                ({glycPost > glycPre ? '+' : ''}{(glycPost - glycPre).toFixed(2)})
+                              </span>
+                            )}
+                          </p>
+                          {glycPre > 0 && (() => {
+                            const feedback = evaluatePostPrandial(glycPre, glycPost, 1.00, 1.80);
+                            if (!feedback) return null;
+                            const feedbackColors = {
+                              good: isDark ? 'text-green-400 bg-green-900/20' : 'text-green-600 bg-green-50',
+                              under: isDark ? 'text-orange-400 bg-orange-900/20' : 'text-orange-600 bg-orange-50',
+                              over: isDark ? 'text-red-400 bg-red-900/20' : 'text-red-600 bg-red-50',
+                            };
+                            return (
+                              <div className={`mt-1 px-2 py-1 rounded-lg text-[10px] ${feedbackColors[feedback.verdict]}`}>
+                                <span className="font-medium">{feedback.message}</span>
+                                {feedback.ratioSuggestion && (
+                                  <p className="opacity-70 mt-0.5">{feedback.ratioSuggestion}</p>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </>
                       ) : (
                         <div className="mt-2">
                           {editingPost === entry.id ? (
@@ -447,18 +487,14 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           )}
                         </div>
                       )}
-                      {/* Interactive injection tracker (V4.4) or legacy schedule */}
-                      {entry.scheduleSteps && entry.scheduleSteps.length > 0 ? (
-                        <div className="mt-2">
-                          <InjectionTracker
-                            entry={entry}
-                            journal={journal}
-                            setJournal={setJournal}
-                            isDark={isDark}
-                            t={t}
-                          />
-                        </div>
-                      ) : entry.schedule && entry.schedule.length > 0 ? (
+                      {/* Notes */}
+                      {entry.notes && (
+                        <p className={`text-[10px] mt-1 italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                          📝 {entry.notes}
+                        </p>
+                      )}
+                      {/* Legacy schedule display */}
+                      {entry.schedule && entry.schedule.length > 0 ? (
                         <div className="mt-2">
                           <button onClick={() => setExpandedSchedule(expandedSchedule === entry.id ? null : entry.id)}
                             className={`text-[10px] font-medium flex items-center gap-1 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>

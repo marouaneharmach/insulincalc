@@ -39,6 +39,7 @@ export function addEntry(entry) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     date: new Date().toISOString(),
     mealType: "déjeuner",
+    // v4 fields (keep for backwards compat)
     preMealGlycemia: null,
     foods: [],
     totalCarbs: 0,
@@ -48,6 +49,19 @@ export function addEntry(entry) {
     postMealTime: null,
     correction: null,
     schedule: null,
+    // v5 fields
+    glycPre: null,
+    glycPost: null,
+    tendance: null,
+    totalGlucides: 0,
+    niveauGras: 'aucun',
+    aliments: null,
+    iobAuMoment: null,
+    doseSuggeree: 0,
+    doseReelle: 0,
+    bolusType: 'unique',
+    activitePhysique: 'aucune',
+    alertes: [],
     notes: "",
     ...entry,
   };
@@ -79,11 +93,13 @@ export function getStats(days = 30) {
 
   const glycValues = [];
   entries.forEach(e => {
-    if (e.preMealGlycemia != null && !isNaN(e.preMealGlycemia)) {
-      glycValues.push(e.preMealGlycemia);
+    const pre = e.glycPre ?? e.preMealGlycemia;
+    if (pre != null && !isNaN(pre)) {
+      glycValues.push(parseFloat(pre));
     }
-    if (e.postMealGlycemia != null && !isNaN(e.postMealGlycemia)) {
-      glycValues.push(e.postMealGlycemia);
+    const post = e.glycPost ?? e.postMealGlycemia;
+    if (post != null && !isNaN(post)) {
+      glycValues.push(parseFloat(post));
     }
   });
 
