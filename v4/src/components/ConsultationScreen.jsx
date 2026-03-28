@@ -7,6 +7,7 @@ import ClinicalResponse from './ClinicalResponse';
 import { analyzeAndRecommend } from '../utils/clinicalEngine';
 import { calcTotalIOB } from '../utils/iobCurve';
 import { getOverallFat } from '../utils/calculations';
+import OverdoseDialog from './OverdoseDialog';
 
 export default function ConsultationScreen({
   // From App state
@@ -24,6 +25,7 @@ export default function ConsultationScreen({
   const [fatLevel, setFatLevel] = useState('aucun');
   const [manualCarbs, setManualCarbs] = useState(0);
   const [result, setResult] = useState(null);
+  const [showOverdoseDialog, setShowOverdoseDialog] = useState(false);
 
   // Calculate total carbs (expert mode: manual, assisted mode: from selections)
   const totalCarbs = useMemo(() => {
@@ -94,6 +96,16 @@ export default function ConsultationScreen({
 
   const handleSave = () => {
     if (!result) return;
+    // Check for overdose
+    if (result.recommendation.dose > maxDose) {
+      setShowOverdoseDialog(true);
+      return;
+    }
+    doSave();
+  };
+
+  const doSave = () => {
+    if (!result) return;
     onSaveToJournal({
       glycPre: gVal, tendance: trend, heure: hour,
       totalGlucides: totalCarbs,
@@ -117,6 +129,7 @@ export default function ConsultationScreen({
     setActivity('aucune');
     setFatLevel('aucun');
     setManualCarbs(0);
+    setShowOverdoseDialog(false);
   };
 
   return (
@@ -146,6 +159,16 @@ export default function ConsultationScreen({
           className="w-full py-3 rounded-xl bg-green-500 text-white font-bold">
           💉 Enregistrer & Injecter
         </button>
+      )}
+
+      {showOverdoseDialog && (
+        <OverdoseDialog
+          dose={result?.recommendation?.dose}
+          maxDose={maxDose}
+          onConfirm={() => doSave()}
+          onCancel={() => setShowOverdoseDialog(false)}
+          isDark={false}
+        />
       )}
     </div>
   );
