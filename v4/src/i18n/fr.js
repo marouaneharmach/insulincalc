@@ -1,7 +1,7 @@
 const fr = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "Calculateur d'insuline",
+  appSubtitle: "Diabète Type 1 · Cuisine marocaine",
   glucides: "GLUCIDES",
   aliment: "aliment",
   aliments: "aliments",
@@ -142,8 +142,6 @@ const fr = {
   rappelPostRepas: "Rappel post-repas",
   rappelMesurer: "Rappel pour mesurer la glycémie après le repas",
   notifBloquees: "⚠ Notifications bloquées par le navigateur. Autorisez-les dans les paramètres.",
-  autoriserNotifications: "Autoriser les notifications",
-  notifActivees: "Notifications activées",
   delaiRappel: "Délai de rappel",
   parametresManuels: "Paramètres manuels",
   ratioInsulineGlucides: "Combien de grammes de glucides pour 1 unité d'insuline ?",
@@ -412,11 +410,103 @@ const fr = {
   vider: "Vider",
   digestionHabituelle: "Digestion habituelle",
 
-  // V4.4+ — Accueil & dose réelle
-  doseReelleAccueil: "Dose injectée",
-  confirmerDose: "Confirmer",
-  doseSuggereeCourte: "Suggérée",
-  voirTimeline: "Voir la timeline →",
+  // Clinical response
+  cl_analyse: 'Analyse',
+  cl_recommandation: 'Recommandation',
+  cl_vigilance: 'Vigilance',
+  cl_prochaineEtape: 'Prochaine étape',
+  cl_analyser: 'Analyser',
+
+  // Glycemia status
+  cl_hypoSevere: 'Hypoglycémie sévère',
+  cl_hypo: 'Hypoglycémie',
+  cl_hypoProche: 'Glycémie basse',
+  cl_cible: 'Dans la cible',
+  cl_elevee: 'Glycémie élevée',
+  cl_haute: 'Glycémie haute',
+  cl_hyperSevere: 'Hyperglycémie sévère',
+  cl_sousCible: 'Sous la cible',
+
+  // Recommendation
+  cl_doseUnique: 'Injection unique',
+  cl_doseFractionnee: 'Injection fractionnée',
+  cl_immediat: 'immédiat',
+  cl_differe: 'différé',
+  cl_fractionne: 'fractionné',
+  cl_bolusRepas: 'Bolus repas',
+  cl_correction: 'Correction',
+  cl_bonusGras: 'Bonus gras',
+  cl_iobSoustraite: 'IOB soustraite',
+
+  // Safety
+  cl_antiHypo: 'Ne pas injecter. Prendre 15g de sucre rapide.',
+  cl_hypoProcheDose: 'Dose réduite de 50% (glycémie basse).',
+  cl_antiStacking: 'insuline encore active. IOB déjà soustraite de la correction.',
+  cl_alerteTiming: 'Dernière injection il y a moins de 2h. Prudence.',
+  cl_surdosage: 'Dose dépasse le seuil de sécurité.',
+  cl_surCorrection: 'Tendance à la baisse. Correction réduite.',
+  cl_postKeto: 'Profil post-keto : attention aux hausses retardées.',
+  cl_activiteModere: 'Activité modérée : dose réduite de 20%.',
+  cl_activiteIntense: 'Activité intense : dose réduite de 30%.',
+
+  // Next step
+  cl_recontrole: 'Recontrôler la glycémie dans',
+  cl_recontroleResucrage: 'Recontrôler dans {min} min après resucrage',
+  cl_minutes: 'min',
+
+  // IOB
+  cl_iobActive: 'Insuline active',
+  cl_unites: 'u',
+
+  // Context
+  cl_activite: 'Activité physique',
+  cl_aucune: 'Aucune',
+  cl_legere: 'Légère',
+  cl_moderee: 'Modérée',
+  cl_intense: 'Intense',
+
+  // Trend
+  cl_tendance: 'Tendance',
+  cl_tendanceInconnue: 'Inconnue',
+
+  // Meal input
+  cl_modeExpert: 'Glucides directs',
+  cl_modeAssiste: 'Base alimentaire',
+  cl_glucidesTotal: 'Glucides totaux (g)',
+  cl_niveauGras: 'Niveau de gras',
+
+  // Settings - new fields
+  cl_insulineBasale: 'Insuline basale',
+  cl_insulineRapide: 'Insuline rapide',
+  cl_doseBasale: 'Dose basale quotidienne',
+  cl_profilPostKeto: 'Profil post-keto',
+  cl_digestionLente: 'Digestion lente habituelle',
+  cl_dureeAction: "Durée d'action insuline rapide",
+
+  // Consultation
+  cl_consultation: 'Consultation',
+  cl_journal: 'Journal',
+  cl_reglages: 'Réglages',
+
+  // Post-prandial
+  cl_postPrandialGood: 'Bonne correction',
+  cl_postPrandialUnder: 'Sous-corrigé',
+  cl_postPrandialOver: 'Sur-corrigé',
+
+  // Hardcoded strings fix
+  cl_glucides: 'glucides',
+  cl_gras: 'Gras',
+  enregistrerInjecter: '💉 Enregistrer & Injecter',
+  prendreUnePhoto: 'Prendre une photo',
+  choisirDepuisAlbum: "Choisir depuis l'album",
+  nonTrouveDansBase: 'non trouvé dans la base',
+  fatAucun: 'Aucun',
+  fatFaible: 'Faible',
+  fatMoyen: 'Moyen',
+  fatEleve: 'Élevé',
+  aucunAlimentReconnu: 'Aucun aliment reconnu',
+  essayerAutrePhoto: 'Essayez avec une autre photo ou ajoutez manuellement',
+  alimentsDetectes: 'aliment(s) détecté(s)',
 };
 
 export default fr;

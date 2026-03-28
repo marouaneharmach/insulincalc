@@ -90,6 +90,22 @@ export function schedulePostMealReminder(minutesDelay = 120) {
   return timer;
 }
 
+/**
+ * Schedule a notification for the delayed part of a split bolus.
+ * @param {number} delayMinutes - Minutes from now
+ * @param {number} units - Delayed dose units
+ */
+export function scheduleSplitReminder(delayMinutes, units) {
+  const timer = setTimeout(() => {
+    fireNotification(
+      '💉 Dose différée',
+      `Injecter ${units} unités maintenant (2e partie du bolus fractionné)`,
+      'split-bolus-reminder'
+    );
+  }, delayMinutes * 60 * 1000);
+  scheduledTimers.push(timer);
+}
+
 export function cancelAll() {
   scheduledTimers.forEach(t => clearTimeout(t));
   scheduledTimers = [];

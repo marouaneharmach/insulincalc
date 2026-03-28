@@ -98,13 +98,13 @@ describe('[V4.3] Validation — Dose', () => {
   it('retourne warning si dose dépasse seuil mais < 100', () => {
     const r = validateDose('25', 20);
     expect(r.valid).toBe(true);
-    expect(r.warning).toBe('doseDepasseSeuil');
+    expect(r.warning).toBe('Dose > seuil (20U)');
   });
 
   it('accepte dose au seuil exact', () => {
     const r = validateDose('20', 20);
     expect(r.valid).toBe(true);
-    expect(r.warning).toBeUndefined();
+    expect(r.warning).toBeNull();
   });
 });
 

@@ -3,9 +3,8 @@ import { C, GI_COLOR } from '../utils/colors.js';
 import FoodCategory from './FoodCategory.jsx';
 import QtyStepper from './QtyStepper.jsx';
 
-const GI_BADGE_LABEL = { faible: "IG Bas", moyen: "IG Moy", "élevé": "IG Haut" };
-
 const FoodList = memo(function FoodList({ search, setSearch, filteredDB, selections, openCat, setOpenCat, expandedId, toggleFood, updateMult, inp, customFoods, onDeleteCustomFood, recentFoodIds, allFoods, t, colors, theme, isRTL }) {
+  const GI_BADGE_LABEL = { faible: t ? t("igBas") : "IG Bas", moyen: t ? t("igMoy") : "IG Moy", "élevé": t ? t("igHaut") : "IG Haut" };
   const cc = colors || C;
   const isDark = theme === 'dark' || !theme;
   const MY_CAT = t ? t("mesAliments") : "⭐ Mes aliments";
@@ -94,7 +93,7 @@ const FoodList = memo(function FoodList({ search, setSearch, filteredDB, selecti
                       </div>
                       <div style={{ padding: "3px 8px", borderRadius: 99, background: `${giColor}18`, border: `1px solid ${giColor}44`, fontSize: 10, fontWeight: 600, color: giColor }}>{GI_BADGE_LABEL[food.gi] || food.gi}</div>
                       <div style={{ fontSize: 16, fontWeight: 700, color: sel ? cc.accent : (isDark ? "#4a6070" : "#718096"), minWidth: 48, textAlign: "right", fontFamily: "'Syne Mono',monospace" }}>{food.carbs}g</div>
-                      <button onClick={e => { e.stopPropagation(); onDeleteCustomFood && onDeleteCustomFood(food.id); }} title="Supprimer" style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, padding: "0 2px", opacity: 0.6 }}>×</button>
+                      <button onClick={e => { e.stopPropagation(); onDeleteCustomFood && onDeleteCustomFood(food.id); }} title={t ? t("supprimer") : "Supprimer"} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, padding: "0 2px", opacity: 0.6 }}>×</button>
                     </div>
                     {isExp && (
                       <div style={{ padding: "0 14px 12px", background: "rgba(12,186,166,0.03)" }}>
