@@ -264,6 +264,36 @@ export function determineSplit(dose, fatLevel, slowDigestion) {
   return { type: 'unique', immediate: dose, delayed: 0, delayMinutes: 0 };
 }
 
+// ─── Post-Prandial Feedback ──────────────────────────────────────────────────
+
+/**
+ * Evaluate post-prandial glycemia result.
+ * @param {number} glycPre  - Pre-meal glycemia in g/L
+ * @param {number|null} glycPost - Post-meal glycemia in g/L
+ * @param {number} targetMin - Lower target bound in g/L
+ * @param {number} targetPostMax - Upper post-prandial target in g/L
+ * @returns {{ verdict: 'good'|'under'|'over', message: string, ratioSuggestion: string|null }} | null
+ */
+export function evaluatePostPrandial(glycPre, glycPost, targetMin, targetPostMax) {
+  if (glycPost == null || glycPost <= 0) return null;
+
+  if (glycPost >= targetMin && glycPost <= targetPostMax) {
+    return { verdict: 'good', message: 'Bonne correction', ratioSuggestion: null };
+  }
+  if (glycPost > targetPostMax) {
+    return {
+      verdict: 'under',
+      message: 'Sous-corrigé — glycémie post-repas trop haute',
+      ratioSuggestion: 'Envisager de réduire le ratio (plus d\'insuline par g de glucides)',
+    };
+  }
+  return {
+    verdict: 'over',
+    message: 'Sur-corrigé — glycémie post-repas trop basse',
+    ratioSuggestion: 'Envisager d\'augmenter le ratio (moins d\'insuline par g de glucides)',
+  };
+}
+
 // ─── Main Orchestrator ────────────────────────────────────────────────────────
 
 /**

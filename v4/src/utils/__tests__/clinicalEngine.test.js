@@ -4,9 +4,33 @@ import {
   applySafetyRules,
   determineSplit,
   analyzeAndRecommend,
+  evaluatePostPrandial,
   FAT_FACTOR,
   ACTIVITY_REDUCTION,
 } from '../clinicalEngine.js';
+
+// ─── Task 18: evaluatePostPrandial ──────────────────────────────────────────
+
+describe('evaluatePostPrandial', () => {
+  it('returns "good" when glycPost is within target', () => {
+    const result = evaluatePostPrandial(1.10, 1.15, 1.00, 1.80);
+    expect(result.verdict).toBe('good');
+  });
+
+  it('returns "under" when glycPost is too high (under-corrected)', () => {
+    const result = evaluatePostPrandial(1.10, 2.20, 1.00, 1.80);
+    expect(result.verdict).toBe('under');
+  });
+
+  it('returns "over" when glycPost is too low (over-corrected)', () => {
+    const result = evaluatePostPrandial(1.10, 0.75, 1.00, 1.80);
+    expect(result.verdict).toBe('over');
+  });
+
+  it('returns null if glycPost is missing', () => {
+    expect(evaluatePostPrandial(1.10, null, 1.00, 1.80)).toBeNull();
+  });
+});
 
 // ─── Task 2: calculateDose ────────────────────────────────────────────────────
 
