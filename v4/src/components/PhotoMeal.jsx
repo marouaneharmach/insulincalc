@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { recognizeFood, mapToLocalFoods, compressImage } from '../utils/clarifai';
+import { recognizeFood, mapToLocalFoods, compressImage } from '../utils/foodRecognition';
 
 /**
  * PhotoMeal — Take a photo of a meal, recognize foods via Clarifai,

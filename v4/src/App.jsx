@@ -7,7 +7,7 @@ import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
 import { setFallbackHandler } from './utils/notifications';
 import { needsMigration, migrateAllEntries } from './utils/migration';
-import { recognizeFood, mapToLocalFoods } from './utils/clarifai';
+import { recognizeFood, mapToLocalFoods } from './utils/foodRecognition';
 
 import DayTimeline from './components/DayTimeline';
 import Settings from './components/Settings';
@@ -206,7 +206,7 @@ export default function App() {
       <div className={`px-4 py-2 flex items-center justify-between border-b ${isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-gray-100'}`}>
         <div>
           <span className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>InsulinCalc</span>
-          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${isDark ? 'bg-teal-900/40 text-teal-400 border border-teal-800' : 'bg-teal-50 text-teal-600 border border-teal-200'}`}>v5.3</span>
+          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${isDark ? 'bg-teal-900/40 text-teal-400 border border-teal-800' : 'bg-teal-50 text-teal-600 border border-teal-200'}`}>v5.4</span>
         </div>
         <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('appSubtitle')}</span>
       </div>
