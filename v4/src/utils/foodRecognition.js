@@ -2,17 +2,46 @@
 // Uses Gemini 2.0 Flash (stable) with fallback, errors propagated to UI
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const API_BASE = 'https://generativelanguage.googleapis.com';
 
-// Stable models — try in order
-const GEMINI_MODELS = [
-  'gemini-2.0-flash',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-pro-latest',
-];
+/**
+ * Discover which vision-capable model is available for this API key
+ */
+async function findAvailableModel() {
+  // Try listing models to find one that supports vision
+  for (const apiVersion of ['v1beta', 'v1']) {
+    try {
+      const res = await fetch(`${API_BASE}/${apiVersion}/models?key=${GEMINI_API_KEY}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data.models) continue;
 
-function getGeminiUrl(model) {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      // Find a model that supports generateContent and vision
+      const visionModels = data.models
+        .filter(m =>
+          m.supportedGenerationMethods?.includes('generateContent') &&
+          m.name
+        )
+        .map(m => ({ name: m.name.replace('models/', ''), displayName: m.displayName, version: apiVersion }));
+
+      // Prefer flash models (faster), then pro
+      const preferred = ['gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
+      for (const pref of preferred) {
+        const found = visionModels.find(m => m.name.includes(pref));
+        if (found) return { model: found.name, apiVersion: found.version };
+      }
+
+      // Fallback: first available model with generateContent
+      if (visionModels.length > 0) return { model: visionModels[0].name, apiVersion };
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
+
+// Cache discovered model
+let cachedModel = null;
 
 /**
  * Compress image to JPEG, max 800px
@@ -70,101 +99,88 @@ Rules:
 
 /**
  * Recognize food via Google Gemini Vision API
- * Throws on error so caller can display to user
+ * Auto-discovers the best available model for this API key
  */
 export async function recognizeFood(imageFile) {
   if (!GEMINI_API_KEY) {
-    throw new Error('Clé API Gemini manquante (VITE_GEMINI_API_KEY). Vérifiez la configuration dans GitHub Secrets.');
+    throw new Error('Clé API Gemini manquante (VITE_GEMINI_API_KEY). Vérifiez GitHub Secrets.');
   }
+
+  // Discover available model (cached after first call)
+  if (!cachedModel) {
+    cachedModel = await findAvailableModel();
+    if (!cachedModel) {
+      throw new Error('Aucun modèle Gemini trouvé pour cette clé API. Vérifiez que la clé est valide sur aistudio.google.com/apikey');
+    }
+  }
+
+  const { model, apiVersion } = cachedModel;
+  const url = `${API_BASE}/${apiVersion}/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
   const compressed = await compressImage(imageFile);
   const base64 = await blobToBase64(compressed);
 
-  const requestBody = JSON.stringify({
-    contents: [{
-      parts: [
-        { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-        { text: FOOD_RECOGNITION_PROMPT }
-      ]
-    }],
-    generationConfig: {
-      temperature: 0.2
-    }
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inlineData: { mimeType: 'image/jpeg', data: base64 } },
+          { text: FOOD_RECOGNITION_PROMPT }
+        ]
+      }],
+      generationConfig: { temperature: 0.2 }
+    })
   });
 
-  // Try models in order until one works
-  let lastError = null;
-  for (const model of GEMINI_MODELS) {
-    try {
-      const response = await fetch(`${getGeminiUrl(model)}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestBody,
-      });
-
-      if (!response.ok) {
-        const errText = await response.text().catch(() => '');
-        // 429 = quota exceeded — same key, don't bother trying next model
-        if (response.status === 429) {
-          throw new Error('Quota API Gemini dépassé. Réessayez dans quelques minutes.');
-        }
-        // 404 = model not found — try next model
-        if (response.status === 404) {
-          lastError = new Error(`Modèle ${model} non disponible`);
-          continue;
-        }
-        throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
-      }
-
-      const data = await response.json();
-
-      // Check for API-level errors
-      if (data.error) {
-        throw new Error(`Gemini: ${data.error.message || JSON.stringify(data.error)}`);
-      }
-
-      const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-      if (!textContent) {
-        // Check for blocked content
-        const blockReason = data.candidates?.[0]?.finishReason;
-        if (blockReason === 'SAFETY') {
-          throw new Error('Image bloquée par le filtre de sécurité Gemini');
-        }
-        throw new Error('Réponse vide de Gemini');
-      }
-
-      // Parse JSON from response (may be wrapped in markdown code blocks)
-      let parsed;
-      try {
-        const jsonStr = textContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-        parsed = JSON.parse(jsonStr);
-      } catch {
-        console.warn('[FoodRecognition] Raw response:', textContent);
-        throw new Error('Réponse Gemini mal formatée. Réessayez.');
-      }
-
-      if (!parsed.foods || !Array.isArray(parsed.foods)) return [];
-
-      return parsed.foods
-        .filter(f => f.confidence > 20)
-        .slice(0, 10)
-        .map((f, i) => ({
-          name: f.name || f.nameFr || 'unknown',
-          nameFr: f.nameFr || f.name,
-          confidence: f.confidence || 80,
-          estimatedCarbs: f.estimatedCarbs || null,
-          id: `gemini_${i}_${Date.now()}`
-        }));
-
-    } catch (err) {
-      lastError = err;
-      // Only continue to next model for 404 errors
-      if (!err.message?.includes('non disponible')) throw err;
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    if (response.status === 429) {
+      throw new Error('Quota API Gemini dépassé. Réessayez dans quelques minutes.');
     }
+    // Reset cached model on 404 (model may have been deprecated)
+    if (response.status === 404) {
+      cachedModel = null;
+    }
+    throw new Error(`Erreur Gemini (${model}): ${response.status} — ${errText.slice(0, 150)}`);
   }
 
-  throw lastError || new Error('Aucun modèle Gemini disponible');
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(`Gemini: ${data.error.message || JSON.stringify(data.error)}`);
+  }
+
+  const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  if (!textContent) {
+    const reason = data.candidates?.[0]?.finishReason;
+    if (reason === 'SAFETY') throw new Error('Image bloquée par le filtre de sécurité');
+    throw new Error(`Réponse vide (modèle: ${model})`);
+  }
+
+  let parsed;
+  try {
+    const jsonStr = textContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    console.warn('[FoodRecognition] Raw:', textContent);
+    throw new Error('Réponse mal formatée. Réessayez.');
+  }
+
+  if (!parsed.foods || !Array.isArray(parsed.foods)) return [];
+
+  return parsed.foods
+    .filter(f => f.confidence > 20)
+    .slice(0, 10)
+    .map((f, i) => ({
+      name: f.name || f.nameFr || 'unknown',
+      nameFr: f.nameFr || f.name,
+      confidence: f.confidence || 80,
+      estimatedCarbs: f.estimatedCarbs || null,
+      id: `gemini_${i}_${Date.now()}`
+    }));
 }
 
 /**
