@@ -14,10 +14,12 @@ import MealBuilder from './components/MealBuilder';
 import DayTimeline from './components/DayTimeline';
 import Settings from './components/Settings';
 import BottomNav from './components/BottomNav';
+import BottomNav3 from './components/BottomNav3';
 import QuickAddSheet from './components/QuickAddSheet';
 import Onboarding from './components/Onboarding';
 import PdfExport from './components/PdfExport';
 import OverdoseDialog from './components/OverdoseDialog';
+import ConsultationScreen from './components/ConsultationScreen';
 
 export default function App() {
   const { theme, isDark, colors, toggleTheme } = useTheme();
@@ -25,7 +27,7 @@ export default function App() {
 
   const [onboarded, setOnboarded] = useLocalStorage('onboarded', false);
 
-  const [tab, setTab] = useState('home');
+  const [tab, setTab] = useState('consultation');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddType, setQuickAddType] = useState(null);
 
@@ -205,6 +207,41 @@ export default function App() {
     setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: Math.max(0.25, Math.min(mult, 10)) } : s));
   }, [setSelections]);
 
+  // Bridge: convert selections array to object map for ConsultationScreen
+  const selectionsMap = useMemo(() => {
+    const map = {};
+    selections.forEach(s => { map[s.food.id] = { mult: s.mult }; });
+    return map;
+  }, [selections]);
+
+  // Flat foods array for ConsultationScreen
+  const foodsFlat = useMemo(() => Object.values(FOOD_DB).flat(), []);
+
+  // V5 journal save handler for ConsultationScreen
+  const onSaveToJournalV5 = useCallback((entry) => {
+    const fullEntry = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      ...entry,
+      doseReelle: entry.doseSuggeree, // default to suggested, patient can edit
+      glycPost: null,
+    };
+
+    // Overdose check
+    if (fullEntry.doseSuggeree > maxDose) {
+      setOverdoseDialog({ dose: fullEntry.doseSuggeree, callback: () => {
+        setJournal(prev => [fullEntry, ...prev].slice(0, 200));
+      }});
+    } else {
+      setJournal(prev => [fullEntry, ...prev].slice(0, 200));
+    }
+
+    // Schedule split bolus notification if applicable
+    if (notifEnabled && entry.bolusType === 'fractionne') {
+      // Will be implemented in Task 14
+    }
+  }, [maxDose, setJournal, notifEnabled]);
+
   const openQuickAdd = (type) => {
     setQuickAddType(type);
     setShowQuickAdd(true);
@@ -254,66 +291,26 @@ export default function App() {
 
       {/* Main content */}
       <div className="max-w-lg mx-auto pb-24 px-0 sm:px-2">
-        {tab === 'home' && (
-          <HomeScreen
-            patientName={patientName}
-            lastGlyc={lastGlyc}
-            glycemia={glycemia}
+        {tab === 'consultation' && (
+          <ConsultationScreen
+            glycemia={glycemia} setGlycemia={setGlycemia}
+            ratio={ratio} isf={isf}
+            targetGMin={targetGMin} targetGMax={targetGMax}
+            maxDose={maxDose}
+            postKeto={postKeto} slowDigestion={slowDigestion} dia={dia}
             journal={journal}
-            targetGMin={targetGMin}
-            targetGMax={targetGMax}
-            targetGMid={targetGMid}
-            result={result}
-            totalCarbs={totalCarbs}
-            selections={selections}
-            setTab={setTab}
-            onQuickAdd={openQuickAdd}
-            activeProfile={activeProfile}
-            t={t}
-            colors={colors}
-            isDark={isDark}
-          />
-        )}
-        {tab === 'repas' && (
-          <MealBuilder
-            glycemia={glycemia}
-            setGlycemia={setGlycemia}
-            weight={weight}
-            setWeight={setWeight}
-            selections={selections}
+            selections={selectionsMap}
+            foods={foodsFlat}
+            customFoods={customFoods}
             toggleFood={toggleFood}
             updateMult={updateMult}
-            resetMeal={resetMeal}
-            totalCarbs={totalCarbs}
-            dominantFat={dominantFat}
-            dominantGI={dominantGI}
-            digestion={digestion}
-            setDigestion={setDigestion}
-            result={result}
-            maxDose={maxDose}
-            onSave={saveToJournal}
-            favorites={favorites}
-            setFavorites={setFavorites}
-            customFoods={customFoods}
-            setCustomFoods={setCustomFoods}
-            allFoods={allFoods}
-            wSugg={wSugg}
-            gVal={gVal}
-            glycOk={glycOk}
-            glycDisplay={glycDisplay}
-            targetGMid={targetGMid}
-            isf={isf}
-            ratio={ratio}
-            weight={weight}
-            journal={journal}
-            setJournal={setJournal}
-            t={t}
-            colors={colors}
-            isDark={isDark}
-            isRTL={isRTL}
+            timeProfiles={timeProfiles}
+            onSaveToJournal={onSaveToJournalV5}
+            onPhotoMeal={null}
+            t={t} isRTL={isRTL}
           />
         )}
-        {tab === 'timeline' && (
+        {tab === 'journal' && (
           <>
             <DayTimeline
               journal={journal}
@@ -340,7 +337,7 @@ export default function App() {
             />
           </>
         )}
-        {tab === 'settings' && (
+        {tab === 'reglages' && (
           <Settings
             ratio={ratio} setRatio={setRatio}
             isf={isf} setIsf={setIsf}
@@ -372,7 +369,7 @@ export default function App() {
       </div>
 
       {/* Bottom navigation */}
-      <BottomNav tab={tab} setTab={setTab} t={t} colors={colors} isDark={isDark} selections={selections} />
+      <BottomNav3 tab={tab} setTab={setTab} t={t} />
 
       {/* Overdose safety dialog */}
       {overdoseDialog && (
