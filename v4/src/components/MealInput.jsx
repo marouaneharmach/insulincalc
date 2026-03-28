@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 
 const FAT_LEVELS = [
   { value: 'aucun', labelKey: 'cl_aucune', fallback: 'Aucun' },
@@ -25,6 +25,17 @@ export default function MealInput({
   const [mode, setMode] = useState('expert'); // 'expert' | 'assiste'
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mealPhoto, setMealPhoto] = useState(null);
+  const cameraRef = useRef(null);
+  const albumRef = useRef(null);
+
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setMealPhoto(url);
+    if (onPhotoMeal) onPhotoMeal(file);
+  };
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
   const labelClass = `text-[10px] uppercase tracking-wider font-semibold mb-1 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`;
@@ -164,20 +175,42 @@ export default function MealInput({
                 </div>
               )}
             </div>
-            {onPhotoMeal && (
-              <button
-                onClick={onPhotoMeal}
-                title="Photo du repas"
-                className={`px-3 py-2.5 rounded-xl border transition ${
-                  isDark
-                    ? 'border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                📷
-              </button>
-            )}
+            <button
+              onClick={() => cameraRef.current?.click()}
+              title="Prendre une photo"
+              className={`px-3 py-2.5 rounded-xl border transition ${
+                isDark
+                  ? 'border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              📷
+            </button>
+            <button
+              onClick={() => albumRef.current?.click()}
+              title="Choisir depuis l'album"
+              className={`px-3 py-2.5 rounded-xl border transition ${
+                isDark
+                  ? 'border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              🖼️
+            </button>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+              onChange={handlePhotoCapture} className="hidden" />
+            <input ref={albumRef} type="file" accept="image/*"
+              onChange={handlePhotoCapture} className="hidden" />
           </div>
+
+          {/* Photo preview */}
+          {mealPhoto && (
+            <div className="relative">
+              <img src={mealPhoto} alt="Photo repas" className="w-full h-32 object-cover rounded-xl" />
+              <button onClick={() => setMealPhoto(null)}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">✕</button>
+            </div>
+          )}
 
           {/* Fat level selector */}
           <div>
