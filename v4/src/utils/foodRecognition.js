@@ -40,16 +40,18 @@ function blobToBase64(blob) {
 const FOOD_PROMPT = `You are a food identification expert for a diabetes management app. Analyze this meal photo.
 
 Return ONLY valid JSON (no markdown, no code blocks, no explanation):
-{"foods":[{"name":"english name","nameFr":"nom français précis","confidence":85,"estimatedCarbs":30}]}
+{"foods":[{"name":"english name","nameFr":"nom français simple","confidence":85,"estimatedCarbs":30}]}
 
-Rules:
-- Identify each visible food item separately
-- "confidence" = 0-100 certainty percentage
-- "estimatedCarbs" = estimated carbs in grams for the visible portion
-- Be specific: "cheeseburger with bacon" not "food"
-- Recognize ALL cuisines: Moroccan (tagine, couscous, harira, msemen, pastilla), Mediterranean, Asian, fast-food, breakfast, etc.
-- If no food is visible, return {"foods":[]}
-- Max 10 items`;
+CRITICAL rules:
+- Identify the COMPLETE DISH first (e.g. "cheeseburger", "pizza margherita", "tajine poulet"), then individual sides
+- Do NOT decompose a dish into ingredients (a burger = 1 entry "cheeseburger", NOT bun + patty + cheese + lettuce separately)
+- Only list sides/extras as separate items (e.g. fries, drink, salad on the side)
+- "nameFr" must be a SIMPLE common name: "Cheeseburger", "Pizza", "Couscous", "Tajine", "Sushi" — NOT long descriptions
+- "confidence" = 0-100 certainty
+- "estimatedCarbs" = total carbs in grams for the visible portion
+- Recognize ALL cuisines: Moroccan, Mediterranean, Asian, fast-food, etc.
+- If no food visible, return {"foods":[]}
+- Max 5 items`;
 
 /**
  * Recognize food via Groq API (Llama 3.2 Vision)
@@ -133,35 +135,93 @@ export async function recognizeFood(imageFile) {
     }));
 }
 
+function normalize(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+// Keyword aliases: AI name → DB search keywords
+const KEYWORD_MAP = {
+  'hamburger': ['burger', 'big mac', 'whopper', 'cheeseburger', 'royal cheese', 'mcchicken', 'steak hache'],
+  'cheeseburger': ['burger', 'big mac', 'royal cheese', 'double cheese', 'cheeseburger'],
+  'burger': ['burger', 'big mac', 'whopper', 'royal cheese', 'cheeseburger'],
+  'frites': ['frites'],
+  'pizza': ['pizza'],
+  'sushi': ['sushi', 'maki', 'sashimi'],
+  'kebab': ['kebab', 'doner'],
+  'tacos': ['tacos'],
+  'couscous': ['couscous'],
+  'tajine': ['tajine'],
+  'sandwich': ['sandwich', 'panini', 'croque'],
+  'salade': ['salade'],
+  'riz': ['riz'],
+  'pates': ['pasta', 'carbonara', 'lasagne', 'pates'],
+  'poulet': ['poulet', 'chicken', 'nuggets'],
+  'croissant': ['croissant'],
+  'pain': ['pain', 'baguette', 'tartine'],
+};
+
 /**
  * Map recognition results to local food DB
+ * Uses keyword matching + fuzzy substring matching
  */
 export function mapToLocalFoods(results, allFoods) {
   const foods = Object.values(allFoods);
 
   return results.map(result => {
-    const frName = (result.nameFr || result.name).toLowerCase();
-    const enName = result.name.toLowerCase();
+    const frName = normalize(result.nameFr || result.name);
+    const enName = normalize(result.name);
 
     let best = null, bestScore = 0;
 
     for (const f of foods) {
-      const fn = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const frNorm = frName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const enNorm = enName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
+      const fn = normalize(f.name);
       let score = 0;
-      if (fn.includes(frNorm) || frNorm.includes(fn)) score = frNorm.length + fn.length;
-      else if (fn.includes(enNorm) || enNorm.includes(fn)) score = enNorm.length + fn.length;
+
+      // 1. Exact match (highest priority)
+      if (fn === frName || fn === enName) {
+        score = 1000;
+      }
+      // 2. Keyword matching: check if AI result maps to known keywords
+      else {
+        for (const [key, keywords] of Object.entries(KEYWORD_MAP)) {
+          if (frName.includes(key) || enName.includes(key)) {
+            for (const kw of keywords) {
+              if (fn.includes(normalize(kw))) {
+                score = Math.max(score, 500 + kw.length);
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Substring match (lower priority) — but require minimum 4 char overlap
+      if (score === 0) {
+        // Split into words and match individual words
+        const frWords = frName.split(/[\s,()/-]+/).filter(w => w.length >= 4);
+        const enWords = enName.split(/[\s,()/-]+/).filter(w => w.length >= 4);
+        const fnWords = fn.split(/[\s,()/-]+/).filter(w => w.length >= 3);
+
+        for (const word of [...frWords, ...enWords]) {
+          for (const fw of fnWords) {
+            if (fw.includes(word) || word.includes(fw)) {
+              const s = 100 + Math.min(word.length, fw.length);
+              score = Math.max(score, s);
+            }
+          }
+        }
+      }
 
       if (score > bestScore) { bestScore = score; best = f; }
     }
 
+    // Require minimum score to avoid false positives
+    const mapped = best != null && bestScore >= 100;
+
     return {
       ...result,
       nameFr: result.nameFr || result.name,
-      localFood: best,
-      mapped: best != null,
+      localFood: mapped ? best : null,
+      mapped,
     };
   });
 }
