@@ -1,7 +1,7 @@
 const ar = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "السكري النوع 1 · المطبخ المغربي",
+  appSubtitle: "حاسبة الأنسولين",
   glucides: "الكربوهيدرات",
   aliment: "مكوّن",
   aliments: "مكوّنات",
@@ -142,6 +142,8 @@ const ar = {
   rappelPostRepas: "تذكير بعد الوجبة",
   rappelMesurer: "تذكير لقياس السكر بعد الوجبة",
   notifBloquees: "⚠ الإشعارات محظورة من المتصفح. فعّلها من الإعدادات.",
+  autoriserNotifications: "السماح بالإشعارات",
+  notifActivees: "الإشعارات مفعّلة",
   delaiRappel: "مهلة التذكير",
   parametresManuels: "الإعدادات اليدوية",
   ratioInsulineGlucides: "كم غرام من الكربوهيدرات لوحدة أنسولين واحدة؟",

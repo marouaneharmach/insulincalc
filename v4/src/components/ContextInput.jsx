@@ -60,8 +60,7 @@ export default function ContextInput({
 
         {/* Activity selector */}
         <div>
-          <label className={labelClass}>{t('cl_activite') || 'Activité'}</label>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {ACTIVITY_OPTIONS.map(opt => {
               const label = t(opt.labelKey) || opt.fallback;
               const isSelected = activity === opt.value;
