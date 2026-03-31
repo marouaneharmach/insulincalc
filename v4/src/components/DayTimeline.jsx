@@ -450,6 +450,38 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           </div>
                         );
                       })()}
+                      {/* Split injection steps for fractionné */}
+                      {entry.bolusType === 'fractionne' && entry.splitImmediate != null && (
+                        <div className={`mt-2 space-y-1.5 pl-2 border-l-2 ${isDark ? 'border-teal-700' : 'border-teal-200'}`}>
+                          {/* Step 1: Immediate - always "done" since it's saved */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">✅</span>
+                            <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {entry.splitImmediate}u — {entry.heure || new Date(entry.date).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}
+                            </p>
+                          </div>
+                          {/* Step 2: Delayed */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{entry.splitDone2 ? '✅' : '⬜'}</span>
+                            <button
+                              onClick={() => {
+                                setJournal(prev => prev.map(e =>
+                                  e.id === entry.id ? { ...e, splitDone2: !e.splitDone2 } : e
+                                ));
+                              }}
+                              className={`text-xs ${entry.splitDone2
+                                ? (isDark ? 'text-teal-400' : 'text-teal-600')
+                                : (isDark ? 'text-purple-300' : 'text-purple-600')
+                              }`}
+                            >
+                              {entry.splitDelayed}u — +{entry.splitDelayMinutes}min
+                              {!entry.splitDone2 && (
+                                <span className="ml-1 opacity-60">(tap pour marquer fait)</span>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {/* IOB */}
                       {entry.iob > 0 && (
                         <p className="text-[10px] text-blue-400 mb-1">IOB: {entry.iob.toFixed(1)}U restant</p>
