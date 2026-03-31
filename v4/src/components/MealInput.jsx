@@ -20,9 +20,10 @@ export default function MealInput({
   updateMult,
   customFoods = [],
   onPhotoMeal,
-  t, isDark
+  t, isDark,
+  totalFatGrams = 0
 }) {
-  const [mode, setMode] = useState('expert'); // 'expert' | 'assiste'
+  const [mode, setMode] = useState('assiste'); // 'assiste' | 'expert'
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mealPhoto, setMealPhoto] = useState(null);
@@ -97,16 +98,6 @@ export default function MealInput({
         </label>
         <div className={`flex rounded-xl overflow-hidden border ${isDark ? 'border-slate-600' : 'border-gray-200'}`}>
           <button
-            onClick={() => setMode('expert')}
-            className={`px-3 py-1 text-[11px] font-medium transition ${
-              mode === 'expert'
-                ? 'bg-teal-500 text-white'
-                : isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-50 text-gray-500'
-            }`}
-          >
-            {t('cl_modeExpert') || 'Expert'}
-          </button>
-          <button
             onClick={() => setMode('assiste')}
             className={`px-3 py-1 text-[11px] font-medium transition ${
               mode === 'assiste'
@@ -114,7 +105,17 @@ export default function MealInput({
                 : isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-50 text-gray-500'
             }`}
           >
-            {t('cl_modeAssiste') || 'Assisté'}
+            {t('cl_modeAssiste') || 'Aliments'}
+          </button>
+          <button
+            onClick={() => setMode('expert')}
+            className={`px-3 py-1 text-[11px] font-medium transition ${
+              mode === 'expert'
+                ? 'bg-teal-500 text-white'
+                : isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-50 text-gray-500'
+            }`}
+          >
+            {t('cl_modeExpert') || 'Glucides'}
           </button>
         </div>
       </div>
@@ -377,6 +378,18 @@ export default function MealInput({
               {selections.reduce((sum, s) => sum + Math.round(s.food.carbs * (s.mult || 1)), 0)}g
             </span>
           </div>
+
+          {/* Total fat summary */}
+          {totalFatGrams > 0 && (
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                {t('totalLipides') || 'Total lipides'}
+              </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                ~{totalFatGrams}g
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

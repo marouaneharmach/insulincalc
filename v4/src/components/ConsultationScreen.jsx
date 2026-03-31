@@ -6,8 +6,10 @@ import ContextInput from './ContextInput';
 import ClinicalResponse from './ClinicalResponse';
 import { analyzeAndRecommend } from '../utils/clinicalEngine';
 import { calcTotalIOB } from '../utils/iobCurve';
-import { getOverallFat } from '../utils/calculations';
 import OverdoseDialog from './OverdoseDialog';
+
+// Approximate fat grams per portion for each qualitative level
+const FAT_GRAMS_APPROX = { aucun: 0, faible: 3, moyen: 10, 'élevé': 20 };
 
 export default function ConsultationScreen({
   // From App state
@@ -52,17 +54,33 @@ export default function ConsultationScreen({
     return manualCarbs > 0 ? manualCarbs : Math.round(fromSelections);
   }, [manualCarbs, selections, foods, customFoods]);
 
-  // Fat level from selections (assisted mode)
-  const autoFat = useMemo(() => getOverallFat(selections), [selections]);
+  // Estimate total fat in grams from selections (qualitative → approximate grams)
+  const totalFatGrams = useMemo(() => {
+    const fromSelections = Object.entries(selections).reduce((sum, [id, sel]) => {
+      const food = [...foods, ...(customFoods || [])].find(f => f.id === id);
+      if (!food) return sum;
+      const fatGrams = FAT_GRAMS_APPROX[food.fat] ?? 0;
+      return sum + fatGrams * (sel.mult || 1);
+    }, 0);
+    return Math.round(fromSelections);
+  }, [selections, foods, customFoods]);
+
+  // Auto-derive fatLevel from estimated fat grams (assisted mode)
+  const autoFatLevel = useMemo(() => {
+    if (totalFatGrams <= 5) return 'aucun';
+    if (totalFatGrams <= 15) return 'faible';
+    if (totalFatGrams <= 30) return 'moyen';
+    return 'élevé';
+  }, [totalFatGrams]);
 
   // Calculate IOB from recent journal entries
   const diaMinutes = (dia || 4.5) * 60;
   const iobTotal = useMemo(() => {
     const now = Date.now();
     const injections = journal
-      .filter(e => e.doseReelle > 0 || e.doseInjected > 0)
+      .filter(e => (e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0) > 0)
       .map(e => ({
-        dose: e.doseReelle || e.doseInjected || 0,
+        dose: e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0,
         minutesAgo: (now - new Date(e.date).getTime()) / 60000,
       }))
       .filter(i => i.minutesAgo < diaMinutes && i.minutesAgo >= 0);
@@ -73,7 +91,7 @@ export default function ConsultationScreen({
   const lastInjectionMinutesAgo = useMemo(() => {
     const now = Date.now();
     const recent = journal
-      .filter(e => (e.doseReelle || e.doseInjected || 0) > 0)
+      .filter(e => (e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0) > 0)
       .map(e => (now - new Date(e.date).getTime()) / 60000)
       .filter(m => m >= 0)
       .sort((a, b) => a - b);
@@ -110,7 +128,7 @@ export default function ConsultationScreen({
 
     const r = analyzeAndRecommend({
       glycemia: gVal, trend, totalCarbs,
-      fatLevel: manualCarbs > 0 ? fatLevel : autoFat || fatLevel,
+      fatLevel: manualCarbs > 0 ? fatLevel : autoFatLevel,
       activity,
       ratio: activeParams.ratio, isf: activeParams.isf,
       targetMin: targetGMin, targetMax: targetGMax,
@@ -135,7 +153,8 @@ export default function ConsultationScreen({
     onSaveToJournal({
       glycPre: gVal, tendance: trend, heure: hour,
       totalGlucides: totalCarbs,
-      niveauGras: manualCarbs > 0 ? fatLevel : autoFat || fatLevel,
+      niveauGras: manualCarbs > 0 ? fatLevel : autoFatLevel,
+      totalLipides: totalFatGrams,
       aliments: Object.keys(selections).length > 0
         ? Object.entries(selections).map(([id, sel]) => {
             const f = [...foods, ...(customFoods || [])].find(f => f.id === id);
@@ -169,7 +188,8 @@ export default function ConsultationScreen({
         fatLevel={fatLevel} setFatLevel={setFatLevel}
         foods={foods} selections={selectionsArray} toggleFood={toggleFood}
         updateMult={updateMult} customFoods={customFoods}
-        onPhotoMeal={onPhotoMeal} t={t} isDark={isDark} />
+        onPhotoMeal={onPhotoMeal} t={t} isDark={isDark}
+        totalFatGrams={totalFatGrams} />
 
       <ContextInput activity={activity} setActivity={setActivity}
         iobTotal={iobTotal} t={t} />
