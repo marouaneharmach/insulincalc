@@ -5,7 +5,7 @@ import { useI18n } from './i18n/useI18n';
 import { calcIMC } from './utils/calculations';
 import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
-import { setFallbackHandler } from './utils/notifications';
+import { setFallbackHandler, scheduleSplitReminder, schedulePostMealReminder } from './utils/notifications';
 import { needsMigration, migrateAllEntries } from './utils/migration';
 import { APP_VERSION } from './version';
 import { recognizeFood, mapToLocalFoods } from './utils/foodRecognition';
@@ -151,7 +151,7 @@ export default function App() {
       id: Date.now(),
       date: new Date().toISOString(),
       ...entry,
-      doseReelle: entry.doseSuggeree, // default to suggested, patient can edit
+      doseReelle: entry.doseReelle ?? entry.doseSuggeree, // keep patient's input if provided
       glycPost: null,
     };
 
@@ -164,9 +164,14 @@ export default function App() {
       setJournal(prev => [fullEntry, ...prev].slice(0, 200));
     }
 
-    // Schedule split bolus notification if applicable
-    if (notifEnabled && entry.bolusType === 'fractionne') {
-      // Will be implemented in Task 14
+    // Schedule notifications
+    if (notifEnabled) {
+      // Split bolus: remind for 2nd injection
+      if (entry.bolusType === 'fractionne' && entry.splitDelayed > 0 && entry.splitDelayMinutes > 0) {
+        scheduleSplitReminder(entry.splitDelayMinutes, entry.splitDelayed);
+      }
+      // Always schedule post-meal glycemia check (2h)
+      schedulePostMealReminder(120);
     }
   }, [maxDose, setJournal, notifEnabled]);
 
