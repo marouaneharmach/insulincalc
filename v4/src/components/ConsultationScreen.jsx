@@ -29,6 +29,7 @@ export default function ConsultationScreen({
   const [result, setResult] = useState(null);
   const [showOverdoseDialog, setShowOverdoseDialog] = useState(false);
   const [actualDose, setActualDose] = useState('');
+  const [savedPlan, setSavedPlan] = useState(null);
   const resultRef = useRef(null);
   const prevResultRef = useRef(null);
 
@@ -150,6 +151,19 @@ export default function ConsultationScreen({
 
   const doSave = () => {
     if (!result) return;
+
+    // Capture injection plan before reset
+    const now = new Date();
+    const plan = {
+      doseReelle: !isNaN(parseFloat(actualDose)) ? parseFloat(actualDose) : result.recommendation.dose,
+      split: { ...result.recommendation.split },
+      heure: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
+      checkTime: now.getTime() + 120 * 60000,
+    };
+    if (plan.split.type === 'fractionne') {
+      plan.secondInjectionTime = now.getTime() + plan.split.delayMinutes * 60000;
+    }
+
     onSaveToJournal({
       glycPre: gVal, tendance: trend, heure: hour,
       totalGlucides: totalCarbs,
@@ -165,10 +179,16 @@ export default function ConsultationScreen({
       doseSuggeree: result.recommendation.dose,
       doseReelle: !isNaN(parseFloat(actualDose)) ? parseFloat(actualDose) : result.recommendation.dose,
       bolusType: result.recommendation.split.type,
+      splitImmediate: result.recommendation.split.immediate,
+      splitDelayed: result.recommendation.split.delayed,
+      splitDelayMinutes: result.recommendation.split.delayMinutes,
       activitePhysique: activity,
       alertes: [...result.vigilance.risks, ...result.vigilance.warnings],
       notes: '',
     });
+
+    setSavedPlan(plan);
+
     // Reset
     setResult(null);
     setTrend('?');
@@ -181,65 +201,110 @@ export default function ConsultationScreen({
 
   return (
     <div className="space-y-4 p-4" dir={isRTL ? 'rtl' : 'ltr'}>
-      <GlycemiaInput glycemia={glycemia} setGlycemia={setGlycemia}
-        trend={trend} setTrend={setTrend} hour={hour} setHour={setHour} t={t} />
-
-      <MealInput totalCarbs={manualCarbs} setTotalCarbs={setManualCarbs}
-        fatLevel={fatLevel} setFatLevel={setFatLevel}
-        foods={foods} selections={selectionsArray} toggleFood={toggleFood}
-        updateMult={updateMult} customFoods={customFoods}
-        onPhotoMeal={onPhotoMeal} t={t} isDark={isDark}
-        totalFatGrams={totalFatGrams} />
-
-      <ContextInput activity={activity} setActivity={setActivity}
-        iobTotal={iobTotal} t={t} />
-
-      <button onClick={handleAnalyze}
-        disabled={isNaN(gVal) || gVal <= 0}
-        className="w-full py-3 rounded-xl bg-blue-500 text-white font-bold text-lg disabled:opacity-40">
-        {t('cl_analyser') || 'Analyser'}
-      </button>
-
-      <div ref={resultRef}>
-        <ClinicalResponse result={result} t={t} isDark={isDark} />
-      </div>
-
-      {result && !result.recommendation.blocked && (
-        <div className="space-y-2">
-          <label className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            {t('doseReelle') || 'Dose réellement injectée'} (u)
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              step="0.5"
-              min="0"
-              value={actualDose}
-              onChange={e => setActualDose(e.target.value)}
-              className={`flex-1 rounded-xl border px-3 py-2 text-center text-xl font-bold ${
-                isDark
-                  ? 'bg-slate-700 border-slate-600 text-slate-100'
-                  : 'bg-white border-gray-300 text-slate-800'
-              }`}
-            />
-            <button
-              onClick={handleSave}
-              className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold"
-            >
-              {t('confirmerEnregistrer') || '💉 Confirmer'}
+      {savedPlan ? (
+        <div className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-emerald-900/20 border-emerald-700' : 'bg-emerald-50 border-emerald-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className={`font-bold text-sm ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              {'📋 '}{t('planInjection') || "Plan d'injection"}
+            </h3>
+            <button onClick={() => setSavedPlan(null)}
+              className={`text-xs px-2 py-1 rounded-lg ${isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-100 text-gray-500'}`}>
+              {t('nouvelleConsultation') || 'Nouvelle consultation'}
             </button>
           </div>
-        </div>
-      )}
 
-      {showOverdoseDialog && (
-        <OverdoseDialog
-          dose={result?.recommendation?.dose}
-          maxDose={maxDose}
-          onConfirm={() => doSave()}
-          onCancel={() => setShowOverdoseDialog(false)}
-          isDark={false}
-        />
+          {/* Step 1: First injection */}
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-lg">{'✅'}</span>
+            <p className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+              {savedPlan.split.immediate}u — {t('cl_immediat') || 'maintenant'} ({savedPlan.heure})
+            </p>
+          </div>
+
+          {/* Step 2: Second injection (fractionné only) */}
+          {savedPlan.split.type === 'fractionne' && savedPlan.secondInjectionTime && (
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-lg">{'⏰'}</span>
+              <p className={`text-sm font-semibold ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                {savedPlan.split.delayed}u — dans {savedPlan.split.delayMinutes}min
+                <span className={`text-xs ml-1 ${isDark ? 'text-purple-400' : 'text-purple-500'}`}>
+                  ({'\u00e0 '}{new Date(savedPlan.secondInjectionTime).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})})
+                </span>
+              </p>
+            </div>
+          )}
+
+          {/* Step 3: Glycemia check */}
+          <div className="flex items-center gap-3">
+            <span className="text-lg">{'📊'}</span>
+            <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              {t('cl_recontrole') || 'Contrôle glycémie'} — {'\u00e0 '}{new Date(savedPlan.checkTime).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <GlycemiaInput glycemia={glycemia} setGlycemia={setGlycemia}
+            trend={trend} setTrend={setTrend} hour={hour} setHour={setHour} t={t} />
+
+          <MealInput totalCarbs={manualCarbs} setTotalCarbs={setManualCarbs}
+            fatLevel={fatLevel} setFatLevel={setFatLevel}
+            foods={foods} selections={selectionsArray} toggleFood={toggleFood}
+            updateMult={updateMult} customFoods={customFoods}
+            onPhotoMeal={onPhotoMeal} t={t} isDark={isDark}
+            totalFatGrams={totalFatGrams} />
+
+          <ContextInput activity={activity} setActivity={setActivity}
+            iobTotal={iobTotal} t={t} />
+
+          <button onClick={handleAnalyze}
+            disabled={isNaN(gVal) || gVal <= 0}
+            className="w-full py-3 rounded-xl bg-blue-500 text-white font-bold text-lg disabled:opacity-40">
+            {t('cl_analyser') || 'Analyser'}
+          </button>
+
+          <div ref={resultRef}>
+            <ClinicalResponse result={result} t={t} isDark={isDark} />
+          </div>
+
+          {result && !result.recommendation.blocked && (
+            <div className="space-y-2">
+              <label className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {t('doseReelle') || 'Dose réellement injectée'} (u)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={actualDose}
+                  onChange={e => setActualDose(e.target.value)}
+                  className={`flex-1 rounded-xl border px-3 py-2 text-center text-xl font-bold ${
+                    isDark
+                      ? 'bg-slate-700 border-slate-600 text-slate-100'
+                      : 'bg-white border-gray-300 text-slate-800'
+                  }`}
+                />
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold"
+                >
+                  {t('confirmerEnregistrer') || '💉 Confirmer'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showOverdoseDialog && (
+            <OverdoseDialog
+              dose={result?.recommendation?.dose}
+              maxDose={maxDose}
+              onConfirm={() => doSave()}
+              onCancel={() => setShowOverdoseDialog(false)}
+              isDark={false}
+            />
+          )}
+        </>
       )}
     </div>
   );
