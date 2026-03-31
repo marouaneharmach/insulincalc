@@ -125,6 +125,10 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const [inlineGlyc, setInlineGlyc] = useState('');
   const [inlineDose, setInlineDose] = useState('');
   const [inlineType, setInlineType] = useState('mesure'); // 'mesure', 'correction', 'basal'
+  // Manual injection FAB
+  const [showManualInjection, setShowManualInjection] = useState(false);
+  const [manualDose, setManualDose] = useState('');
+  const [manualType, setManualType] = useState('correction');
 
   const savePostGlyc = (entryId) => {
     if (!postValue) return;
@@ -397,10 +401,11 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           )}
                         </p>
                       )}
-                      {/* Dose — simplified */}
+                      {/* Dose — with suggested vs actual comparison */}
                       {(() => {
                         const dose = entry.doseActual || entry.doseReelle || 0;
-                        if (dose <= 0) return null;
+                        const suggeree = entry.doseSuggeree || entry.doseSuggested || 0;
+                        if (dose <= 0 && suggeree <= 0) return null;
                         return (
                           <div className="flex items-center gap-2 mb-1">
                             {editingDose === entry.id ? (
@@ -416,14 +421,31 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                   className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
                               </div>
                             ) : (
-                              <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose)); }}
-                                className="text-xs text-blue-500 hover:underline">
-                                💉 <span className="font-bold">{dose}U</span>
-                                {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
-                                  <span className="ml-1 text-amber-500">(fractionné)</span>
-                                }
-                                <span className={`ml-1 ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
-                              </button>
+                              <div className="flex items-center gap-1">
+                                {suggeree > 0 && dose > 0 && suggeree !== dose ? (
+                                  <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose)); }}
+                                    className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                                    💉 <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{t('doseSuggeree') || 'Suggérée'}: {suggeree}U</span>
+                                    <span className="mx-0.5">→</span>
+                                    <span className="font-bold">{t('reelle') || 'Réelle'}: {dose}U</span>
+                                    {dose > suggeree && <span className="text-amber-500 text-[10px]">+{(dose - suggeree).toFixed(1)}</span>}
+                                    {dose < suggeree && <span className="text-green-500 text-[10px]">{(dose - suggeree).toFixed(1)}</span>}
+                                  </button>
+                                ) : (
+                                  <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose || suggeree)); }}
+                                    className="text-xs text-blue-500 hover:underline">
+                                    💉 <span className="font-bold">{dose || suggeree}U</span>
+                                    {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
+                                      <span className="ml-1 text-amber-500">(fractionné)</span>
+                                    }
+                                  </button>
+                                )}
+                                <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose || suggeree)); }}
+                                  className={`ml-1 w-6 h-6 rounded-md flex items-center justify-center text-sm transition ${isDark ? 'text-slate-500 hover:text-blue-400 hover:bg-slate-700' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
+                                  title={t('modifierDose') || 'Modifier la dose'}>
+                                  ✏️
+                                </button>
+                              </div>
                             )}
                           </div>
                         );
@@ -564,10 +586,11 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                 className="text-xs px-1.5 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual)); }}
-                              className="text-right">
-                              <p className="text-lg font-bold text-blue-500">{entry.doseActual}U</p>
-                              <span className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-gray-300'}`}>✎</span>
+                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual || entry.doseReelle || 0)); }}
+                              className="text-right flex items-center gap-1">
+                              <p className="text-lg font-bold text-blue-500">{entry.doseActual || entry.doseReelle || 0}U</p>
+                              <span className={`w-7 h-7 rounded-md flex items-center justify-center text-sm transition ${isDark ? 'text-slate-500 hover:text-blue-400 hover:bg-slate-700' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
+                                title={t('modifierDose') || 'Modifier la dose'}>✏️</span>
                             </button>
                           )}
                         </div>
@@ -593,7 +616,80 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
         </div>
       )}
 
-      <div className="h-8" />
+      <div className="h-20" />
+
+      {/* Manual injection modal */}
+      {showManualInjection && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center" onClick={() => setShowManualInjection(false)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className={`relative w-full max-w-md rounded-t-3xl p-5 pb-8 space-y-4 z-50 ${isDark ? 'bg-slate-800' : 'bg-white'}`}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                💉 {t('ajouterInjection') || 'Ajouter une injection'}
+              </p>
+              <button onClick={() => setShowManualInjection(false)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-100 text-gray-500'}`}>✕</button>
+            </div>
+
+            {/* Dose input */}
+            <div>
+              <label className={`text-xs block mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('dose') || 'Dose'} (U)</label>
+              <input type="number" step="0.5" min="0" placeholder="0" value={manualDose}
+                onChange={e => setManualDose(e.target.value)} autoFocus
+                className={`w-full text-center text-lg p-3 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`} />
+            </div>
+
+            {/* Type selector */}
+            <div className="flex gap-2">
+              {[
+                { key: 'correction', label: `🎯 ${t('correctionLabel') || 'Correction'}` },
+                { key: 'manual', label: `✏️ ${t('manualLabel') || 'Autre'}` },
+              ].map(opt => (
+                <button key={opt.key} onClick={() => setManualType(opt.key)}
+                  className={`flex-1 py-3 rounded-xl text-sm font-medium border transition ${
+                    manualType === opt.key
+                      ? isDark ? 'bg-teal-900/30 border-teal-600 text-teal-400' : 'bg-teal-50 border-teal-300 text-teal-700'
+                      : isDark ? 'border-slate-600 text-slate-500' : 'border-gray-200 text-gray-400'
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Submit */}
+            <button onClick={() => {
+              const d = parseFloat(manualDose);
+              if (isNaN(d) || d <= 0) return;
+              const newEntry = {
+                id: `manual-${Date.now()}`,
+                date: new Date().toISOString(),
+                mealType: 'injection',
+                injectionType: manualType,
+                doseReelle: d,
+                doseActual: d,
+                doseSuggeree: 0,
+                notes: '',
+              };
+              setJournal(prev => [...prev, newEntry]);
+              setManualDose('');
+              setManualType('correction');
+              setShowManualInjection(false);
+            }}
+              className="w-full py-3 rounded-xl text-sm font-bold text-white bg-teal-500 hover:bg-teal-600 transition shadow-lg">
+              {t('enregistrer') || 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Button */}
+      {isToday && !showManualInjection && (
+        <button onClick={() => setShowManualInjection(true)}
+          className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-teal-500 text-white text-2xl shadow-lg flex items-center justify-center z-30 hover:bg-teal-600 active:scale-95 transition-transform">
+          +
+        </button>
+      )}
     </div>
   );
 }
