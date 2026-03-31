@@ -22,7 +22,7 @@ export default function MealInput({
   onPhotoMeal,
   t, isDark
 }) {
-  const [mode, setMode] = useState('expert'); // 'expert' | 'assiste'
+  const [mode, setMode] = useState('assiste'); // 'assiste' | 'expert'
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mealPhoto, setMealPhoto] = useState(null);
@@ -97,16 +97,6 @@ export default function MealInput({
         </label>
         <div className={`flex rounded-xl overflow-hidden border ${isDark ? 'border-slate-600' : 'border-gray-200'}`}>
           <button
-            onClick={() => setMode('expert')}
-            className={`px-3 py-1 text-[11px] font-medium transition ${
-              mode === 'expert'
-                ? 'bg-teal-500 text-white'
-                : isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-50 text-gray-500'
-            }`}
-          >
-            {t('cl_modeExpert') || 'Expert'}
-          </button>
-          <button
             onClick={() => setMode('assiste')}
             className={`px-3 py-1 text-[11px] font-medium transition ${
               mode === 'assiste'
@@ -114,7 +104,17 @@ export default function MealInput({
                 : isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-50 text-gray-500'
             }`}
           >
-            {t('cl_modeAssiste') || 'Assisté'}
+            {t('cl_modeAssiste') || 'Aliments'}
+          </button>
+          <button
+            onClick={() => setMode('expert')}
+            className={`px-3 py-1 text-[11px] font-medium transition ${
+              mode === 'expert'
+                ? 'bg-teal-500 text-white'
+                : isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-50 text-gray-500'
+            }`}
+          >
+            {t('cl_modeExpert') || 'Glucides'}
           </button>
         </div>
       </div>
