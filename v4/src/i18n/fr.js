@@ -509,6 +509,7 @@ const fr = {
   aucunAlimentReconnu: 'Aucun aliment reconnu',
   essayerAutrePhoto: 'Essayez avec une autre photo ou ajoutez manuellement',
   alimentsDetectes: 'aliment(s) détecté(s)',
+  totalLipides: 'Total lipides',
 };
 
 export default fr;

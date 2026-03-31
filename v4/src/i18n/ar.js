@@ -506,6 +506,7 @@ const ar = {
   aucunAlimentReconnu: 'لم يتم التعرف على أي طعام',
   essayerAutrePhoto: 'جرب صورة أخرى أو أضف يدويًا',
   alimentsDetectes: 'أطعمة تم اكتشافها',
+  totalLipides: 'إجمالي الدهون',
 };
 
 export default ar;

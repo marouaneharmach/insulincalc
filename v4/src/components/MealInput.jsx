@@ -20,7 +20,8 @@ export default function MealInput({
   updateMult,
   customFoods = [],
   onPhotoMeal,
-  t, isDark
+  t, isDark,
+  totalFatGrams = 0
 }) {
   const [mode, setMode] = useState('assiste'); // 'assiste' | 'expert'
   const [search, setSearch] = useState('');
@@ -377,6 +378,18 @@ export default function MealInput({
               {selections.reduce((sum, s) => sum + Math.round(s.food.carbs * (s.mult || 1)), 0)}g
             </span>
           </div>
+
+          {/* Total fat summary */}
+          {totalFatGrams > 0 && (
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                {t('totalLipides') || 'Total lipides'}
+              </span>
+              <span className={`text-lg font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                ~{totalFatGrams}g
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
