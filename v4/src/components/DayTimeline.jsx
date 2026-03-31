@@ -136,7 +136,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const saveDose = (entryId) => {
     const d = parseFloat(doseValue);
     if (isNaN(d) || d < 0) return;
-    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: d } : e));
+    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: d, doseReelle: d } : e));
     setEditingDose(null);
     setDoseValue('');
   };

@@ -60,9 +60,9 @@ export default function ConsultationScreen({
   const iobTotal = useMemo(() => {
     const now = Date.now();
     const injections = journal
-      .filter(e => e.doseReelle > 0 || e.doseInjected > 0)
+      .filter(e => (e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0) > 0)
       .map(e => ({
-        dose: e.doseReelle || e.doseInjected || 0,
+        dose: e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0,
         minutesAgo: (now - new Date(e.date).getTime()) / 60000,
       }))
       .filter(i => i.minutesAgo < diaMinutes && i.minutesAgo >= 0);
@@ -73,7 +73,7 @@ export default function ConsultationScreen({
   const lastInjectionMinutesAgo = useMemo(() => {
     const now = Date.now();
     const recent = journal
-      .filter(e => (e.doseReelle || e.doseInjected || 0) > 0)
+      .filter(e => (e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0) > 0)
       .map(e => (now - new Date(e.date).getTime()) / 60000)
       .filter(m => m >= 0)
       .sort((a, b) => a - b);
