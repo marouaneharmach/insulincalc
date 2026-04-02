@@ -181,7 +181,7 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
 }
 
 // ─── MAIN JOURNAL TAB ────────────────────────────────────────────────────────
-export default function JournalTab({ selections, totalCarbs, doseCalculated, glycemia }) {
+export default function JournalTab({ selections, totalCarbs, doseCalculated, glycemia, onExportPdf }) {
   const [period, setPeriod] = useState(14);
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
@@ -332,15 +332,26 @@ export default function JournalTab({ selections, totalCarbs, doseCalculated, gly
         </div>
       )}
 
-      {/* Add entry button */}
-      <button onClick={() => { setEditEntry(null); setShowForm(true); }} style={{
-        width: "100%", padding: 14, borderRadius: 12, marginBottom: SPACE.md,
-        border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-        color: "#fff", fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 700, cursor: "pointer",
-        boxShadow: "0 4px 16px rgba(14,165,233,0.3)",
-      }}>
-        + Nouvelle entrée
-      </button>
+      {/* Add entry + Export PDF buttons */}
+      <div style={{ display: "flex", gap: 8, marginBottom: SPACE.md }}>
+        <button onClick={() => { setEditEntry(null); setShowForm(true); }} style={{
+          flex: 1, padding: 14, borderRadius: 12,
+          border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+          color: "#fff", fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 700, cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(14,165,233,0.3)",
+        }}>
+          + Nouvelle entrée
+        </button>
+        {onExportPdf && entries.length > 0 && (
+          <button onClick={onExportPdf} style={{
+            padding: "14px 16px", borderRadius: 12,
+            border: `1px solid rgba(14,165,233,0.4)`, background: "rgba(14,165,233,0.08)",
+            color: "#7dd3fc", fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>
+            PDF
+          </button>
+        )}
+      </div>
 
       {/* Entry list */}
       {entries.length > 0 ? (

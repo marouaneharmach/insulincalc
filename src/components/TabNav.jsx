@@ -1,9 +1,9 @@
 import { C } from '../utils/colors.js';
 
-export default function TabNav({ tab, setTab, selections, className, colors, theme, journal, t }) {
+export default function TabNav({ tab, setTab, selections, className, colors, theme, journal, journalCount: journalCountProp, t }) {
   const cc = colors || C;
   const isDark = theme === 'dark' || !theme;
-  const journalCount = journal ? journal.length : 0;
+  const journalCount = journalCountProp != null ? journalCountProp : (journal ? journal.length : 0);
 
   return (
     <div className={className} style={{ maxWidth: 520, margin: "10px auto 0", padding: "0 20px" }}>
