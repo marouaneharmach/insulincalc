@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { C, SPACE, FONT, glycColor } from '../utils/colors.js';
+import FOOD_DB from '../data/foods.js';
 
 const MEAL_TYPES = [
   { id: "petit-déjeuner", label: "🌅 Petit-déj", short: "Petit-déj" },
@@ -7,6 +8,9 @@ const MEAL_TYPES = [
   { id: "dîner",          label: "🌙 Dîner",     short: "Dîner" },
   { id: "collation",      label: "🍎 Collation", short: "Collation" },
 ];
+
+// Flatten food database into a searchable array (computed once)
+const ALL_FOODS = Object.values(FOOD_DB).flat();
 
 export default function JournalEntryForm({ onSave, onCancel, selections, totalCarbs, doseCalculated, glycemia, editEntry }) {
   const [mealType, setMealType] = useState(editEntry?.mealType || guessMealType());
@@ -27,6 +31,52 @@ export default function JournalEntryForm({ onSave, onCancel, selections, totalCa
     editEntry?.postMealGlycemia != null
   );
 
+  // Editable food list: use editEntry foods when editing, selections when creating
+  const initialFoods = () => {
+    if (editEntry?.foods?.length) {
+      return editEntry.foods.map(f => ({
+        foodId: f.foodId,
+        name: f.name,
+        mult: f.mult || 1,
+        carbs: f.carbs || 0,
+        unit: f.unit || '',
+        gi: f.gi || '',
+        fat: f.fat || '',
+      }));
+    }
+    if (selections?.length) {
+      return selections.map(s => ({
+        foodId: s.food.id,
+        name: s.food.name,
+        mult: s.mult,
+        carbs: Math.round(s.food.carbs * s.mult),
+        unit: s.food.unit || '',
+        gi: s.food.gi || '',
+        fat: s.food.fat || '',
+      }));
+    }
+    return [];
+  };
+
+  const [foods, setFoods] = useState(initialFoods);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Compute totalCarbs from current foods
+  const computedTotalCarbs = useMemo(
+    () => foods.reduce((sum, f) => sum + (f.carbs || 0), 0),
+    [foods]
+  );
+
+  // Search results filtered by query
+  const searchResults = useMemo(() => {
+    if (!searchQuery || searchQuery.length < 2) return [];
+    const q = searchQuery.toLowerCase();
+    return ALL_FOODS
+      .filter(f => f.name.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [searchQuery]);
+
   function guessMealType() {
     const h = new Date().getHours();
     if (h < 10) return "petit-déjeuner";
@@ -35,24 +85,48 @@ export default function JournalEntryForm({ onSave, onCancel, selections, totalCa
     return "collation";
   }
 
+  function addFood(food) {
+    setFoods(prev => [...prev, {
+      foodId: food.id,
+      name: food.name,
+      mult: 1,
+      carbs: food.carbs,
+      unit: food.unit || '',
+      gi: food.gi || '',
+      fat: food.fat || '',
+    }]);
+    setSearchQuery('');
+    setShowSearch(false);
+  }
+
+  function removeFood(index) {
+    setFoods(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function updateMult(index, newMult) {
+    setFoods(prev => prev.map((f, i) => {
+      if (i !== index) return f;
+      const baseFoodFromDb = ALL_FOODS.find(db => db.id === f.foodId);
+      const baseCarbs = baseFoodFromDb ? baseFoodFromDb.carbs : (f.mult ? f.carbs / f.mult : f.carbs);
+      return {
+        ...f,
+        mult: newMult,
+        carbs: Math.round(baseCarbs * newMult),
+      };
+    }));
+  }
+
   const handleSubmit = () => {
     const preG = parseFloat(preMealGlycemia);
     const dose = parseFloat(doseInjected);
     if (isNaN(preG) || preG < 0.3 || preG > 6) return;
     if (isNaN(dose) || dose < 0) return;
 
-    const foods = (selections || []).map(s => ({
-      foodId: s.food.id,
-      name: s.food.name,
-      mult: s.mult,
-      carbs: Math.round(s.food.carbs * s.mult),
-    }));
-
     const entry = {
       mealType,
       preMealGlycemia: preG,
       foods,
-      totalCarbs: totalCarbs || foods.reduce((s, f) => s + f.carbs, 0),
+      totalCarbs: computedTotalCarbs,
       doseCalculated: doseCalculated || 0,
       doseInjected: dose,
       postMealGlycemia: showPostMeal && postMealGlycemia ? parseFloat(postMealGlycemia) : null,
@@ -128,27 +202,123 @@ export default function JournalEntryForm({ onSave, onCancel, selections, totalCa
           />
         </div>
 
-        {/* Foods summary */}
-        {selections && selections.length > 0 && (
-          <div style={{ ...card, padding: "10px 14px", marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>🍽 Aliments sélectionnés</div>
-            {selections.slice(0, 5).map((s, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0", color: "#7aa0b8" }}>
-                <span>{s.food.name}</span>
-                <span style={{ color: C.accent }}>{Math.round(s.food.carbs * s.mult)}g</span>
+        {/* Editable foods section */}
+        <div style={{ ...card, padding: "10px 14px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: C.muted }}>🍽 Aliments</span>
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              style={{
+                background: "none", border: `1px solid rgba(14,165,233,0.3)`,
+                borderRadius: 6, color: C.accent, fontSize: 11, cursor: "pointer",
+                padding: "2px 8px", fontFamily: "'IBM Plex Mono',monospace",
+              }}
+            >
+              + Ajouter
+            </button>
+          </div>
+
+          {/* Food search */}
+          {showSearch && (
+            <div style={{ marginBottom: 8, position: "relative" }}>
+              <input
+                type="text"
+                placeholder="Rechercher un aliment..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                autoFocus
+                style={{
+                  ...inp, fontSize: 12, padding: "8px 10px",
+                  borderColor: C.accent,
+                }}
+              />
+              {searchResults.length > 0 && (
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10,
+                  background: "#0d1520", border: `1px solid ${C.border}`,
+                  borderRadius: 8, maxHeight: 180, overflowY: "auto",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                }}>
+                  {searchResults.map(food => (
+                    <button
+                      key={food.id}
+                      onClick={() => addFood(food)}
+                      style={{
+                        width: "100%", display: "flex", justifyContent: "space-between",
+                        alignItems: "center", padding: "8px 10px", border: "none",
+                        background: "transparent", color: "#7aa0b8", fontSize: 11,
+                        cursor: "pointer", fontFamily: "'IBM Plex Mono',monospace",
+                        borderBottom: `1px solid ${C.border}`,
+                        textAlign: "left",
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = "rgba(14,165,233,0.08)"}
+                      onMouseOut={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <span style={{ flex: 1 }}>{food.name}</span>
+                      <span style={{ color: C.accent, marginLeft: 8, whiteSpace: "nowrap" }}>{food.carbs}g</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Food list */}
+          {foods.length === 0 ? (
+            <div style={{ fontSize: 11, color: C.muted, padding: "8px 0", textAlign: "center", fontStyle: "italic" }}>
+              Aucun aliment ajouté
+            </div>
+          ) : (
+            foods.map((f, i) => (
+              <div key={`${f.foodId}-${i}`} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                fontSize: 11, padding: "4px 0", color: "#7aa0b8",
+                borderBottom: i < foods.length - 1 ? `1px solid rgba(255,255,255,0.04)` : "none",
+              }}>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {f.name}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+                  <span style={{ fontSize: 10, color: C.muted }}>×</span>
+                  <input
+                    type="number"
+                    min="0.25"
+                    step="0.25"
+                    value={f.mult}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && val > 0) updateMult(i, val);
+                    }}
+                    style={{
+                      width: 42, background: "#070c12", border: `1px solid ${C.border}`,
+                      borderRadius: 4, color: C.text, padding: "2px 4px", fontSize: 11,
+                      fontFamily: "'IBM Plex Mono',monospace", textAlign: "center", outline: "none",
+                    }}
+                  />
+                  <span style={{ color: C.accent, minWidth: 32, textAlign: "right" }}>{f.carbs}g</span>
+                  <button
+                    onClick={() => removeFood(i)}
+                    style={{
+                      background: "none", border: "none", color: "#ef4444",
+                      fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1,
+                    }}
+                    title="Retirer"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-            ))}
-            {selections.length > 5 && (
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-                + {selections.length - 5} autre{selections.length - 5 > 1 ? "s" : ""}
-              </div>
-            )}
+            ))
+          )}
+
+          {/* Total carbs */}
+          {foods.length > 0 && (
             <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 6, paddingTop: 6, display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 12, color: C.muted }}>Total glucides</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>{totalCarbs}g</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>{computedTotalCarbs}g</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Doses */}
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
