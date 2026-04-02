@@ -43,6 +43,37 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Handle notification scheduling messages from the app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
+    const { targetTime, title, body } = event.data;
+    const delay = targetTime - Date.now();
+    if (delay > 0) {
+      setTimeout(() => {
+        self.registration.showNotification(title, {
+          body,
+          icon: './icon-192.png',
+          tag: 'insulincalc-postmeal',
+          badge: './icon-192.png',
+        });
+      }, delay);
+    }
+  }
+});
+
+// Handle notification click — focus or open the app
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      if (clientList.length > 0) {
+        return clientList[0].focus();
+      }
+      return clients.openWindow('./');
+    })
+  );
+});
+
 // Fetch event
 self.addEventListener('fetch', (event) => {
   // Network-first strategy for HTML and critical resources
