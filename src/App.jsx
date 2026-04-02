@@ -8,7 +8,7 @@ import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants.j
 import FOOD_DB from './data/foods.js';
 import { schedulePostMealReminder } from './utils/notifications.js';
 import { generateJournalPdf } from './utils/exportPdf.js';
-import { addEntry, getEntries, updateEntry, getAllEntries } from './data/journalStore.js';
+import { addEntry, getEntries, getAllEntries } from './data/journalStore.js';
 import { migrateData } from './utils/migration.js';
 
 import TabNav from './components/TabNav.jsx';
@@ -269,15 +269,6 @@ export default function App() {
     generateJournalPdf(pdfEntries, t("toutesEntrees"), stats, patientName);
   }, [targetGMin, targetGMax, patientName, t]);
 
-  const updateJournalDoseActual = useCallback((entryId, dose) => {
-    updateEntry(entryId, { doseInjected: dose });
-    refreshJournal();
-  }, [refreshJournal]);
-
-  const updateJournalGlycPost = useCallback((entryId, glycPost) => {
-    updateEntry(entryId, { postMealGlycemia: parseFloat(glycPost) });
-    refreshJournal();
-  }, [refreshJournal]);
 
   if (!onboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} t={t} locale={locale} setLocale={setLocale} isRTL={isRTL} />;
