@@ -1,5 +1,8 @@
 import { FAT_SCORE, DIGESTION_PROFILES, AGE_PROFILES, getAgeGroup } from '../data/constants.js';
 
+/** Standard rapid-acting insulin action duration (minutes). */
+export const INSULIN_DURATION_MIN = 240;
+
 // ─── HbA1c ESTIMÉE ───────────────────────────────────────────────────────────
 
 export function estimateHbA1c(entries) {

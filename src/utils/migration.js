@@ -48,7 +48,9 @@ function migrateV0ToV1() {
     notes: '',
   }));
 
-  const merged = [...migrated, ...existing];
+  const existingIds = new Set(existing.map(e => String(e.id)));
+  const deduped = migrated.filter(e => !existingIds.has(String(e.id)));
+  const merged = [...deduped, ...existing];
   localStorage.setItem('insulincalc_v1_journal', JSON.stringify(merged));
 }
 

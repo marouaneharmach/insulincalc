@@ -4,6 +4,8 @@
  * trend, recent hypo events, physical activity, and time of day.
  */
 
+import { isNightMode } from './clinicalEngine.js';
+
 export function calcHypoRiskScore({ glycemia, iobTotal, trend, hypoIn24h, activity, currentHour }) {
   let score = 0;
 
@@ -29,8 +31,8 @@ export function calcHypoRiskScore({ glycemia, iobTotal, trend, hypoIn24h, activi
   if (activity === 'intense') score += 2;
   else if (activity === 'moderee') score += 1;
 
-  // Factor 6: Night hours
-  if (currentHour >= 22 || currentHour < 6) score += 1;
+  // Factor 6: Night hours (uses same definition as clinical engine: 21h-05h)
+  if (isNightMode(currentHour)) score += 1;
 
   return score;
 }

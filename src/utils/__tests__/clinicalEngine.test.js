@@ -43,19 +43,23 @@ describe('clinicalEngine', () => {
   });
 
   describe('RULE 2: Night mode', () => {
-    it('should block correction at night when glycemia < 2.20', () => {
-      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 2.0, correction: 1.0 });
+    it('should block correction at night when glycemia < 1.50', () => {
+      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 1.3, correction: 1.0 });
       expect(result.correctionBlocked).toBe(true);
       expect(result.warnings.some(w => w.type === 'night_block')).toBe(true);
     });
 
-    it('should allow correction at night when glycemia >= 2.50', () => {
-      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 2.8, correction: 2.0 });
+    it('should reduce correction by 50% at night when glycemia >= 1.50 (no gap)', () => {
+      // This covers the previously uncovered 2.20-2.50 range
+      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 2.3, correction: 2.0 });
       expect(result.correctionBlocked).toBeFalsy();
+      expect(result.warnings.some(w => w.type === 'night_reduce')).toBe(true);
+      expect(result.adjustedCorrection).toBeLessThanOrEqual(1.0);
     });
 
-    it('should reduce correction by 50% at night when glycemia >= 2.50', () => {
+    it('should also reduce correction at night when glycemia >= 2.50', () => {
       const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 2.8, correction: 2.0 });
+      expect(result.correctionBlocked).toBeFalsy();
       expect(result.adjustedCorrection).toBeLessThanOrEqual(1.0);
     });
 
@@ -85,9 +89,29 @@ describe('clinicalEngine', () => {
   });
 
   describe('overdose check', () => {
-    it('should warn when dose > maxDose', () => {
-      const result = applySafetyRules({ ...baseInput, suggestedDose: 25, maxDose: 20 });
+    it('should warn and cap dose when dose > maxDose', () => {
+      const result = applySafetyRules({ ...baseInput, suggestedDose: 25, maxDose: 20, correction: 0 });
       expect(result.warnings.some(w => w.type === 'overdose')).toBe(true);
+      expect(result.adjustedDose).toBeLessThanOrEqual(20);
+    });
+  });
+
+  describe('input validation', () => {
+    it('should block when glycemia is NaN', () => {
+      const result = applySafetyRules({ ...baseInput, glycemia: NaN });
+      expect(result.blocked).toBe(true);
+      expect(result.adjustedDose).toBe(0);
+      expect(result.warnings.some(w => w.type === 'invalid_input')).toBe(true);
+    });
+
+    it('should block when glycemia is null', () => {
+      const result = applySafetyRules({ ...baseInput, glycemia: null });
+      expect(result.blocked).toBe(true);
+    });
+
+    it('should block when glycemia is negative', () => {
+      const result = applySafetyRules({ ...baseInput, glycemia: -1 });
+      expect(result.blocked).toBe(true);
     });
   });
 

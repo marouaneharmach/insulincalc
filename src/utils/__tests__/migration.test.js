@@ -60,6 +60,23 @@ describe('migration', () => {
     expect(result).toHaveLength(2);
   });
 
+  it('should deduplicate entries by id during migration', () => {
+    const oldEntries = [
+      { id: 1, date: '2026-04-01', glycPre: '1.20', glycPost: '', doseSuggested: 2, doseActual: 2, aliments: 'Riz', alimentIds: ['riz_blanc'] }
+    ];
+    const existingEntries = [
+      { id: '1', date: '2026-04-01T12:00:00.000Z', mealType: 'déjeuner', preMealGlycemia: 1.2, foods: [], totalCarbs: 30, doseCalculated: 2, doseInjected: 2 }
+    ];
+    localStorage.setItem('journal', JSON.stringify(oldEntries));
+    localStorage.setItem('insulincalc_v1_journal', JSON.stringify(existingEntries));
+
+    migrateData();
+
+    const result = JSON.parse(localStorage.getItem('insulincalc_v1_journal'));
+    // Should NOT duplicate — old id "1" matches existing id "1"
+    expect(result).toHaveLength(1);
+  });
+
   it('should handle missing old journal gracefully', () => {
     // No 'journal' key set at all
     migrateData();

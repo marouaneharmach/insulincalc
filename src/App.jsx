@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useTheme } from './hooks/useTheme.js';
 import { useI18n } from './i18n/useI18n.js';
-import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR, calcIOB } from './utils/calculations.js';
+import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR, calcIOB, INSULIN_DURATION_MIN } from './utils/calculations.js';
 import { applySafetyRules, isNightMode } from './utils/clinicalEngine.js';
 import { SPACE, FONT, GI_ICON, GI_COLOR, glycColor, glycLabel, stripDiacritics } from './utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants.js';
@@ -220,16 +220,14 @@ export default function App() {
     // ── Clinical Safety Engine ──
     const now = new Date();
     const recentEntries = getEntries(1); // last 24h
-    const insulinDurationMin = 240; // 4h standard insulin action
-
     // Compute IOB from recent journal entries
     const iobTotal = recentEntries.reduce((sum, entry) => {
       const entryTime = new Date(entry.date).getTime();
       const minutesAgo = (now.getTime() - entryTime) / 60000;
-      if (minutesAgo >= insulinDurationMin || minutesAgo < 0) return sum;
+      if (minutesAgo >= INSULIN_DURATION_MIN || minutesAgo < 0) return sum;
       const dose = entry.doseInjected || entry.doseCalculated || 0;
       if (dose <= 0) return sum;
-      return sum + calcIOB(dose, minutesAgo, insulinDurationMin);
+      return sum + calcIOB(dose, minutesAgo, INSULIN_DURATION_MIN);
     }, 0);
 
     // Time since most recent injection
@@ -320,14 +318,13 @@ export default function App() {
     }
 
     // IOB computation (same logic as result computation)
-    const insulinDurationMin = 240;
     const iobTotal = recentAll.reduce((sum, entry) => {
       const entryTime = new Date(entry.date).getTime();
       const minutesAgo = (now.getTime() - entryTime) / 60000;
-      if (minutesAgo >= insulinDurationMin || minutesAgo < 0) return sum;
+      if (minutesAgo >= INSULIN_DURATION_MIN || minutesAgo < 0) return sum;
       const dose = entry.doseInjected || entry.doseCalculated || 0;
       if (dose <= 0) return sum;
-      return sum + calcIOB(dose, minutesAgo, insulinDurationMin);
+      return sum + calcIOB(dose, minutesAgo, INSULIN_DURATION_MIN);
     }, 0);
 
     // Hypo risk

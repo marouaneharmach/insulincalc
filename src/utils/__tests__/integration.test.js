@@ -6,7 +6,7 @@ import { calcVelocity, classifyVelocity, adjustDoseForVelocity } from '../veloci
 import { calcHypoRiskScore, classifyRisk } from '../hypoRisk.js';
 import { detectAdvancedPatterns } from '../patternDetector.js';
 import { getActiveProfile, createDefaultProfiles } from '../timeProfiles.js';
-import { calcIOB, round05 } from '../calculations.js';
+import { calcIOB, round05, INSULIN_DURATION_MIN } from '../calculations.js';
 
 // ─── INTEGRATION TESTS ─────────────────────────────────────────────────────
 // These tests verify that all modules work together correctly,
@@ -81,18 +81,28 @@ describe('integration', () => {
     expect(isNightMode(3)).toBe(true);
     expect(isNightMode(14)).toBe(false);
 
-    const safety = applySafetyRules({
+    // Test night block: glycemia < 1.50 blocks correction entirely
+    const safetyBlock = applySafetyRules({
+      glycemia: 1.3, suggestedDose: 3.0, iobTotal: 0,
+      currentHour: 23, lastInjectionMinAgo: 300,
+      cumulCorrections24h: 0, tddEstimated: 30,
+      correction: 1.0, maxDose: 20,
+    });
+    expect(safetyBlock.correctionBlocked).toBe(true);
+    expect(safetyBlock.nightMode).toBe(true);
+    expect(safetyBlock.adjustedCorrection).toBe(0);
+    expect(safetyBlock.warnings.some(w => w.type === 'night_block')).toBe(true);
+
+    // Test night reduce: glycemia >= 1.50 reduces correction by 50%
+    const safetyReduce = applySafetyRules({
       glycemia: 1.9, suggestedDose: 3.0, iobTotal: 0,
       currentHour: 23, lastInjectionMinAgo: 300,
       cumulCorrections24h: 0, tddEstimated: 30,
       correction: 1.0, maxDose: 20,
     });
-    // Night mode with glycemia < 2.20 should block correction
-    expect(safety.correctionBlocked).toBe(true);
-    expect(safety.nightMode).toBe(true);
-    expect(safety.adjustedCorrection).toBe(0);
-    // Should have a night_block warning
-    expect(safety.warnings.some(w => w.type === 'night_block')).toBe(true);
+    expect(safetyReduce.nightMode).toBe(true);
+    expect(safetyReduce.adjustedCorrection).toBeLessThanOrEqual(0.5);
+    expect(safetyReduce.warnings.some(w => w.type === 'night_reduce')).toBe(true);
   });
 
   it('hypo block prevents all injection', () => {
@@ -297,14 +307,13 @@ describe('integration', () => {
     expect(lastEntry).toBeTruthy();
     expect(lastEntry.id).toBe(entry.id);
 
-    const insulinDurationMin = 240;
     const iobTotal = recentEntries.reduce((sum, e) => {
       const entryTime = new Date(e.date).getTime();
       const minutesAgo = (now.getTime() - entryTime) / 60000;
-      if (minutesAgo >= insulinDurationMin || minutesAgo < 0) return sum;
+      if (minutesAgo >= INSULIN_DURATION_MIN || minutesAgo < 0) return sum;
       const dose = e.doseInjected || e.doseCalculated || 0;
       if (dose <= 0) return sum;
-      return sum + calcIOB(dose, minutesAgo, insulinDurationMin);
+      return sum + calcIOB(dose, minutesAgo, INSULIN_DURATION_MIN);
     }, 0);
 
     // Entry was just added, so IOB should be close to the full dose

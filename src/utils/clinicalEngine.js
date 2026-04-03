@@ -42,6 +42,15 @@ export function applySafetyRules(input) {
     maxDose,
   } = input;
 
+  // Input validation — block on invalid glycemia
+  if (glycemia == null || isNaN(glycemia) || glycemia < 0) {
+    return {
+      blocked: true, correctionBlocked: true, adjustedDose: 0, adjustedCorrection: 0,
+      nightMode: isNightMode(currentHour || 0),
+      warnings: [{ type: 'invalid_input', severity: 'critical', message: 'Glycémie invalide — injection bloquée.' }],
+    };
+  }
+
   const warnings = [];
   let adjustedDose = round05(suggestedDose);
   let adjustedCorrection = round05(correction);
@@ -66,11 +75,13 @@ export function applySafetyRules(input) {
   if (glycemia >= 0.70 && glycemia < 0.90) {
     adjustedDose = round05(suggestedDose * 0.5);
     adjustedCorrection = 0;
+    correctionBlocked = true;
     warnings.push({
       type: 'hypo_proche',
       severity: 'warning',
       message: `Glycémie basse (${glycemia} g/L) — dose réduite de 50%, correction annulée.`,
     });
+    return { blocked, correctionBlocked, adjustedDose, adjustedCorrection, nightMode, warnings };
   }
 
   // ── RULE 1: IOB Dynamic ──
@@ -97,19 +108,19 @@ export function applySafetyRules(input) {
       });
     }
 
-    // 2a: Block correction at night when glycemia < 2.20
-    if (glycemia < 2.20 && correction > 0) {
+    // 2a: Block correction at night when glycemia < 1.50
+    if (glycemia < 1.50 && correction > 0) {
       correctionBlocked = true;
       adjustedCorrection = 0;
       warnings.push({
         type: 'night_block',
         severity: 'warning',
-        message: `Mode nuit : correction bloquée (glycémie ${glycemia} g/L < 2.20). Risque d'hypoglycémie nocturne.`,
+        message: `Mode nuit : correction bloquée (glycémie ${glycemia} g/L < 1.50). Risque d'hypoglycémie nocturne.`,
       });
     }
 
-    // 2b: Reduce correction by 50% at night when glycemia >= 2.50
-    if (glycemia >= 2.50 && correction > 0 && !correctionBlocked) {
+    // 2b: Reduce correction by 50% at night when glycemia >= 1.50 (all night corrections reduced)
+    if (glycemia >= 1.50 && correction > 0 && !correctionBlocked) {
       adjustedCorrection = round05(adjustedCorrection * 0.5);
       warnings.push({
         type: 'night_reduce',
@@ -138,19 +149,20 @@ export function applySafetyRules(input) {
     });
   }
 
-  // ── OVERDOSE CHECK ──
-  if (suggestedDose > maxDose) {
-    warnings.push({
-      type: 'overdose',
-      severity: 'critical',
-      message: `Dose calculée (${round05(suggestedDose)} UI) dépasse la dose maximale (${maxDose} UI). Vérifiez les paramètres.`,
-    });
-  }
-
   // Recalculate adjusted dose: suggestedDose minus original correction plus adjusted correction
   // Only if not already reduced by hypo-proche rule
   if (glycemia >= 0.90) {
     adjustedDose = round05(suggestedDose - correction + adjustedCorrection);
+  }
+
+  // ── OVERDOSE CHECK — cap dose to maxDose (after recalculation) ──
+  if (maxDose > 0 && adjustedDose > maxDose) {
+    adjustedDose = round05(maxDose);
+    warnings.push({
+      type: 'overdose',
+      severity: 'critical',
+      message: `Dose calculée (${round05(suggestedDose)} UI) dépasse la dose maximale (${maxDose} UI). Dose plafonnée à ${maxDose} UI.`,
+    });
   }
 
   return {

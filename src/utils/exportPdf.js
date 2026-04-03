@@ -2,12 +2,17 @@
 // Pure JS approach using canvas to generate a simple PDF-like document.
 // Falls back to a printable HTML window if canvas approach is insufficient.
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export function generateJournalPdf(entries, period, stats, patientName) {
   // Build an HTML document that can be printed to PDF
   const now = new Date();
   const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const name = patientName || 'Patient';
+  const name = escapeHtml(patientName || 'Patient');
 
   const statsHtml = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin:16px 0;">
@@ -32,12 +37,12 @@ export function generateJournalPdf(entries, period, stats, patientName) {
 
   const rows = entries.map(e => `
     <tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;">${e.date || '—'}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;">${e.repas || '—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;">${escapeHtml(e.date) || '—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;">${escapeHtml(e.repas) || '—'}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;text-align:center;">${e.glycPre ?? '—'}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;text-align:center;">${e.glycPost ?? '—'}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;text-align:center;font-weight:600;color:#0CBAA6;">${e.dose ?? '—'}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;">${e.aliments || '—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;">${escapeHtml(e.aliments) || '—'}</td>
     </tr>
   `).join('');
 
@@ -112,7 +117,7 @@ export function generateMedicalReport(entries, patterns, patientName) {
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const name = patientName || 'Patient';
+  const name = escapeHtml(patientName || 'Patient');
 
   // ─── Compute all statistics ───────────────────────────────────────────────
   const allValues = [];
@@ -295,14 +300,14 @@ export function generateMedicalReport(entries, patterns, patientName) {
           <div style="background:${s.bg};border:1px solid ${s.border};border-radius:10px;padding:14px;margin-bottom:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-size:14px;font-weight:600;color:${s.color};">
-                ${p.icon || ''} ${p.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                ${escapeHtml(p.icon) || ''} ${escapeHtml(p.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
               </span>
               <span style="font-size:12px;color:${s.color};background:rgba(0,0,0,0.05);padding:3px 10px;border-radius:20px;">
                 ${p.severity === 'warning' ? 'Attention' : p.severity === 'danger' ? 'Critique' : 'Info'}
                 ${p.count ? ` · ${p.count}x` : ''}
               </span>
             </div>
-            <div style="font-size:13px;color:${s.color};">${p.message}</div>
+            <div style="font-size:13px;color:${s.color};">${escapeHtml(p.message)}</div>
           </div>
         `;
       }).join('')

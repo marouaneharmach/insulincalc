@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { C, SPACE, FONT, glycColor } from '../utils/colors.js';
 import { getEntries } from '../data/journalStore.js';
-import { calcIOB } from '../utils/calculations.js';
+import { calcIOB, INSULIN_DURATION_MIN } from '../utils/calculations.js';
 import { calcHypoRiskScore, classifyRisk } from '../utils/hypoRisk.js';
 import { isNightMode } from '../utils/clinicalEngine.js';
 import VelocityIndicator from './VelocityIndicator.jsx';
@@ -24,14 +24,13 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
     const lastEntry = recentEntries.length > 0 ? recentEntries[0] : null;
 
     // IOB computation
-    const insulinDurationMin = 240;
     const iobTotal = recentEntries.reduce((sum, entry) => {
       const entryTime = new Date(entry.date).getTime();
       const minutesAgo = (now.getTime() - entryTime) / 60000;
-      if (minutesAgo >= insulinDurationMin || minutesAgo < 0) return sum;
+      if (minutesAgo >= INSULIN_DURATION_MIN || minutesAgo < 0) return sum;
       const dose = entry.doseInjected || entry.doseCalculated || 0;
       if (dose <= 0) return sum;
-      return sum + calcIOB(dose, minutesAgo, insulinDurationMin);
+      return sum + calcIOB(dose, minutesAgo, INSULIN_DURATION_MIN);
     }, 0);
 
     // Max IOB for bar display (estimate from recent max dose)
