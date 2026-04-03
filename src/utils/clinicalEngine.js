@@ -162,3 +162,33 @@ export function applySafetyRules(input) {
     warnings,
   };
 }
+
+// ─── PREDICTIVE ALERTS ──────────────────────────────────────────────────────
+
+/**
+ * Predict glycemia at 1h and 2h based on current trend, IOB remaining, and ISF.
+ *
+ * @param {Object} params
+ * @param {number} params.currentG      - Current glycemia in g/L
+ * @param {number|null} params.velocity - Glycemia trend in g/L per hour (null = unknown)
+ * @param {number} params.iobRemaining  - Insulin on board remaining (UI)
+ * @param {number} params.isf           - Insulin sensitivity factor in mg/dL per UI
+ * @returns {Object|null} Prediction with glyc1h, glyc2h, alert1h, alert2h — or null if velocity unknown
+ */
+export function predictGlycemia({ currentG, velocity, iobRemaining, isf }) {
+  if (velocity === null || velocity === undefined) return null;
+
+  const isfGL = isf / 100; // convert ISF from mg/dL to g/L
+  const iobDecay1h = iobRemaining * 0.4; // approximate 40% decay in 1h
+  const iobDecay2h = iobRemaining * 0.7; // approximate 70% decay in 2h
+
+  const glyc1h = currentG + velocity - (iobDecay1h * isfGL);
+  const glyc2h = currentG + (velocity * 2) - (iobDecay2h * isfGL);
+
+  return {
+    glyc1h: Math.round(glyc1h * 100) / 100,
+    glyc2h: Math.round(glyc2h * 100) / 100,
+    alert1h: glyc1h < 0.70 ? 'hypo_imminent' : glyc1h > 2.50 ? 'hyper_probable' : null,
+    alert2h: glyc2h < 0.70 ? 'hypo_probable' : glyc2h > 2.50 ? 'hyper_probable' : null,
+  };
+}

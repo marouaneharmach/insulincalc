@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { applySafetyRules, isNightMode } from '../clinicalEngine.js';
+import { applySafetyRules, isNightMode, predictGlycemia } from '../clinicalEngine.js';
 
 describe('clinicalEngine', () => {
   const baseInput = {
@@ -102,6 +102,41 @@ describe('clinicalEngine', () => {
       expect(isNightMode(6)).toBe(false);
       expect(isNightMode(14)).toBe(false);
       expect(isNightMode(20)).toBe(false);
+    });
+  });
+
+  describe('predictGlycemia', () => {
+    it('should predict hypo within 1h', () => {
+      const prediction = predictGlycemia({
+        currentG: 1.0, velocity: -0.4, iobRemaining: 2.0, isf: 50
+      });
+      expect(prediction.glyc1h).toBeLessThan(0.7);
+      expect(prediction.alert1h).toBe('hypo_imminent');
+    });
+
+    it('should predict stable when no velocity', () => {
+      const prediction = predictGlycemia({
+        currentG: 1.4, velocity: null, iobRemaining: 0, isf: 50
+      });
+      expect(prediction).toBeNull();
+    });
+
+    it('should predict hyper when rising fast with no IOB', () => {
+      const prediction = predictGlycemia({
+        currentG: 2.0, velocity: 0.4, iobRemaining: 0, isf: 50
+      });
+      expect(prediction.glyc2h).toBeGreaterThan(2.5);
+      expect(prediction.alert2h).toBe('hyper_probable');
+    });
+
+    it('should account for IOB bringing down glycemia', () => {
+      const withIOB = predictGlycemia({
+        currentG: 2.0, velocity: 0.1, iobRemaining: 3.0, isf: 50
+      });
+      const withoutIOB = predictGlycemia({
+        currentG: 2.0, velocity: 0.1, iobRemaining: 0, isf: 50
+      });
+      expect(withIOB.glyc2h).toBeLessThan(withoutIOB.glyc2h);
     });
   });
 });
