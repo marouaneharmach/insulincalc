@@ -22,6 +22,7 @@ import CustomFoodForm from './components/CustomFoodForm.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import PhotoMeal from './components/PhotoMeal.jsx';
 import JournalTab from './components/JournalTab.jsx';
+import NightModeIndicator from './components/NightModeIndicator.jsx';
 
 // Run migrations before app renders (idempotent)
 migrateData();
@@ -386,7 +387,13 @@ export default function App() {
         <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             {patientName && (
-              <div style={{ fontSize: 13, color: cc.accent, marginBottom: 4 }}>{t("bonjour")} {patientName} 👋</div>
+              <div style={{ fontSize: 13, color: cc.accent, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{t("bonjour")} {patientName} 👋</span>
+                <NightModeIndicator active={isNightMode(new Date().getHours())} t={t} colors={cc} />
+              </div>
+            )}
+            {!patientName && (
+              <NightModeIndicator active={isNightMode(new Date().getHours())} t={t} colors={cc} />
             )}
             <div style={{ fontSize: 21, fontWeight: 700, fontFamily: "'Syne Mono',monospace", color: isDark ? "#e2edf5" : '#1a202c', letterSpacing: -0.5 }}>{t("appName")}</div>
             <div style={{ fontSize: 12, color: cc.muted, letterSpacing: 2, textTransform: "uppercase", marginTop: 3 }}>{t("appSubtitle")}</div>
