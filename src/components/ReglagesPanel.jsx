@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DIGESTION_PROFILES } from '../data/constants.js';
 import { requestNotificationPermission } from '../utils/notifications.js';
 import { imcCategory } from '../utils/calculations.js';
+import { PERIODS, createDefaultProfiles, getCurrentPeriodKey } from '../utils/timeProfiles.js';
 
 function ToggleSwitch({ on, onToggle, accentColor, fallbackAccent, isDark }) {
   return (
@@ -31,6 +32,8 @@ export default function ReglagesPanel({
   imc, bsa, bmr,
   locale, setLocale,
   t, isRTL,
+  timeProfiles, setTimeProfiles,
+  useTimeProfiles, setUseTimeProfiles,
 }) {
   const cc = colors;
   const isDark = theme === 'dark' || !theme;
@@ -185,19 +188,100 @@ export default function ReglagesPanel({
       {/* PARAMETRES MANUELS */}
       <div style={card}>
         <div style={{ fontSize: 12, letterSpacing: 2, color: cc.accent, marginBottom: 14, textTransform: "uppercase" }}>⚙️ {t("parametresManuels")}</div>
-        {[
-          { label: t("ratioInsulineGlucides"), val: ratio, set: setRatio, min: 5, max: 25, step: 1, display: `1 U / ${ratio}g`, note: `1 ${t("unite")} = ${ratio}g`, color: cc.accent },
-          { label: t("facteurCorrection"), val: isf, set: setIsf, min: 20, max: 100, step: 5, display: `${isf} mg/dL`, note: `1 ${t("unite")} = ${isf} mg/dL (${(isf / 100).toFixed(2)} g/L)`, color: "#a78bfa" },
-        ].map((p, i) => (
-          <div key={i} style={{ marginBottom: 20 }}>
-            <label style={lbl}>{p.label}</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <input type="range" min={p.min} max={p.max} step={p.step} value={p.val} onChange={e => p.set(Number(e.target.value))} style={{ flex: 1, accentColor: p.color }} />
-              <div style={monoBox(p.color)}>{p.display}</div>
-            </div>
-            <div style={{ color: cc.muted, fontSize: 12, marginTop: 4, opacity: 0.6 }}>{p.note}</div>
+
+        {/* Toggle: unique vs par période */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+          {[
+            { val: false, label: t("ratioUnique") },
+            { val: true, label: t("parPeriode") },
+          ].map(opt => (
+            <button key={String(opt.val)} onClick={() => {
+              setUseTimeProfiles(opt.val);
+              if (opt.val && !timeProfiles) {
+                setTimeProfiles(createDefaultProfiles(ratio, isf));
+              }
+            }} style={{
+              flex: 1, padding: "10px 8px", borderRadius: 10,
+              border: `1px solid ${useTimeProfiles === opt.val ? cc.accent : cc.border}`,
+              background: useTimeProfiles === opt.val ? `${cc.accent}18` : (isDark ? '#070c12' : '#f8fafc'),
+              color: useTimeProfiles === opt.val ? (cc.accentLight || cc.accent) : cc.muted,
+              fontFamily: "'IBM Plex Mono',monospace", fontSize: 12,
+              fontWeight: useTimeProfiles === opt.val ? 700 : 400, cursor: "pointer",
+            }}>{opt.label}</button>
+          ))}
+        </div>
+
+        {!useTimeProfiles ? (
+          /* Single ratio/ISF inputs (existing behavior) */
+          <>
+            {[
+              { label: t("ratioInsulineGlucides"), val: ratio, set: setRatio, min: 5, max: 25, step: 1, display: `1 U / ${ratio}g`, note: `1 ${t("unite")} = ${ratio}g`, color: cc.accent },
+              { label: t("facteurCorrection"), val: isf, set: setIsf, min: 20, max: 100, step: 5, display: `${isf} mg/dL`, note: `1 ${t("unite")} = ${isf} mg/dL (${(isf / 100).toFixed(2)} g/L)`, color: "#a78bfa" },
+            ].map((p, i) => (
+              <div key={i} style={{ marginBottom: 20 }}>
+                <label style={lbl}>{p.label}</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <input type="range" min={p.min} max={p.max} step={p.step} value={p.val} onChange={e => p.set(Number(e.target.value))} style={{ flex: 1, accentColor: p.color }} />
+                  <div style={monoBox(p.color)}>{p.display}</div>
+                </div>
+                <div style={{ color: cc.muted, fontSize: 12, marginTop: 4, opacity: 0.6 }}>{p.note}</div>
+              </div>
+            ))}
+          </>
+        ) : (
+          /* Per-period ratio/ISF table */
+          <div style={{ marginBottom: 16 }}>
+            {(() => {
+              const currentPeriodKey = getCurrentPeriodKey(new Date().getHours());
+              return PERIODS.map(period => {
+                const prof = timeProfiles?.[period.key] || { ratio: ratio, isf: isf };
+                const isCurrent = period.key === currentPeriodKey;
+                return (
+                  <div key={period.key} style={{
+                    display: "grid", gridTemplateColumns: "90px 1fr 1fr", gap: 8,
+                    alignItems: "center", marginBottom: 8,
+                    padding: "8px 10px", borderRadius: 10,
+                    background: isCurrent ? `${cc.accent}12` : 'transparent',
+                    border: isCurrent ? `1px solid ${cc.accent}44` : `1px solid transparent`,
+                  }}>
+                    <div style={{ fontSize: 12, color: isCurrent ? cc.accent : cc.text, fontWeight: isCurrent ? 700 : 400 }}>
+                      {period.icon} {period.label}
+                      {isCurrent && <div style={{ fontSize: 9, color: cc.accent, marginTop: 2 }}>{t("periodeActuelle")}</div>}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 2 }}>ICR</div>
+                      <input
+                        type="number" min={5} max={25} step={1}
+                        value={prof.ratio}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          if (v >= 5 && v <= 25) {
+                            setTimeProfiles(prev => ({ ...prev, [period.key]: { ...prev[period.key], ratio: v } }));
+                          }
+                        }}
+                        style={{ ...inp, textAlign: "center", padding: "6px 8px", fontSize: 13 }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 2 }}>ISF</div>
+                      <input
+                        type="number" min={20} max={100} step={5}
+                        value={prof.isf}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          if (v >= 20 && v <= 100) {
+                            setTimeProfiles(prev => ({ ...prev, [period.key]: { ...prev[period.key], isf: v } }));
+                          }
+                        }}
+                        style={{ ...inp, textAlign: "center", padding: "6px 8px", fontSize: 13 }}
+                      />
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
-        ))}
+        )}
 
         <div style={{ marginBottom: 20 }}>
           <label style={lbl}>{t("glycemieCiblePlage")}</label>

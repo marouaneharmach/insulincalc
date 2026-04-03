@@ -11,6 +11,7 @@ import { schedulePostMealReminder } from './utils/notifications.js';
 import { generateJournalPdf } from './utils/exportPdf.js';
 import { addEntry, getEntries, getAllEntries } from './data/journalStore.js';
 import { migrateData } from './utils/migration.js';
+import { getActiveProfile } from './utils/timeProfiles.js';
 
 import TabNav from './components/TabNav.jsx';
 import QtyStepper from './components/QtyStepper.jsx';
@@ -55,6 +56,8 @@ export default function App() {
   const [patientName, setPatientName] = useLocalStorage("patientName", "");
   const [notifEnabled, setNotifEnabled] = useLocalStorage("notifEnabled", false);
   const [notifDelay, setNotifDelay] = useLocalStorage("notifDelay", 120);
+  const [useTimeProfiles, setUseTimeProfiles] = useLocalStorage("useTimeProfiles", false);
+  const [timeProfiles, setTimeProfiles] = useLocalStorage("timeProfiles", null);
 
   // Journal refresh trigger (journalStore is the single source of truth)
   const [journalRefreshKey, setJournalRefreshKey] = useState(0);
@@ -183,10 +186,23 @@ export default function App() {
   // Auto-calculate (Fix #5) — derived state via useMemo
   const result = useMemo(() => {
     if (!canCalc) return null;
-    const bolusRepas = totalCarbs / ratio;
+
+    // Use active period's ratio/ISF if time profiles are enabled
+    const currentHour = new Date().getHours();
+    let activeRatio = ratio;
+    let activeIsf = isf;
+    if (useTimeProfiles && timeProfiles) {
+      const profile = getActiveProfile(timeProfiles, currentHour);
+      if (profile) {
+        activeRatio = profile.ratio;
+        activeIsf = profile.isf;
+      }
+    }
+
+    const bolusRepas = totalCarbs / activeRatio;
     const ecart = gVal - targetGMid;
-    const correction = ecart > 0 ? (ecart * 100) / isf : 0;
-    const fatBonus = (totalCarbs / ratio) * FAT_FACTOR[dominantFat];
+    const correction = ecart > 0 ? (ecart * 100) / activeIsf : 0;
+    const fatBonus = (totalCarbs / activeRatio) * FAT_FACTOR[dominantFat];
     const total = round05(bolusRepas + correction + fatBonus);
     const hasFat = dominantFat === "élevé" || dominantFat === "moyen";
     const bolusType = hasFat ? "dual" : "standard";
@@ -278,7 +294,7 @@ export default function App() {
       blocked: safety.blocked,
       correctionBlocked: safety.correctionBlocked,
     };
-  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t, journalRefreshKey, weight, age, sex, maxDose]);
+  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t, journalRefreshKey, weight, age, sex, maxDose, useTimeProfiles, timeProfiles]);
 
   // Save to journal — explicit via bouton Enregistrer (accepts actual dose)
   const saveToJournal = useCallback((doseActual, dosagePlan) => {
@@ -604,6 +620,8 @@ export default function App() {
             imc={imc} bsa={bsa} bmr={bmr}
             locale={locale} setLocale={setLocale}
             t={t} isRTL={isRTL}
+            timeProfiles={timeProfiles} setTimeProfiles={setTimeProfiles}
+            useTimeProfiles={useTimeProfiles} setUseTimeProfiles={setUseTimeProfiles}
           />
         )}
       </div>
