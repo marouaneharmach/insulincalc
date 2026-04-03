@@ -3,6 +3,7 @@ import { C, SPACE, FONT, glycColor, glycLabel } from '../utils/colors.js';
 import { estimateHbA1c, detectPatterns } from '../utils/calculations.js';
 import { detectAdvancedPatterns } from '../utils/patternDetector.js';
 import { getEntries, getStats, addEntry, updateEntry, deleteEntry } from '../data/journalStore.js';
+import { generateMedicalReport } from '../utils/exportPdf.js';
 import TimeInRange from './TimeInRange.jsx';
 import JournalEntryForm from './JournalEntryForm.jsx';
 import PatternAlerts from './PatternAlerts.jsx';
@@ -207,7 +208,7 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
 }
 
 // ─── MAIN JOURNAL TAB ────────────────────────────────────────────────────────
-export default function JournalTab({ selections, totalCarbs, doseCalculated, glycemia, onExportPdf }) {
+export default function JournalTab({ selections, totalCarbs, doseCalculated, glycemia, onExportPdf, patientName }) {
   const [period, setPeriod] = useState(14);
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
@@ -374,6 +375,22 @@ export default function JournalTab({ selections, totalCarbs, doseCalculated, gly
             PDF
           </button>
         )}
+        <button
+          disabled={entries.length < 14}
+          onClick={() => entries.length >= 14 && generateMedicalReport(entries, patterns, patientName)}
+          style={{
+            padding: "14px 16px", borderRadius: 12,
+            border: `1px solid ${entries.length >= 14 ? 'rgba(167,139,250,0.4)' : 'rgba(100,116,139,0.2)'}`,
+            background: entries.length >= 14 ? "rgba(167,139,250,0.08)" : "rgba(100,116,139,0.05)",
+            color: entries.length >= 14 ? "#c4b5fd" : "#475569",
+            fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600,
+            cursor: entries.length >= 14 ? "pointer" : "not-allowed",
+            opacity: entries.length >= 14 ? 1 : 0.5,
+          }}
+          title={entries.length < 14 ? `Minimum 14 jours requis (${entries.length}/${14})` : 'Générer un rapport médical complet'}
+        >
+          {"\uD83D\uDCCB"} Rapport médecin
+        </button>
       </div>
 
       {/* Entry list */}

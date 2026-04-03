@@ -661,6 +661,7 @@ export default function App() {
             doseCalculated={result?.total}
             glycemia={gVal}
             onExportPdf={handleExportPdf}
+            patientName={patientName}
           />
         )}
 
