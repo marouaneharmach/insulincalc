@@ -30,6 +30,12 @@ export default function JournalEntryForm({ onSave, onCancel, selections, totalCa
   const [showPostMeal, setShowPostMeal] = useState(
     editEntry?.postMealGlycemia != null
   );
+  const [showContext, setShowContext] = useState(
+    editEntry?.stress != null || editEntry?.sommeil != null || editEntry?.activitePhysique != null
+  );
+  const [stress, setStress] = useState(editEntry?.stress || null);
+  const [sommeil, setSommeil] = useState(editEntry?.sommeil || null);
+  const [activitePhysique, setActivitePhysique] = useState(editEntry?.activitePhysique || null);
 
   // Editable food list: use editEntry foods when editing, selections when creating
   const initialFoods = () => {
@@ -133,6 +139,9 @@ export default function JournalEntryForm({ onSave, onCancel, selections, totalCa
       postMealTime: showPostMeal && postMealTime ? parseInt(postMealTime) : null,
       correction: null,
       notes: notes.trim(),
+      stress: stress || null,
+      sommeil: sommeil || null,
+      activitePhysique: activitePhysique || null,
     };
 
     if (editEntry) entry.id = editEntry.id;
@@ -375,6 +384,81 @@ export default function JournalEntryForm({ onSave, onCancel, selections, totalCa
                     fontFamily: "'IBM Plex Mono',monospace",
                   }}>
                     {m >= 60 ? `${m / 60}h` : `${m}m`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Contexte (collapsible) */}
+        {!showContext ? (
+          <button onClick={() => setShowContext(true)} style={{
+            width: "100%", padding: "10px 14px", marginBottom: 14,
+            border: `1px dashed rgba(14,165,233,0.3)`, borderRadius: 10,
+            background: "transparent", color: C.muted,
+            fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, cursor: "pointer",
+          }}>
+            + Ajouter contexte (stress, sommeil, activité)
+          </button>
+        ) : (
+          <div style={{ ...card, padding: "10px 14px", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, color: C.muted }}>🧠 Contexte</span>
+              <button onClick={() => setShowContext(false)} style={{
+                background: "none", border: "none", color: C.muted, fontSize: 14, cursor: "pointer",
+              }}>▲</button>
+            </div>
+            {/* Stress */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Stress</span>
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                {["normal", "élevé", "très élevé"].map(opt => (
+                  <button key={opt} onClick={() => setStress(stress === opt ? null : opt)} style={{
+                    flex: 1, padding: "6px 4px", fontSize: 10,
+                    border: `1px solid ${stress === opt ? C.accent : C.border}`,
+                    borderRadius: 6, cursor: "pointer",
+                    background: stress === opt ? "rgba(14,165,233,0.12)" : "#070c12",
+                    color: stress === opt ? "#7dd3fc" : C.muted,
+                    fontFamily: "'IBM Plex Mono',monospace",
+                  }}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Sommeil */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Sommeil</span>
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                {["bon", "moyen", "mauvais"].map(opt => (
+                  <button key={opt} onClick={() => setSommeil(sommeil === opt ? null : opt)} style={{
+                    flex: 1, padding: "6px 4px", fontSize: 10,
+                    border: `1px solid ${sommeil === opt ? C.accent : C.border}`,
+                    borderRadius: 6, cursor: "pointer",
+                    background: sommeil === opt ? "rgba(14,165,233,0.12)" : "#070c12",
+                    color: sommeil === opt ? "#7dd3fc" : C.muted,
+                    fontFamily: "'IBM Plex Mono',monospace",
+                  }}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Activité physique */}
+            <div>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Activite physique</span>
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                {["aucune", "légère", "modérée", "intense"].map(opt => (
+                  <button key={opt} onClick={() => setActivitePhysique(activitePhysique === opt ? null : opt)} style={{
+                    flex: 1, padding: "6px 4px", fontSize: 10,
+                    border: `1px solid ${activitePhysique === opt ? C.accent : C.border}`,
+                    borderRadius: 6, cursor: "pointer",
+                    background: activitePhysique === opt ? "rgba(14,165,233,0.12)" : "#070c12",
+                    color: activitePhysique === opt ? "#7dd3fc" : C.muted,
+                    fontFamily: "'IBM Plex Mono',monospace",
+                  }}>
+                    {opt}
                   </button>
                 ))}
               </div>

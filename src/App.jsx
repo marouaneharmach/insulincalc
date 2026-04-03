@@ -11,7 +11,9 @@ import { schedulePostMealReminder } from './utils/notifications.js';
 import { generateJournalPdf } from './utils/exportPdf.js';
 import { addEntry, getEntries, getAllEntries } from './data/journalStore.js';
 import { migrateData } from './utils/migration.js';
-import { getActiveProfile } from './utils/timeProfiles.js';
+import { getActiveProfile, getCurrentPeriodKey } from './utils/timeProfiles.js';
+import { calcVelocity, classifyVelocity } from './utils/velocity.js';
+import { calcHypoRiskScore, classifyRisk } from './utils/hypoRisk.js';
 
 import TabNav from './components/TabNav.jsx';
 import QtyStepper from './components/QtyStepper.jsx';
@@ -24,6 +26,7 @@ import Onboarding from './components/Onboarding.jsx';
 import PhotoMeal from './components/PhotoMeal.jsx';
 import JournalTab from './components/JournalTab.jsx';
 import NightModeIndicator from './components/NightModeIndicator.jsx';
+import Dashboard from './components/Dashboard.jsx';
 
 // Run migrations before app renders (idempotent)
 migrateData();
@@ -35,7 +38,7 @@ export default function App() {
   const [onboarded, setOnboarded] = useLocalStorage("onboarded", false);
 
   // Core state
-  const [tab, setTab] = useState("repas");
+  const [tab, setTab] = useState("accueil");
   const [glycemia, setGlycemia] = useLocalStorage("glycemia", "");
   const [search, setSearch] = useState("");
   const [openCat, setOpenCat] = useState(null);
@@ -216,7 +219,6 @@ export default function App() {
 
     // ── Clinical Safety Engine ──
     const now = new Date();
-    const currentHour = now.getHours();
     const recentEntries = getEntries(1); // last 24h
     const insulinDurationMin = 240; // 4h standard insulin action
 
@@ -299,8 +301,45 @@ export default function App() {
   // Save to journal — explicit via bouton Enregistrer (accepts actual dose)
   const saveToJournal = useCallback((doseActual, dosagePlan) => {
     if (!result) return;
-    const h = new Date().getHours();
+    const now = new Date();
+    const h = now.getHours();
     const mealType = h < 10 ? 'petit-déjeuner' : h < 15 ? 'déjeuner' : h < 18 ? 'collation' : 'dîner';
+
+    // Enriched fields (Task 7)
+    const recentAll = getEntries(7);
+    const lastEntry = recentAll.length > 0 ? recentAll[0] : null;
+    let glycemiaPrecedente = null;
+    let intervalleMinutes = null;
+    let velocity = null;
+    let velocityTrend = null;
+    if (lastEntry && lastEntry.preMealGlycemia != null) {
+      glycemiaPrecedente = lastEntry.preMealGlycemia;
+      intervalleMinutes = Math.round((now.getTime() - new Date(lastEntry.date).getTime()) / 60000);
+      velocity = calcVelocity(gVal, glycemiaPrecedente, intervalleMinutes);
+      velocityTrend = classifyVelocity(velocity);
+    }
+
+    // IOB computation (same logic as result computation)
+    const insulinDurationMin = 240;
+    const iobTotal = recentAll.reduce((sum, entry) => {
+      const entryTime = new Date(entry.date).getTime();
+      const minutesAgo = (now.getTime() - entryTime) / 60000;
+      if (minutesAgo >= insulinDurationMin || minutesAgo < 0) return sum;
+      const dose = entry.doseInjected || entry.doseCalculated || 0;
+      if (dose <= 0) return sum;
+      return sum + calcIOB(dose, minutesAgo, insulinDurationMin);
+    }, 0);
+
+    // Hypo risk
+    const hypoScore = calcHypoRiskScore({
+      glycemia: gVal,
+      iobTotal,
+      trend: velocityTrend || 'unknown',
+      hypoIn24h: recentAll.some(e => e.preMealGlycemia != null && e.preMealGlycemia < 0.7),
+      activity: null,
+      currentHour: h,
+    });
+
     const entryData = {
       mealType,
       preMealGlycemia: gVal,
@@ -315,6 +354,20 @@ export default function App() {
       doseInjected: doseActual != null ? doseActual : result.total,
       correction: result.correction,
       notes: '',
+      // Enriched fields
+      periodeJour: getCurrentPeriodKey(h),
+      heureExacte: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      glycemiaPrecedente,
+      intervalleMinutes,
+      velocity: velocity != null ? Math.round(velocity * 100) / 100 : null,
+      velocityTrend,
+      iobAuMoment: Math.round(iobTotal * 100) / 100,
+      hypoRiskScore: hypoScore,
+      hypoRiskLevel: classifyRisk(hypoScore),
+      modeNocturne: isNightMode(h),
+      stress: null,
+      sommeil: null,
+      activitePhysique: null,
     };
     if (dosagePlan) entryData.dosagePlan = dosagePlan;
     addEntry(entryData);
@@ -426,6 +479,17 @@ export default function App() {
       <TabNav tab={tab} setTab={setTab} selections={selections} className="no-print" colors={cc} theme={theme} journalCount={getAllEntries().length} t={t} />
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 20px 100px" }}>
+
+        {/* === ACCUEIL / DASHBOARD === */}
+        {tab === "accueil" && (
+          <Dashboard
+            setTab={setTab}
+            t={t}
+            colors={cc}
+            theme={theme}
+            journalRefreshKey={journalRefreshKey}
+          />
+        )}
 
         {/* === REPAS === */}
         {tab === "repas" && (<>

@@ -6,6 +6,8 @@ import { getEntries, getStats, addEntry, updateEntry, deleteEntry } from '../dat
 import TimeInRange from './TimeInRange.jsx';
 import JournalEntryForm from './JournalEntryForm.jsx';
 import PatternAlerts from './PatternAlerts.jsx';
+import VelocityIndicator from './VelocityIndicator.jsx';
+import HypoRiskBadge from './HypoRiskBadge.jsx';
 
 // ─── MEAL TYPE DISPLAY ───────────────────────────────────────────────────────
 const MEAL_ICONS = {
@@ -107,9 +109,13 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {entry.modeNocturne && <span title="Mode nocturne" style={{ fontSize: 14 }}>🌙</span>}
             <span style={{ fontSize: 16, fontWeight: 700, color: glycColor(entry.preMealGlycemia) }}>
               {entry.preMealGlycemia?.toFixed(2) || "—"}
             </span>
+            {entry.velocityTrend && entry.velocityTrend !== 'unknown' && (
+              <VelocityIndicator trend={entry.velocityTrend} velocity={entry.velocity} />
+            )}
             {entry.postMealGlycemia != null && (
               <>
                 <span style={{ color: C.muted, fontSize: 12 }}>→</span>
@@ -140,6 +146,9 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
           }}>
             {entry.totalCarbs}g glucides
           </div>
+        )}
+        {entry.hypoRiskScore != null && (
+          <HypoRiskBadge score={entry.hypoRiskScore} showLabel={false} />
         )}
       </div>
 

@@ -7,6 +7,7 @@ const fr = {
   aliments: "aliments",
 
   // Tabs
+  tabAccueil: "🏠 Accueil",
   tabRepas: "🍽 Repas",
   tabSaisie: "🩸 Saisie",
   tabResultat: "⚡ Résultat",

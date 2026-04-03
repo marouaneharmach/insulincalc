@@ -7,6 +7,7 @@ const ar = {
   aliments: "مكوّنات",
 
   // Tabs
+  tabAccueil: "🏠 الرئيسية",
   tabRepas: "🍽 الوجبة",
   tabSaisie: "🩸 الإدخال",
   tabResultat: "⚡ النتيجة",

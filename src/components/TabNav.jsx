@@ -9,6 +9,7 @@ export default function TabNav({ tab, setTab, selections, className, colors, the
     <div className={className} style={{ maxWidth: 520, margin: "10px auto 0", padding: "0 20px" }}>
       <div style={{ display: "flex", background: cc.card, border: `1px solid ${cc.border}`, borderRadius: 10, padding: 3 }}>
         {[
+          { id: "accueil", label: t ? t("tabAccueil") || "🏠 Accueil" : "🏠 Accueil" },
           { id: "repas", label: t ? t("tabRepas") : "🍽 Repas", badge: selections.length },
           { id: "resultat", label: t ? t("tabResultat") : "⚡ Résultat" },
           { id: "journal", label: t ? t("tabJournal") : "📋 Journal", badge: journalCount > 0 ? journalCount : 0 },
