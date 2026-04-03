@@ -2,7 +2,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useTheme } from './hooks/useTheme.js';
 import { useI18n } from './i18n/useI18n.js';
-import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR } from './utils/calculations.js';
+import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR, calcIOB } from './utils/calculations.js';
+import { applySafetyRules, isNightMode } from './utils/clinicalEngine.js';
 import { SPACE, FONT, GI_ICON, GI_COLOR, glycColor, glycLabel, stripDiacritics } from './utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants.js';
 import FOOD_DB from './data/foods.js';
@@ -195,15 +196,95 @@ export default function App() {
     if (bolusType === "dual") warnings.push({ t: "i", txt: t("repasGras") });
     if (dominantGI === "élevé") warnings.push({ t: "c", txt: t("igEleve") });
     if (total > 20) warnings.push({ t: "w", txt: t("doseElevee") });
-    return { total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) };
-  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t]);
+
+    // ── Clinical Safety Engine ──
+    const now = new Date();
+    const currentHour = now.getHours();
+    const recentEntries = getEntries(1); // last 24h
+    const insulinDurationMin = 240; // 4h standard insulin action
+
+    // Compute IOB from recent journal entries
+    const iobTotal = recentEntries.reduce((sum, entry) => {
+      const entryTime = new Date(entry.date).getTime();
+      const minutesAgo = (now.getTime() - entryTime) / 60000;
+      if (minutesAgo >= insulinDurationMin || minutesAgo < 0) return sum;
+      const dose = entry.doseInjected || entry.doseCalculated || 0;
+      if (dose <= 0) return sum;
+      return sum + calcIOB(dose, minutesAgo, insulinDurationMin);
+    }, 0);
+
+    // Time since most recent injection
+    const lastInjectionMinAgo = recentEntries.length > 0
+      ? (now.getTime() - new Date(recentEntries[0].date).getTime()) / 60000
+      : 999;
+
+    // Sum of corrections in last 24h
+    const cumulCorrections24h = recentEntries.reduce((sum, entry) => {
+      return sum + (entry.correction || 0);
+    }, 0);
+
+    // Estimated TDD: from weight suggestions or sum of last 7 days / 7
+    const weekEntries = getEntries(7);
+    let tddEstimated = 30; // default
+    const weightSugg = weight ? calcWeightSuggestions(Number(weight), Number(age), sex) : null;
+    if (weightSugg) {
+      tddEstimated = weightSugg.tdd;
+    } else if (weekEntries.length >= 3) {
+      const totalDoses = weekEntries.reduce((s, e) => s + (e.doseInjected || e.doseCalculated || 0), 0);
+      tddEstimated = Math.round(totalDoses / 7);
+    }
+
+    const safety = applySafetyRules({
+      glycemia: gVal,
+      suggestedDose: total,
+      iobTotal,
+      currentHour,
+      lastInjectionMinAgo,
+      cumulCorrections24h,
+      tddEstimated,
+      correction,
+      maxDose,
+    });
+
+    // Apply safety adjustments
+    let safeTotal = total;
+    let safeCorrection = +correction.toFixed(1);
+    if (safety.blocked) {
+      safeTotal = 0;
+      safeCorrection = 0;
+    } else if (safety.correctionBlocked) {
+      safeCorrection = 0;
+      safeTotal = round05(total - correction);
+    } else {
+      safeCorrection = safety.adjustedCorrection;
+      safeTotal = safety.adjustedDose;
+    }
+
+    // Add safety warnings to existing warnings
+    for (const sw of safety.warnings) {
+      warnings.push({ t: sw.severity === 'critical' ? 'w' : sw.severity === 'warning' ? 'w' : 'i', txt: sw.message });
+    }
+
+    return {
+      total: safeTotal,
+      bolusType,
+      warnings,
+      schedule,
+      bolusRepas: +bolusRepas.toFixed(1),
+      correction: safeCorrection,
+      fatBonus: +fatBonus.toFixed(1),
+      nightMode: safety.nightMode,
+      blocked: safety.blocked,
+      correctionBlocked: safety.correctionBlocked,
+    };
+  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t, journalRefreshKey, weight, age, sex, maxDose]);
 
   // Save to journal — explicit via bouton Enregistrer (accepts actual dose)
-  const saveToJournal = useCallback((doseActual) => {
+  const saveToJournal = useCallback((doseActual, dosagePlan) => {
     if (!result) return;
     const h = new Date().getHours();
     const mealType = h < 10 ? 'petit-déjeuner' : h < 15 ? 'déjeuner' : h < 18 ? 'collation' : 'dîner';
-    addEntry({
+    const entryData = {
       mealType,
       preMealGlycemia: gVal,
       foods: selections.map(s => ({
@@ -217,7 +298,9 @@ export default function App() {
       doseInjected: doseActual != null ? doseActual : result.total,
       correction: result.correction,
       notes: '',
-    });
+    };
+    if (dosagePlan) entryData.dosagePlan = dosagePlan;
+    addEntry(entryData);
     refreshJournal();
 
     if (notifEnabled) {
