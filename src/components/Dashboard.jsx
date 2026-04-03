@@ -152,8 +152,8 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
           </div>
         ) : (
           <div style={{ textAlign: "center", padding: "20px 0", color: cc.muted, fontSize: 13 }}>
-            Aucune mesure enregistree.
-            <br />Commencez par calculer un repas.
+            {t?.('aucuneMesure') || 'Aucune mesure enregistr\u00e9e.'}
+            <br />{t?.('commencezCalculer') || 'Commencez par calculer un repas.'}
           </div>
         )}
       </div>
@@ -164,7 +164,7 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
           fontSize: 12, letterSpacing: 2, color: cc.accent,
           textTransform: "uppercase", marginBottom: 10,
         }}>
-          💉 Insuline active (IOB)
+          💉 {t?.('insulineActive') || 'Insuline active (IOB)'}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <div style={{
@@ -174,7 +174,7 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
             {iobTotal > 0 ? `${iobTotal}U` : '0U'}
           </div>
           <div style={{ fontSize: 11, color: cc.muted }}>
-            {iobTotal > 0 ? 'encore en action' : 'aucune insuline residuelle'}
+            {iobTotal > 0 ? (t?.('encoreEnAction') || 'encore en action') : (t?.('aucuneInsulineResiduelle') || 'aucune insuline r\u00e9siduelle')}
           </div>
         </div>
         {/* IOB decay bar */}
@@ -194,7 +194,7 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
 
       {/* 3. Quick Actions */}
       <div style={{ display: "flex", gap: 8, marginBottom: SPACE.md }}>
-        <button onClick={() => setTab('repas')} style={{
+        <button onClick={() => setTab('repas')} aria-label={t?.('nouveauRepasBtn') || 'Nouveau repas'} style={{
           flex: 1, padding: 14, borderRadius: 12,
           border: "none",
           background: `linear-gradient(135deg,${cc.accent},#0a9e8e)`,
@@ -202,9 +202,9 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
           fontSize: 13, fontWeight: 700, cursor: "pointer",
           boxShadow: `0 4px 16px ${cc.accent}4D`,
         }}>
-          🍽 Nouveau repas
+          🍽 {t?.('nouveauRepasBtn') || 'Nouveau repas'}
         </button>
-        <button onClick={() => setTab('repas')} style={{
+        <button onClick={() => setTab('repas')} aria-label={t?.('correctionSeule') || 'Correction seule'} style={{
           flex: 1, padding: 14, borderRadius: 12,
           border: `1px solid ${cc.accent}40`,
           background: `${cc.accent}0F`,
@@ -212,7 +212,7 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
           fontFamily: "'IBM Plex Mono',monospace",
           fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}>
-          💉 Correction seule
+          💉 {t?.('correctionSeule') || 'Correction seule'}
         </button>
       </div>
 
@@ -224,13 +224,13 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
             textTransform: "uppercase", marginBottom: 10,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
-            <span>📋 Derniers enregistrements</span>
-            <button onClick={() => setTab('journal')} style={{
+            <span>📋 {t?.('derniersEnregistrements') || 'Derniers enregistrements'}</span>
+            <button onClick={() => setTab('journal')} aria-label={t?.('voirTout') || 'Voir tout'} style={{
               background: "none", border: `1px solid ${cc.border}`,
               borderRadius: 6, padding: "3px 8px", color: cc.muted,
               fontSize: 10, cursor: "pointer", fontFamily: "'IBM Plex Mono',monospace",
             }}>
-              Voir tout
+              {t?.('voirTout') || 'Voir tout'}
             </button>
           </div>
           {last3.map((entry, i) => {
@@ -279,7 +279,7 @@ export default function Dashboard({ setTab, t, colors, theme, journalRefreshKey 
             fontSize: 12, letterSpacing: 2, color: cc.accent,
             textTransform: "uppercase", marginBottom: 8,
           }}>
-            🔔 Alertes actives
+            🔔 {t?.('alertesActives') || 'Alertes actives'}
           </div>
           <PatternAlerts patterns={patterns} />
         </div>

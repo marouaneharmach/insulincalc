@@ -353,6 +353,15 @@ const fr = {
   actionsRapides: "Actions rapides",
   correctionSeule: "Correction seule",
   alertesActives: "Alertes actives",
+  etatActuel: "État actuel",
+  insulineActive: "Insuline active (IOB)",
+  encoreEnAction: "encore en action",
+  aucuneInsulineResiduelle: "aucune insuline résiduelle",
+  aucuneMesure: "Aucune mesure enregistrée.",
+  commencezCalculer: "Commencez par calculer un repas.",
+  nouveauRepasBtn: "Nouveau repas",
+  derniersEnregistrements: "Derniers enregistrements",
+  voirTout: "Voir tout",
 
   // Journal context
   contexte: "Contexte",

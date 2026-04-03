@@ -353,6 +353,15 @@ const ar = {
   actionsRapides: "إجراءات سريعة",
   correctionSeule: "تصحيح فقط",
   alertesActives: "التنبيهات النشطة",
+  etatActuel: "الحالة الحالية",
+  insulineActive: "الأنسولين النشط (IOB)",
+  encoreEnAction: "لا يزال نشطاً",
+  aucuneInsulineResiduelle: "لا أنسولين متبقي",
+  aucuneMesure: "لا يوجد قياس مسجل.",
+  commencezCalculer: "ابدأ بحساب وجبة.",
+  nouveauRepasBtn: "وجبة جديدة",
+  derniersEnregistrements: "آخر التسجيلات",
+  voirTout: "عرض الكل",
 
   // Journal context
   contexte: "السياق",
