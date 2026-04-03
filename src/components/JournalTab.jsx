@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { C, SPACE, FONT, glycColor, glycLabel } from '../utils/colors.js';
 import { estimateHbA1c, detectPatterns } from '../utils/calculations.js';
+import { detectAdvancedPatterns } from '../utils/patternDetector.js';
 import { getEntries, getStats, addEntry, updateEntry, deleteEntry } from '../data/journalStore.js';
 import TimeInRange from './TimeInRange.jsx';
 import JournalEntryForm from './JournalEntryForm.jsx';
+import PatternAlerts from './PatternAlerts.jsx';
 
 // ─── MEAL TYPE DISPLAY ───────────────────────────────────────────────────────
 const MEAL_ICONS = {
@@ -141,9 +143,24 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
         )}
       </div>
 
-      <div style={{ fontSize: 11, color: C.muted, marginBottom: entry.notes ? 4 : 0 }}>
+      <div style={{ fontSize: 11, color: C.muted, marginBottom: (entry.notes || entry.dosagePlan) ? 4 : 0 }}>
         {foodSummary}{hasMore ? ` +${entry.foods.length - 3}` : ""}
       </div>
+
+      {entry.dosagePlan && entry.dosagePlan.length > 0 && (
+        <div style={{
+          fontSize: 10, color: '#9ab8cc', marginBottom: entry.notes ? 4 : 0,
+          padding: '3px 8px', borderRadius: 6,
+          background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
+        }}>
+          {entry.dosagePlan.map((p, i) => (
+            <span key={i}>
+              {i > 0 && ' \u00b7 '}
+              {p.label.replace(/\s*—.*/, '')}: {p.actualDose != null ? p.actualDose : p.plannedDose}U {p.taken ? '\u2713' : '\u2717'}
+            </span>
+          ))}
+        </div>
+      )}
 
       {entry.notes && (
         <div style={{ fontSize: 11, color: "#4a8fa8", fontStyle: "italic", marginBottom: 2 }}>
@@ -192,7 +209,20 @@ export default function JournalTab({ selections, totalCarbs, doseCalculated, gly
   const stats = useMemo(() => getStats(period), [period, refreshKey]);
   const entries = stats.entries || [];
   const hba1c = useMemo(() => estimateHbA1c(entries), [entries]);
-  const patterns = useMemo(() => detectPatterns(entries), [entries]);
+  const patterns = useMemo(() => {
+    const basic = detectPatterns(entries);
+    const advanced = detectAdvancedPatterns(entries);
+    // Merge both, deduplicating by type
+    const seenTypes = new Set(basic.map(p => p.type));
+    const merged = [...basic];
+    advanced.forEach(p => {
+      if (!seenTypes.has(p.type)) {
+        merged.push(p);
+        seenTypes.add(p.type);
+      }
+    });
+    return merged;
+  }, [entries]);
 
   const handleSave = (entry) => {
     if (entry.id) {
@@ -314,23 +344,7 @@ export default function JournalTab({ selections, totalCarbs, doseCalculated, gly
       </div>
 
       {/* Patterns */}
-      {patterns.length > 0 && (
-        <div style={{ ...card, borderColor: "rgba(245,158,11,0.3)" }}>
-          <div style={{ fontSize: 12, letterSpacing: 2, color: "#f59e0b", textTransform: "uppercase", marginBottom: 10 }}>
-            🔍 Patterns détectés
-          </div>
-          {patterns.map((p, i) => (
-            <div key={i} style={{
-              padding: "8px 12px", borderRadius: 8, marginBottom: i < patterns.length - 1 ? 6 : 0,
-              background: p.severity === "warning" ? "rgba(239,68,68,0.08)" : "rgba(14,165,233,0.06)",
-              border: `1px solid ${p.severity === "warning" ? "rgba(239,68,68,0.3)" : "rgba(14,165,233,0.2)"}`,
-              fontSize: 11, color: p.severity === "warning" ? "#fca5a5" : "#7dd3fc", lineHeight: 1.5,
-            }}>
-              {p.icon} {p.message}
-            </div>
-          ))}
-        </div>
-      )}
+      <PatternAlerts patterns={patterns} />
 
       {/* Add entry + Export PDF buttons */}
       <div style={{ display: "flex", gap: 8, marginBottom: SPACE.md }}>
