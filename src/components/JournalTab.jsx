@@ -1,9 +1,14 @@
 import { useState, useMemo } from 'react';
 import { C, SPACE, FONT, glycColor, glycLabel } from '../utils/colors.js';
 import { estimateHbA1c, detectPatterns } from '../utils/calculations.js';
+import { detectAdvancedPatterns } from '../utils/patternDetector.js';
 import { getEntries, getStats, addEntry, updateEntry, deleteEntry } from '../data/journalStore.js';
+import { generateMedicalReport } from '../utils/exportPdf.js';
 import TimeInRange from './TimeInRange.jsx';
 import JournalEntryForm from './JournalEntryForm.jsx';
+import PatternAlerts from './PatternAlerts.jsx';
+import VelocityIndicator from './VelocityIndicator.jsx';
+import HypoRiskBadge from './HypoRiskBadge.jsx';
 
 // ─── MEAL TYPE DISPLAY ───────────────────────────────────────────────────────
 const MEAL_ICONS = {
@@ -105,9 +110,13 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {entry.modeNocturne && <span title="Mode nocturne" style={{ fontSize: 14 }}>🌙</span>}
             <span style={{ fontSize: 16, fontWeight: 700, color: glycColor(entry.preMealGlycemia) }}>
               {entry.preMealGlycemia?.toFixed(2) || "—"}
             </span>
+            {entry.velocityTrend && entry.velocityTrend !== 'unknown' && (
+              <VelocityIndicator trend={entry.velocityTrend} velocity={entry.velocity} />
+            )}
             {entry.postMealGlycemia != null && (
               <>
                 <span style={{ color: C.muted, fontSize: 12 }}>→</span>
@@ -139,11 +148,29 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
             {entry.totalCarbs}g glucides
           </div>
         )}
+        {entry.hypoRiskScore != null && (
+          <HypoRiskBadge score={entry.hypoRiskScore} showLabel={false} />
+        )}
       </div>
 
-      <div style={{ fontSize: 11, color: C.muted, marginBottom: entry.notes ? 4 : 0 }}>
+      <div style={{ fontSize: 11, color: C.muted, marginBottom: (entry.notes || entry.dosagePlan) ? 4 : 0 }}>
         {foodSummary}{hasMore ? ` +${entry.foods.length - 3}` : ""}
       </div>
+
+      {entry.dosagePlan && entry.dosagePlan.length > 0 && (
+        <div style={{
+          fontSize: 10, color: '#9ab8cc', marginBottom: entry.notes ? 4 : 0,
+          padding: '3px 8px', borderRadius: 6,
+          background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
+        }}>
+          {entry.dosagePlan.map((p, i) => (
+            <span key={i}>
+              {i > 0 && ' \u00b7 '}
+              {p.label.replace(/\s*—.*/, '')}: {p.actualDose != null ? p.actualDose : p.plannedDose}U {p.taken ? '\u2713' : '\u2717'}
+            </span>
+          ))}
+        </div>
+      )}
 
       {entry.notes && (
         <div style={{ fontSize: 11, color: "#4a8fa8", fontStyle: "italic", marginBottom: 2 }}>
@@ -181,7 +208,7 @@ function JournalEntryRow({ entry, onEdit, onDelete, onAddPostMeal }) {
 }
 
 // ─── MAIN JOURNAL TAB ────────────────────────────────────────────────────────
-export default function JournalTab({ selections, totalCarbs, doseCalculated, glycemia }) {
+export default function JournalTab({ selections, totalCarbs, doseCalculated, glycemia, onExportPdf, patientName }) {
   const [period, setPeriod] = useState(14);
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
@@ -192,7 +219,20 @@ export default function JournalTab({ selections, totalCarbs, doseCalculated, gly
   const stats = useMemo(() => getStats(period), [period, refreshKey]);
   const entries = stats.entries || [];
   const hba1c = useMemo(() => estimateHbA1c(entries), [entries]);
-  const patterns = useMemo(() => detectPatterns(entries), [entries]);
+  const patterns = useMemo(() => {
+    const basic = detectPatterns(entries);
+    const advanced = detectAdvancedPatterns(entries);
+    // Merge both, deduplicating by type
+    const seenTypes = new Set(basic.map(p => p.type));
+    const merged = [...basic];
+    advanced.forEach(p => {
+      if (!seenTypes.has(p.type)) {
+        merged.push(p);
+        seenTypes.add(p.type);
+      }
+    });
+    return merged;
+  }, [entries]);
 
   const handleSave = (entry) => {
     if (entry.id) {
@@ -314,33 +354,44 @@ export default function JournalTab({ selections, totalCarbs, doseCalculated, gly
       </div>
 
       {/* Patterns */}
-      {patterns.length > 0 && (
-        <div style={{ ...card, borderColor: "rgba(245,158,11,0.3)" }}>
-          <div style={{ fontSize: 12, letterSpacing: 2, color: "#f59e0b", textTransform: "uppercase", marginBottom: 10 }}>
-            🔍 Patterns détectés
-          </div>
-          {patterns.map((p, i) => (
-            <div key={i} style={{
-              padding: "8px 12px", borderRadius: 8, marginBottom: i < patterns.length - 1 ? 6 : 0,
-              background: p.severity === "warning" ? "rgba(239,68,68,0.08)" : "rgba(14,165,233,0.06)",
-              border: `1px solid ${p.severity === "warning" ? "rgba(239,68,68,0.3)" : "rgba(14,165,233,0.2)"}`,
-              fontSize: 11, color: p.severity === "warning" ? "#fca5a5" : "#7dd3fc", lineHeight: 1.5,
-            }}>
-              {p.icon} {p.message}
-            </div>
-          ))}
-        </div>
-      )}
+      <PatternAlerts patterns={patterns} />
 
-      {/* Add entry button */}
-      <button onClick={() => { setEditEntry(null); setShowForm(true); }} style={{
-        width: "100%", padding: 14, borderRadius: 12, marginBottom: SPACE.md,
-        border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-        color: "#fff", fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 700, cursor: "pointer",
-        boxShadow: "0 4px 16px rgba(14,165,233,0.3)",
-      }}>
-        + Nouvelle entrée
-      </button>
+      {/* Add entry + Export PDF buttons */}
+      <div style={{ display: "flex", gap: 8, marginBottom: SPACE.md }}>
+        <button onClick={() => { setEditEntry(null); setShowForm(true); }} style={{
+          flex: 1, padding: 14, borderRadius: 12,
+          border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+          color: "#fff", fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 700, cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(14,165,233,0.3)",
+        }}>
+          + Nouvelle entrée
+        </button>
+        {onExportPdf && entries.length > 0 && (
+          <button onClick={onExportPdf} style={{
+            padding: "14px 16px", borderRadius: 12,
+            border: `1px solid rgba(14,165,233,0.4)`, background: "rgba(14,165,233,0.08)",
+            color: "#7dd3fc", fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>
+            PDF
+          </button>
+        )}
+        <button
+          disabled={entries.length < 14}
+          onClick={() => entries.length >= 14 && generateMedicalReport(entries, patterns, patientName)}
+          style={{
+            padding: "14px 16px", borderRadius: 12,
+            border: `1px solid ${entries.length >= 14 ? 'rgba(167,139,250,0.4)' : 'rgba(100,116,139,0.2)'}`,
+            background: entries.length >= 14 ? "rgba(167,139,250,0.08)" : "rgba(100,116,139,0.05)",
+            color: entries.length >= 14 ? "#c4b5fd" : "#475569",
+            fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600,
+            cursor: entries.length >= 14 ? "pointer" : "not-allowed",
+            opacity: entries.length >= 14 ? 1 : 0.5,
+          }}
+          title={entries.length < 14 ? `Minimum 14 jours requis (${entries.length}/${14})` : 'Générer un rapport médical complet'}
+        >
+          {"\uD83D\uDCCB"} Rapport médecin
+        </button>
+      </div>
 
       {/* Entry list */}
       {entries.length > 0 ? (

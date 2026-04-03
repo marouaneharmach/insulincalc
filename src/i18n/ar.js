@@ -7,6 +7,7 @@ const ar = {
   aliments: "مكوّنات",
 
   // Tabs
+  tabAccueil: "🏠 الرئيسية",
   tabRepas: "🍽 الوجبة",
   tabSaisie: "🩸 الإدخال",
   tabResultat: "⚡ النتيجة",
@@ -143,6 +144,9 @@ const ar = {
   notifBloquees: "⚠ الإشعارات محظورة من المتصفح. فعّلها من الإعدادات.",
   delaiRappel: "مهلة التذكير",
   parametresManuels: "الإعدادات اليدوية",
+  ratioUnique: "نسبة/عامل موحد",
+  parPeriode: "حسب الفترة",
+  periodeActuelle: "الفترة الحالية",
   ratioInsulineGlucides: "نسبة الأنسولين / الكربوهيدرات (ICR)",
   facteurCorrection: "عامل التصحيح (ISF)",
   glycemieCible: "نسبة السكر المستهدفة",
@@ -313,6 +317,84 @@ const ar = {
   disclaimerBanner: "أداة إرشادية فقط. لا تغني عن الاستشارة الطبية. استشر طبيب الغدد قبل أي تعديل في العلاج.",
   disclaimerFull: "الجرعات والقياسات المعروضة هي لأغراض إرشادية فقط ولا تشكل بأي حال استشارة طبية. المستخدم هو المسؤول الوحيد عن استخدام هذه المعلومات. في حالة الشك، اتصل فوراً بطبيبك أو فريقك الطبي. لا تغيّر علاجك أبداً بدون موافقة طبيب الغدد.",
   contactMedecin: "في حالة الشك، استشر طبيبك",
+
+  // Night mode
+  modeNocturne: "الوضع الليلي",
+  seuilsRenforces: "عتبات معززة",
+  glycemieNocturneAcceptable: "سكر الدم الليلي مقبول",
+  collationRecommandee: "وجبة خفيفة موصى بها",
+
+  // Velocity
+  chuteRapide: "انخفاض سريع",
+  baisseModerée: "انخفاض معتدل",
+  stable: "مستقر",
+  hausseModerée: "ارتفاع معتدل",
+  monteeRapide: "ارتفاع سريع",
+
+  // Hypo risk
+  risqueFaible: "خطر منخفض",
+  risqueModere: "خطر معتدل",
+  risqueEleve: "خطر مرتفع",
+  risqueCritique: "خطر حرج",
+  scoreRisqueHypo: "مؤشر خطر نقص السكر",
+
+  // Patterns
+  phenomeneAube: "ظاهرة الفجر",
+  hypoMatinale: "نقص سكر صباحي",
+  rebondSomogyi: "ارتداد سوموجي",
+  surCorrection: "تصحيح مفرط",
+  creneauProblematique: "فترة زمنية إشكالية",
+  empilementRecurrent: "تراكم متكرر",
+
+  // Dashboard
+  derniereMesure: "آخر قياس",
+  ilYA: "منذ",
+  iobRestant: "الأنسولين المتبقي",
+  actionsRapides: "إجراءات سريعة",
+  correctionSeule: "تصحيح فقط",
+  alertesActives: "التنبيهات النشطة",
+  etatActuel: "الحالة الحالية",
+  insulineActive: "الأنسولين النشط (IOB)",
+  encoreEnAction: "لا يزال نشطاً",
+  aucuneInsulineResiduelle: "لا أنسولين متبقي",
+  aucuneMesure: "لا يوجد قياس مسجل.",
+  commencezCalculer: "ابدأ بحساب وجبة.",
+  nouveauRepasBtn: "وجبة جديدة",
+  derniersEnregistrements: "آخر التسجيلات",
+  voirTout: "عرض الكل",
+
+  // Journal context
+  contexte: "السياق",
+  stress: "التوتر",
+  sommeil: "النوم",
+  activitePhysique: "النشاط البدني",
+  aucune: "لا شيء",
+  legere: "خفيف",
+  moderee: "معتدل",
+  intense: "مكثف",
+  bon: "جيد",
+  mauvais: "سيئ",
+  normal: "عادي",
+  eleve_ctx: "مرتفع",
+  tresEleve: "مرتفع جداً",
+
+  // PDF export
+  rapportMedecin: "تقرير الطبيب",
+  resumeExecutif: "الملخص التنفيذي",
+  profilGlycemique: "ملف السكر في الدم",
+  patternsAlertes: "الأنماط والتنبيهات",
+  donneesInsuliniques: "بيانات الأنسولين",
+  recommandations: "التوصيات",
+  periodeAnalysee: "الفترة المحللة",
+  nombreMesures: "عدد القياسات",
+  coefficientVariation: "معامل التباين",
+  suggestionsMedecin: "اقتراحات لمناقشتها مع طبيبك",
+
+  // Dosage plan
+  planDosage: "خطة الجرعات",
+  dosePreuve: "جرعة اختبار",
+  pris: "تم الأخذ",
+  nonPris: "لم يؤخذ",
 };
 
 export default ar;

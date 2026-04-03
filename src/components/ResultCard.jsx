@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { SPACE, FONT } from '../utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES } from '../data/constants.js';
-import InjectionStep from './InjectionStep.jsx';
+import DosagePlan from './DosagePlan.jsx';
 import PostMealCorrector from './PostMealCorrector.jsx';
 
 export default function ResultCard({ result, selections, totalCarbs, digestion, isf, targetGMid, maxDose, setTab, onSaveJournal, t, colors, theme }) {
@@ -13,11 +13,21 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
   // Dose réelle modifiable avant enregistrement
   const [actualDose, setActualDose] = useState(result ? String(result.total) : '');
   const [saved, setSaved] = useState(false);
+  const [dosagePlan, setDosagePlan] = useState(null);
+
+  const handlePlanChange = useCallback((plan) => {
+    setDosagePlan(plan);
+    // Update actualDose to match sum of actual doses from plan
+    const totalActual = plan.reduce((sum, s) => sum + (s.actualDose != null ? s.actualDose : 0), 0);
+    setActualDose(String(totalActual));
+  }, []);
 
   const handleSave = () => {
     if (!result || !onSaveJournal) return;
     const dose = parseFloat(actualDose);
-    onSaveJournal(isNaN(dose) ? result.total : dose);
+    // Pass dosagePlan along with the actual dose
+    const planForSave = dosagePlan ? dosagePlan.map(({ color, icon, ...rest }) => rest) : undefined;
+    onSaveJournal(isNaN(dose) ? result.total : dose, planForSave);
     setSaved(true);
   };
 
@@ -62,18 +72,22 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
         </div>
       </div>
 
-      {/* Timeline (Fix #12) */}
+      {/* Dosage Plan (replaces static timeline — Fix #12) */}
       <div style={{ ...card, borderColor: `${cc.accent}20` }}>
         <div style={{ ...lbl, color: cc.accent }}>{t("calendrierInjections")}</div>
         <div style={{ marginBottom: 10, padding: "6px 10px", background: `${cc.accent}08`, borderRadius: 8, fontSize: 11, color: cc.muted, display: "flex", gap: 6, alignItems: "center" }}>
           <span>{DIGESTION_PROFILES[digestion].icon}</span>
           <span>{t("digestionLabel")} <strong style={{ color: cc.accent }}>{DIGESTION_PROFILES[digestion].label}</strong> · {t("picMin")} {DIGESTION_PROFILES[digestion].peakMin}min · {t("finAction")} {Math.round(DIGESTION_PROFILES[digestion].tail / 60 * 10) / 10}h</span>
         </div>
-        <div style={{ padding: "4px 0" }}>
-          {result.schedule.map((step, i) => (
-            <InjectionStep key={i} step={step} index={i} total={result.schedule.length} />
-          ))}
-        </div>
+        <DosagePlan
+          schedule={result.schedule}
+          totalDose={result.total}
+          bolusType={result.bolusType}
+          onPlanChange={handlePlanChange}
+          t={t}
+          colors={cc}
+          theme={theme}
+        />
       </div>
 
       {/* Post-meal corrector */}

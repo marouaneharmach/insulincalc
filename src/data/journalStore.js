@@ -48,6 +48,20 @@ export function addEntry(entry) {
     postMealTime: null,
     correction: null,
     notes: "",
+    // Enriched fields (Task 7)
+    periodeJour: null,
+    heureExacte: null,
+    glycemiaPrecedente: null,
+    intervalleMinutes: null,
+    velocity: null,
+    velocityTrend: null,
+    iobAuMoment: 0,
+    hypoRiskScore: null,
+    hypoRiskLevel: null,
+    modeNocturne: false,
+    stress: null,
+    sommeil: null,
+    activitePhysique: null,
     ...entry,
   };
   entries.push(full);

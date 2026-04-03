@@ -7,6 +7,7 @@ const fr = {
   aliments: "aliments",
 
   // Tabs
+  tabAccueil: "🏠 Accueil",
   tabRepas: "🍽 Repas",
   tabSaisie: "🩸 Saisie",
   tabResultat: "⚡ Résultat",
@@ -143,6 +144,9 @@ const fr = {
   notifBloquees: "⚠ Notifications bloquées par le navigateur. Autorisez-les dans les paramètres.",
   delaiRappel: "Délai de rappel",
   parametresManuels: "Paramètres manuels",
+  ratioUnique: "Ratio/ISF unique",
+  parPeriode: "Par période",
+  periodeActuelle: "Période actuelle",
   ratioInsulineGlucides: "Ratio insuline / glucides (ICR)",
   facteurCorrection: "Facteur de correction (ISF)",
   glycemieCible: "Glycémie cible",
@@ -313,6 +317,84 @@ const fr = {
   disclaimerBanner: "Outil indicatif uniquement. Ne remplace pas l'avis médical. Consultez votre endocrinologue avant toute modification de traitement.",
   disclaimerFull: "Les doses et mesures affichées sont strictement à titre indicatif et ne constituent en aucun cas un avis médical. L'utilisateur est seul responsable de l'utilisation de ces informations. En cas de doute, contactez immédiatement votre médecin ou votre équipe soignante. Ne modifiez jamais votre traitement sans l'accord de votre endocrinologue.",
   contactMedecin: "En cas de doute, consultez votre médecin",
+
+  // Night mode
+  modeNocturne: "Mode nocturne",
+  seuilsRenforces: "Seuils renforcés",
+  glycemieNocturneAcceptable: "Glycémie nocturne acceptable",
+  collationRecommandee: "Collation recommandée",
+
+  // Velocity
+  chuteRapide: "Chute rapide",
+  baisseModerée: "Baisse modérée",
+  stable: "Stable",
+  hausseModerée: "Hausse modérée",
+  monteeRapide: "Montée rapide",
+
+  // Hypo risk
+  risqueFaible: "Risque faible",
+  risqueModere: "Risque modéré",
+  risqueEleve: "Risque élevé",
+  risqueCritique: "Risque critique",
+  scoreRisqueHypo: "Score de risque hypoglycémique",
+
+  // Patterns
+  phenomeneAube: "Phénomène de l'aube",
+  hypoMatinale: "Hypoglycémie matinale",
+  rebondSomogyi: "Rebond de Somogyi",
+  surCorrection: "Sur-correction",
+  creneauProblematique: "Créneau problématique",
+  empilementRecurrent: "Empilement récurrent",
+
+  // Dashboard
+  derniereMesure: "Dernière mesure",
+  ilYA: "il y a",
+  iobRestant: "IOB restant",
+  actionsRapides: "Actions rapides",
+  correctionSeule: "Correction seule",
+  alertesActives: "Alertes actives",
+  etatActuel: "État actuel",
+  insulineActive: "Insuline active (IOB)",
+  encoreEnAction: "encore en action",
+  aucuneInsulineResiduelle: "aucune insuline résiduelle",
+  aucuneMesure: "Aucune mesure enregistrée.",
+  commencezCalculer: "Commencez par calculer un repas.",
+  nouveauRepasBtn: "Nouveau repas",
+  derniersEnregistrements: "Derniers enregistrements",
+  voirTout: "Voir tout",
+
+  // Journal context
+  contexte: "Contexte",
+  stress: "Stress",
+  sommeil: "Sommeil",
+  activitePhysique: "Activité physique",
+  aucune: "Aucune",
+  legere: "Légère",
+  moderee: "Modérée",
+  intense: "Intense",
+  bon: "Bon",
+  mauvais: "Mauvais",
+  normal: "Normal",
+  eleve_ctx: "Élevé",
+  tresEleve: "Très élevé",
+
+  // PDF export
+  rapportMedecin: "Rapport médecin",
+  resumeExecutif: "Résumé exécutif",
+  profilGlycemique: "Profil glycémique",
+  patternsAlertes: "Patterns & Alertes",
+  donneesInsuliniques: "Données insuliniques",
+  recommandations: "Recommandations",
+  periodeAnalysee: "Période analysée",
+  nombreMesures: "Nombre de mesures",
+  coefficientVariation: "Coefficient de variation",
+  suggestionsMedecin: "Suggestions à discuter avec votre médecin",
+
+  // Dosage plan
+  planDosage: "Plan de dosage",
+  dosePreuve: "Dose d'épreuve",
+  pris: "Pris",
+  nonPris: "Non pris",
 };
 
 export default fr;

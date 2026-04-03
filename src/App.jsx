@@ -2,12 +2,18 @@ import { useState, useMemo, useCallback } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useTheme } from './hooks/useTheme.js';
 import { useI18n } from './i18n/useI18n.js';
-import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR } from './utils/calculations.js';
+import { round05, calcWeightSuggestions, getOverallFat, getDominantGI, buildSchedule, calcIMC, calcBSA, calcBMR, calcIOB, INSULIN_DURATION_MIN } from './utils/calculations.js';
+import { applySafetyRules, isNightMode } from './utils/clinicalEngine.js';
 import { SPACE, FONT, GI_ICON, GI_COLOR, glycColor, glycLabel, stripDiacritics } from './utils/colors.js';
 import { QTY_PROFILES, DIGESTION_PROFILES, FAT_FACTOR } from './data/constants.js';
 import FOOD_DB from './data/foods.js';
 import { schedulePostMealReminder } from './utils/notifications.js';
 import { generateJournalPdf } from './utils/exportPdf.js';
+import { addEntry, getEntries, getAllEntries } from './data/journalStore.js';
+import { migrateData } from './utils/migration.js';
+import { getActiveProfile, getCurrentPeriodKey } from './utils/timeProfiles.js';
+import { calcVelocity, classifyVelocity } from './utils/velocity.js';
+import { calcHypoRiskScore, classifyRisk } from './utils/hypoRisk.js';
 
 import TabNav from './components/TabNav.jsx';
 import QtyStepper from './components/QtyStepper.jsx';
@@ -18,6 +24,12 @@ import FavoriteMeals from './components/FavoriteMeals.jsx';
 import CustomFoodForm from './components/CustomFoodForm.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import PhotoMeal from './components/PhotoMeal.jsx';
+import JournalTab from './components/JournalTab.jsx';
+import NightModeIndicator from './components/NightModeIndicator.jsx';
+import Dashboard from './components/Dashboard.jsx';
+
+// Run migrations before app renders (idempotent)
+migrateData();
 
 export default function App() {
   const { theme, colors: cc, toggleTheme } = useTheme();
@@ -26,7 +38,7 @@ export default function App() {
   const [onboarded, setOnboarded] = useLocalStorage("onboarded", false);
 
   // Core state
-  const [tab, setTab] = useState("repas");
+  const [tab, setTab] = useState("accueil");
   const [glycemia, setGlycemia] = useLocalStorage("glycemia", "");
   const [search, setSearch] = useState("");
   const [openCat, setOpenCat] = useState(null);
@@ -47,9 +59,12 @@ export default function App() {
   const [patientName, setPatientName] = useLocalStorage("patientName", "");
   const [notifEnabled, setNotifEnabled] = useLocalStorage("notifEnabled", false);
   const [notifDelay, setNotifDelay] = useLocalStorage("notifDelay", 120);
+  const [useTimeProfiles, setUseTimeProfiles] = useLocalStorage("useTimeProfiles", false);
+  const [timeProfiles, setTimeProfiles] = useLocalStorage("timeProfiles", null);
 
-  // Journal
-  const [journal, setJournal] = useLocalStorage("journal", []);
+  // Journal refresh trigger (journalStore is the single source of truth)
+  const [journalRefreshKey, setJournalRefreshKey] = useState(0);
+  const refreshJournal = useCallback(() => setJournalRefreshKey(k => k + 1), []);
 
   const [selData, setSelData] = useLocalStorage("selections", []);
   const [favorites, setFavorites] = useLocalStorage("favorites", []);
@@ -66,20 +81,21 @@ export default function App() {
     return sorted;
   }, []);
 
-  // Recent foods from journal (Fix #7)
+  // Recent foods from journal (Fix #7) — reads from journalStore
   const recentFoodIds = useMemo(() => {
+    const recentEntries = getEntries(7);
     const ids = [];
-    for (const entry of journal) {
-      if (entry.alimentIds) {
-        for (const id of entry.alimentIds) {
-          if (!ids.includes(id)) ids.push(id);
+    for (const entry of recentEntries) {
+      if (entry.foods) {
+        for (const f of entry.foods) {
+          if (f.foodId && !ids.includes(f.foodId)) ids.push(f.foodId);
           if (ids.length >= 5) break;
         }
       }
       if (ids.length >= 5) break;
     }
     return ids;
-  }, [journal]);
+  }, [journalRefreshKey]);
 
   // All foods map
   const allFoods = useMemo(() => {
@@ -173,10 +189,23 @@ export default function App() {
   // Auto-calculate (Fix #5) — derived state via useMemo
   const result = useMemo(() => {
     if (!canCalc) return null;
-    const bolusRepas = totalCarbs / ratio;
+
+    // Use active period's ratio/ISF if time profiles are enabled
+    const currentHour = new Date().getHours();
+    let activeRatio = ratio;
+    let activeIsf = isf;
+    if (useTimeProfiles && timeProfiles) {
+      const profile = getActiveProfile(timeProfiles, currentHour);
+      if (profile) {
+        activeRatio = profile.ratio;
+        activeIsf = profile.isf;
+      }
+    }
+
+    const bolusRepas = totalCarbs / activeRatio;
     const ecart = gVal - targetGMid;
-    const correction = ecart > 0 ? (ecart * 100) / isf : 0;
-    const fatBonus = (totalCarbs / ratio) * FAT_FACTOR[dominantFat];
+    const correction = ecart > 0 ? (ecart * 100) / activeIsf : 0;
+    const fatBonus = (totalCarbs / activeRatio) * FAT_FACTOR[dominantFat];
     const total = round05(bolusRepas + correction + fatBonus);
     const hasFat = dominantFat === "élevé" || dominantFat === "moyen";
     const bolusType = hasFat ? "dual" : "standard";
@@ -187,34 +216,164 @@ export default function App() {
     if (bolusType === "dual") warnings.push({ t: "i", txt: t("repasGras") });
     if (dominantGI === "élevé") warnings.push({ t: "c", txt: t("igEleve") });
     if (total > 20) warnings.push({ t: "w", txt: t("doseElevee") });
-    return { total, bolusType, warnings, schedule, bolusRepas: +bolusRepas.toFixed(1), correction: +correction.toFixed(1), fatBonus: +fatBonus.toFixed(1) };
-  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t]);
+
+    // ── Clinical Safety Engine ──
+    const now = new Date();
+    const recentEntries = getEntries(1); // last 24h
+    // Compute IOB from recent journal entries
+    const iobTotal = recentEntries.reduce((sum, entry) => {
+      const entryTime = new Date(entry.date).getTime();
+      const minutesAgo = (now.getTime() - entryTime) / 60000;
+      if (minutesAgo >= INSULIN_DURATION_MIN || minutesAgo < 0) return sum;
+      const dose = entry.doseInjected || entry.doseCalculated || 0;
+      if (dose <= 0) return sum;
+      return sum + calcIOB(dose, minutesAgo, INSULIN_DURATION_MIN);
+    }, 0);
+
+    // Time since most recent injection
+    const lastInjectionMinAgo = recentEntries.length > 0
+      ? (now.getTime() - new Date(recentEntries[0].date).getTime()) / 60000
+      : 999;
+
+    // Sum of corrections in last 24h
+    const cumulCorrections24h = recentEntries.reduce((sum, entry) => {
+      return sum + (entry.correction || 0);
+    }, 0);
+
+    // Estimated TDD: from weight suggestions or sum of last 7 days / 7
+    const weekEntries = getEntries(7);
+    let tddEstimated = 30; // default
+    const weightSugg = weight ? calcWeightSuggestions(Number(weight), Number(age), sex) : null;
+    if (weightSugg) {
+      tddEstimated = weightSugg.tdd;
+    } else if (weekEntries.length >= 3) {
+      const totalDoses = weekEntries.reduce((s, e) => s + (e.doseInjected || e.doseCalculated || 0), 0);
+      tddEstimated = Math.round(totalDoses / 7);
+    }
+
+    const safety = applySafetyRules({
+      glycemia: gVal,
+      suggestedDose: total,
+      iobTotal,
+      currentHour,
+      lastInjectionMinAgo,
+      cumulCorrections24h,
+      tddEstimated,
+      correction,
+      maxDose,
+    });
+
+    // Apply safety adjustments
+    let safeTotal = total;
+    let safeCorrection = +correction.toFixed(1);
+    if (safety.blocked) {
+      safeTotal = 0;
+      safeCorrection = 0;
+    } else if (safety.correctionBlocked) {
+      safeCorrection = 0;
+      safeTotal = round05(total - correction);
+    } else {
+      safeCorrection = safety.adjustedCorrection;
+      safeTotal = safety.adjustedDose;
+    }
+
+    // Add safety warnings to existing warnings
+    for (const sw of safety.warnings) {
+      warnings.push({ t: sw.severity === 'critical' ? 'w' : sw.severity === 'warning' ? 'w' : 'i', txt: sw.message });
+    }
+
+    return {
+      total: safeTotal,
+      bolusType,
+      warnings,
+      schedule,
+      bolusRepas: +bolusRepas.toFixed(1),
+      correction: safeCorrection,
+      fatBonus: +fatBonus.toFixed(1),
+      nightMode: safety.nightMode,
+      blocked: safety.blocked,
+      correctionBlocked: safety.correctionBlocked,
+    };
+  }, [canCalc, totalCarbs, ratio, gVal, targetGMid, isf, dominantFat, dominantGI, digestion, t, journalRefreshKey, weight, age, sex, maxDose, useTimeProfiles, timeProfiles]);
 
   // Save to journal — explicit via bouton Enregistrer (accepts actual dose)
-  const saveToJournal = useCallback((doseActual) => {
+  const saveToJournal = useCallback((doseActual, dosagePlan) => {
     if (!result) return;
-    const entry = {
-      id: Date.now(),
-      date: new Date().toISOString(),
-      dateDisplay: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      repas: dominantGI,
-      glycPre: gVal.toFixed(2),
-      glycPost: '',
-      doseSuggested: result.total,
-      doseActual: doseActual != null ? doseActual : result.total,
-      aliments: selections.map(s => s.food.name).join(', '),
-      alimentIds: selections.map(s => s.food.id),
-    };
-    setJournal(prev => {
-      // Don't add duplicate if same foods + glyc in last 2 min
-      if (prev.length > 0 && Date.now() - prev[0].id < 120000) return prev;
-      return [entry, ...prev].slice(0, 200);
+    const now = new Date();
+    const h = now.getHours();
+    const mealType = h < 10 ? 'petit-déjeuner' : h < 15 ? 'déjeuner' : h < 18 ? 'collation' : 'dîner';
+
+    // Enriched fields (Task 7)
+    const recentAll = getEntries(7);
+    const lastEntry = recentAll.length > 0 ? recentAll[0] : null;
+    let glycemiaPrecedente = null;
+    let intervalleMinutes = null;
+    let velocity = null;
+    let velocityTrend = null;
+    if (lastEntry && lastEntry.preMealGlycemia != null) {
+      glycemiaPrecedente = lastEntry.preMealGlycemia;
+      intervalleMinutes = Math.round((now.getTime() - new Date(lastEntry.date).getTime()) / 60000);
+      velocity = calcVelocity(gVal, glycemiaPrecedente, intervalleMinutes);
+      velocityTrend = classifyVelocity(velocity);
+    }
+
+    // IOB computation (same logic as result computation)
+    const iobTotal = recentAll.reduce((sum, entry) => {
+      const entryTime = new Date(entry.date).getTime();
+      const minutesAgo = (now.getTime() - entryTime) / 60000;
+      if (minutesAgo >= INSULIN_DURATION_MIN || minutesAgo < 0) return sum;
+      const dose = entry.doseInjected || entry.doseCalculated || 0;
+      if (dose <= 0) return sum;
+      return sum + calcIOB(dose, minutesAgo, INSULIN_DURATION_MIN);
+    }, 0);
+
+    // Hypo risk
+    const hypoScore = calcHypoRiskScore({
+      glycemia: gVal,
+      iobTotal,
+      trend: velocityTrend || 'unknown',
+      hypoIn24h: recentAll.some(e => e.preMealGlycemia != null && e.preMealGlycemia < 0.7),
+      activity: null,
+      currentHour: h,
     });
+
+    const entryData = {
+      mealType,
+      preMealGlycemia: gVal,
+      foods: selections.map(s => ({
+        foodId: s.food.id,
+        name: s.food.name,
+        mult: s.mult,
+        carbs: Math.round(s.food.carbs * s.mult),
+      })),
+      totalCarbs,
+      doseCalculated: result.total,
+      doseInjected: doseActual != null ? doseActual : result.total,
+      correction: result.correction,
+      notes: '',
+      // Enriched fields
+      periodeJour: getCurrentPeriodKey(h),
+      heureExacte: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      glycemiaPrecedente,
+      intervalleMinutes,
+      velocity: velocity != null ? Math.round(velocity * 100) / 100 : null,
+      velocityTrend,
+      iobAuMoment: Math.round(iobTotal * 100) / 100,
+      hypoRiskScore: hypoScore,
+      hypoRiskLevel: classifyRisk(hypoScore),
+      modeNocturne: isNightMode(h),
+      stress: null,
+      sommeil: null,
+      activitePhysique: null,
+    };
+    if (dosagePlan) entryData.dosagePlan = dosagePlan;
+    addEntry(entryData);
+    refreshJournal();
 
     if (notifEnabled) {
       schedulePostMealReminder(notifDelay);
     }
-  }, [result, dominantGI, gVal, selections, notifEnabled, notifDelay, setJournal]);
+  }, [result, gVal, selections, totalCarbs, notifEnabled, notifDelay, refreshJournal]);
 
   // Reset (Fix #5)
   const resetMeal = () => {
@@ -240,26 +399,26 @@ export default function App() {
     setOnboarded(true);
   };
 
-  const handleExportPdf = () => {
-    const tirEntries = journal.filter(e => {
-      const v = parseFloat(e.glycPre);
-      return !isNaN(v) && v >= targetGMin && v <= targetGMax;
-    });
-    const glycValues = journal.map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
+  const handleExportPdf = useCallback(() => {
+    const allJournal = getAllEntries();
+    // Map journalStore entries to the format exportPdf expects
+    const pdfEntries = allJournal.map(e => ({
+      date: e.date,
+      repas: e.mealType || '—',
+      glycPre: e.preMealGlycemia != null ? e.preMealGlycemia.toFixed(2) : '—',
+      glycPost: e.postMealGlycemia != null ? e.postMealGlycemia.toFixed(2) : '',
+      dose: e.doseInjected || e.doseCalculated || 0,
+      aliments: e.foods?.map(f => f.name).join(', ') || '—',
+    }));
+    const glycValues = allJournal.map(e => e.preMealGlycemia).filter(v => v != null && !isNaN(v));
+    const tirEntries = glycValues.filter(v => v >= targetGMin && v <= targetGMax);
     const moyenne = glycValues.length > 0 ? (glycValues.reduce((a, b) => a + b, 0) / glycValues.length).toFixed(2) : null;
     const tir = glycValues.length > 0 ? Math.round((tirEntries.length / glycValues.length) * 100) : null;
     const hba1c = moyenne ? ((parseFloat(moyenne) * 100 + 46.7) / 28.7).toFixed(1) : null;
-    const stats = { moyenne, tir, hba1c, count: journal.length };
-    generateJournalPdf(journal, t("toutesEntrees"), stats, patientName);
-  };
+    const stats = { moyenne, tir, hba1c, count: allJournal.length };
+    generateJournalPdf(pdfEntries, t("toutesEntrees"), stats, patientName);
+  }, [targetGMin, targetGMax, patientName, t]);
 
-  const updateJournalDoseActual = (entryId, dose) => {
-    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: dose } : e));
-  };
-
-  const updateJournalGlycPost = (entryId, glycPost) => {
-    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, glycPost: glycPost } : e));
-  };
 
   if (!onboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} t={t} locale={locale} setLocale={setLocale} isRTL={isRTL} />;
@@ -294,7 +453,13 @@ export default function App() {
         <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             {patientName && (
-              <div style={{ fontSize: 13, color: cc.accent, marginBottom: 4 }}>{t("bonjour")} {patientName} 👋</div>
+              <div style={{ fontSize: 13, color: cc.accent, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{t("bonjour")} {patientName} 👋</span>
+                <NightModeIndicator active={isNightMode(new Date().getHours())} t={t} colors={cc} />
+              </div>
+            )}
+            {!patientName && (
+              <NightModeIndicator active={isNightMode(new Date().getHours())} t={t} colors={cc} />
             )}
             <div style={{ fontSize: 21, fontWeight: 700, fontFamily: "'Syne Mono',monospace", color: isDark ? "#e2edf5" : '#1a202c', letterSpacing: -0.5 }}>{t("appName")}</div>
             <div style={{ fontSize: 12, color: cc.muted, letterSpacing: 2, textTransform: "uppercase", marginTop: 3 }}>{t("appSubtitle")}</div>
@@ -308,9 +473,20 @@ export default function App() {
       </div>
 
       {/* TABS */}
-      <TabNav tab={tab} setTab={setTab} selections={selections} className="no-print" colors={cc} theme={theme} journal={journal} t={t} />
+      <TabNav tab={tab} setTab={setTab} selections={selections} className="no-print" colors={cc} theme={theme} journalCount={getAllEntries().length} t={t} />
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 20px 100px" }}>
+
+        {/* === ACCUEIL / DASHBOARD === */}
+        {tab === "accueil" && (
+          <Dashboard
+            setTab={setTab}
+            t={t}
+            colors={cc}
+            theme={theme}
+            journalRefreshKey={journalRefreshKey}
+          />
+        )}
 
         {/* === REPAS === */}
         {tab === "repas" && (<>
@@ -476,269 +652,14 @@ export default function App() {
 
         {/* === JOURNAL === */}
         {tab === "journal" && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 12, letterSpacing: 2, color: cc.accent, textTransform: 'uppercase' }}>
-                📖 {t("journal")} ({journal.length} {journal.length > 1 ? t("entrees") : t("entree")})
-              </div>
-              {journal.length > 0 && (
-                <button onClick={handleExportPdf} style={{
-                  padding: '8px 14px', borderRadius: 8,
-                  border: `1px solid ${cc.accent}40`, background: `${cc.accent}12`,
-                  color: cc.accent, fontSize: 12, fontFamily: "'IBM Plex Mono',monospace",
-                  cursor: 'pointer', fontWeight: 600,
-                }}>
-                  {t("exporterPdf")}
-                </button>
-              )}
-            </div>
-
-            {/* STATS SUMMARY + CHART */}
-            {journal.length >= 2 && (() => {
-              const glycVals = journal.map(e => parseFloat(e.glycPre)).filter(v => !isNaN(v));
-              const doseVals = journal.map(e => e.doseActual || e.doseSuggested || e.dose).filter(v => v != null && !isNaN(v));
-              const avg = glycVals.length > 0 ? (glycVals.reduce((a, b) => a + b, 0) / glycVals.length) : 0;
-              const inRange = glycVals.filter(v => v >= targetGMin && v <= targetGMax).length;
-              const tirPct = glycVals.length > 0 ? Math.round((inRange / glycVals.length) * 100) : 0;
-              const avgDose = doseVals.length > 0 ? (doseVals.reduce((a, b) => a + Number(b), 0) / doseVals.length) : 0;
-
-              // Chart data: last 30 entries reversed (chronological)
-              const chartEntries = journal.slice(0, 30).reverse();
-              const hasChart = chartEntries.length >= 2;
-
-              return (
-                <div style={{ ...card, borderColor: `${cc.accent}30` }}>
-                  <div style={{ fontSize: 12, letterSpacing: 2, color: cc.accent, textTransform: 'uppercase', marginBottom: 10 }}>
-                    📊 {t("resumeEvolution")}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textTransform: 'uppercase' }}>{t("moyenne")}</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: glycColor(avg), fontFamily: "'Syne Mono',monospace" }}>{avg > 0 ? avg.toFixed(2) : '—'}</div>
-                      <div style={{ fontSize: 10, color: cc.muted }}>g/L</div>
-                    </div>
-                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textTransform: 'uppercase' }}>{t("enCible")}</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: tirPct >= 70 ? '#22c55e' : tirPct >= 50 ? '#f59e0b' : '#ef4444', fontFamily: "'Syne Mono',monospace" }}>{glycVals.length > 0 ? `${tirPct}%` : '—'}</div>
-                      <div style={{ fontSize: 10, color: cc.muted }}>{targetGMin.toFixed(1)}–{targetGMax.toFixed(1)}</div>
-                    </div>
-                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 10, color: cc.muted, marginBottom: 4, textTransform: 'uppercase' }}>{t("doseMoyenne")}</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: cc.accent, fontFamily: "'Syne Mono',monospace" }}>{avgDose > 0 ? avgDose.toFixed(1) : '—'}</div>
-                      <div style={{ fontSize: 10, color: cc.muted }}>U</div>
-                    </div>
-                  </div>
-
-                  {/* Interactive Evolution Chart */}
-                  {hasChart && (() => {
-                    const w = 320, h = 160, padL = 32, padR = 8, padT = 16, padB = 28;
-                    const chartW = w - padL - padR;
-                    const chartH = h - padT - padB;
-
-                    // Glycemia data
-                    const glycPrePts = chartEntries.map(e => parseFloat(e.glycPre)).map(v => isNaN(v) ? null : v);
-                    const glycPostPts = chartEntries.map(e => e.glycPost ? parseFloat(e.glycPost) : null).map(v => isNaN(v) ? null : v);
-                    const allGlyc = [...glycPrePts, ...glycPostPts].filter(v => v != null);
-                    const minG = Math.min(0.4, ...allGlyc);
-                    const maxG = Math.max(2.5, ...allGlyc);
-
-                    // Dose data (secondary axis)
-                    const dosePts = chartEntries.map(e => {
-                      const d = e.doseActual != null ? e.doseActual : (e.doseSuggested || e.dose);
-                      return d != null && !isNaN(Number(d)) ? Number(d) : null;
-                    });
-                    const allDose = dosePts.filter(v => v != null);
-                    const maxD = allDose.length > 0 ? Math.max(5, ...allDose) : 10;
-
-                    const xStep = chartEntries.length > 1 ? chartW / (chartEntries.length - 1) : chartW;
-                    const yG = (v) => padT + chartH - ((v - minG) / (maxG - minG)) * chartH;
-                    const yD = (v) => padT + chartH - (v / maxD) * chartH;
-
-                    // Build paths
-                    const buildPath = (pts, yFn) => {
-                      let d = '';
-                      pts.forEach((v, i) => {
-                        if (v == null) return;
-                        const x = padL + i * xStep;
-                        const y = yFn(v);
-                        d += d === '' ? `M${x.toFixed(1)},${y.toFixed(1)}` : ` L${x.toFixed(1)},${y.toFixed(1)}`;
-                      });
-                      return d;
-                    };
-
-                    const pathPre = buildPath(glycPrePts, yG);
-                    const pathPost = buildPath(glycPostPts, yG);
-
-                    // Date labels (show first, middle, last)
-                    const dateLabels = chartEntries.map(e => {
-                      const d = e.dateDisplay || e.date || '';
-                      return d.substring(0, 5); // DD/MM
-                    });
-
-                    const yTargetMin = yG(targetGMin);
-                    const yTargetMax = yG(targetGMax);
-
-                    return (
-                      <div style={{ marginTop: 8 }}>
-                        {/* Legend */}
-                        <div style={{ display: 'flex', gap: 12, marginBottom: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ width: 10, height: 3, background: cc.accent, borderRadius: 2, display: 'inline-block' }}></span>
-                            <span style={{ color: cc.muted }}>{t("glycPre")}</span>
-                          </span>
-                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ width: 10, height: 3, background: '#f59e0b', borderRadius: 2, display: 'inline-block' }}></span>
-                            <span style={{ color: cc.muted }}>{t("glycPost")}</span>
-                          </span>
-                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ width: 10, height: 3, background: '#a78bfa', borderRadius: 2, display: 'inline-block' }}></span>
-                            <span style={{ color: cc.muted }}>{t("dosesChart")}</span>
-                          </span>
-                          <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ width: 10, height: 6, background: 'rgba(34,197,94,0.15)', borderRadius: 1, display: 'inline-block' }}></span>
-                            <span style={{ color: cc.muted }}>{t("cibleChart")}</span>
-                          </span>
-                        </div>
-                        <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }}>
-                          {/* Target range band */}
-                          <rect x={padL} y={Math.min(yTargetMin, yTargetMax)} width={chartW} height={Math.abs(yTargetMin - yTargetMax)} fill="rgba(34,197,94,0.1)" rx={3} />
-                          <line x1={padL} x2={padL + chartW} y1={yTargetMin} y2={yTargetMin} stroke="rgba(34,197,94,0.25)" strokeDasharray="4 3" strokeWidth={1} />
-                          <line x1={padL} x2={padL + chartW} y1={yTargetMax} y2={yTargetMax} stroke="rgba(34,197,94,0.25)" strokeDasharray="4 3" strokeWidth={1} />
-
-                          {/* Y-axis labels glycemia */}
-                          <text x={padL - 4} y={yG(targetGMin) + 3} textAnchor="end" fill={cc.muted} fontSize={8}>{targetGMin.toFixed(1)}</text>
-                          <text x={padL - 4} y={yG(targetGMax) + 3} textAnchor="end" fill={cc.muted} fontSize={8}>{targetGMax.toFixed(1)}</text>
-                          <text x={padL - 4} y={yG(maxG) + 3} textAnchor="end" fill={cc.muted} fontSize={8}>{maxG.toFixed(1)}</text>
-
-                          {/* Dose bars (background) */}
-                          {dosePts.map((v, i) => v != null && (
-                            <rect key={`d${i}`} x={padL + i * xStep - 3} y={yD(v)} width={6} height={padT + chartH - yD(v)} fill="rgba(167,139,250,0.18)" rx={2} />
-                          ))}
-
-                          {/* Glyc pré line */}
-                          {pathPre && <path d={pathPre} fill="none" stroke={cc.accent} strokeWidth={2} strokeLinejoin="round" />}
-                          {/* Glyc post line */}
-                          {pathPost && <path d={pathPost} fill="none" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3" strokeLinejoin="round" />}
-
-                          {/* Data points - glyc pré */}
-                          {glycPrePts.map((v, i) => v != null && (
-                            <circle key={`gp${i}`} cx={padL + i * xStep} cy={yG(v)} r={3.5} fill={glycColor(v)} stroke={isDark ? '#0A1928' : '#fff'} strokeWidth={1.5} />
-                          ))}
-                          {/* Data points - glyc post */}
-                          {glycPostPts.map((v, i) => v != null && (
-                            <circle key={`gpo${i}`} cx={padL + i * xStep} cy={yG(v)} r={2.5} fill="#f59e0b" stroke={isDark ? '#0A1928' : '#fff'} strokeWidth={1} />
-                          ))}
-
-                          {/* X-axis date labels */}
-                          {chartEntries.length <= 10 ? (
-                            chartEntries.map((_, i) => (
-                              <text key={`xl${i}`} x={padL + i * xStep} y={h - 4} textAnchor="middle" fill={cc.muted} fontSize={7}>{dateLabels[i]}</text>
-                            ))
-                          ) : (
-                            [0, Math.floor(chartEntries.length / 2), chartEntries.length - 1].map(i => (
-                              <text key={`xl${i}`} x={padL + i * xStep} y={h - 4} textAnchor="middle" fill={cc.muted} fontSize={7}>{dateLabels[i]}</text>
-                            ))
-                          )}
-                        </svg>
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })()}
-
-            {journal.length === 0 ? (
-              <div style={{ ...card, textAlign: 'center', padding: 32 }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>📓</div>
-                <div style={{ fontSize: 13, color: cc.muted }}>{t("aucuneEntree")}</div>
-                <div style={{ fontSize: 12, color: cc.muted, marginTop: 4, opacity: 0.6 }}>{t("calculsAutoSave")}</div>
-              </div>
-            ) : (
-              journal.map((e, i) => {
-                const glycPreVal = parseFloat(e.glycPre);
-                const glycPostVal = parseFloat(e.glycPost);
-                const doseVal = e.doseActual != null ? e.doseActual : (e.doseSuggested || e.dose);
-                const hasGlycPost = e.glycPost && !isNaN(glycPostVal);
-                const delta = hasGlycPost ? (glycPostVal - glycPreVal) : null;
-                return (
-                <div key={e.id || i} style={{ ...card, padding: '12px 16px' }}>
-                  {/* Header: date + dose */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: cc.muted }}>{e.dateDisplay || e.date}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: cc.accent, fontFamily: "'IBM Plex Mono',monospace" }}>{doseVal}U</span>
-                  </div>
-
-                  {/* Glycémie pré + post côte à côte */}
-                  <div style={{ display: 'grid', gridTemplateColumns: hasGlycPost ? '1fr auto 1fr' : '1fr 1fr', gap: 6, marginBottom: 8 }}>
-                    <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 8, padding: '6px 10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 9, color: cc.muted, textTransform: 'uppercase', marginBottom: 2 }}>{t("glycPre")}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: glycColor(glycPreVal), fontFamily: "'Syne Mono',monospace" }}>{e.glycPre}</div>
-                    </div>
-                    {hasGlycPost && (
-                      <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: delta <= 0 ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
-                        {delta <= 0 ? '↘' : '↗'} {delta > 0 ? '+' : ''}{delta.toFixed(2)}
-                      </div>
-                    )}
-                    {hasGlycPost ? (
-                      <div style={{ background: isDark ? '#070c12' : '#f1f5f9', borderRadius: 8, padding: '6px 10px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, color: cc.muted, textTransform: 'uppercase', marginBottom: 2 }}>{t("glycPost")}</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: glycColor(glycPostVal), fontFamily: "'Syne Mono',monospace" }}>{e.glycPost}</div>
-                      </div>
-                    ) : (
-                      <button onClick={() => {
-                        const val = prompt(t("saisirGlycPost") + " (g/L) :", '');
-                        if (val !== null && !isNaN(parseFloat(val))) {
-                          updateJournalGlycPost(e.id, parseFloat(val).toFixed(2));
-                        }
-                      }} style={{
-                        background: isDark ? 'rgba(14,165,233,0.06)' : 'rgba(14,165,233,0.04)',
-                        border: `1px dashed ${cc.accent}50`, borderRadius: 8, padding: '6px 10px',
-                        textAlign: 'center', cursor: 'pointer', color: cc.accent, fontSize: 11,
-                        fontFamily: "'IBM Plex Mono',monospace",
-                      }}>
-                        <div style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 2, opacity: 0.7 }}>{t("glycPost")}</div>
-                        <div>+ {t("ajouter")}</div>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Dose: suggérée vs effective */}
-                  <div style={{ fontSize: 11, color: cc.muted, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span>{t("doseSuggeree")} : {e.doseSuggested || e.dose}U</span>
-                    <span>·</span>
-                    {e.doseActual != null ? (
-                      <span>{t("doseEffective")} : <span style={{ color: cc.accent, fontWeight: 600 }}>{e.doseActual}U</span></span>
-                    ) : (
-                      <button onClick={() => {
-                        const dose = prompt(t("doseEffective") + " (U) :", String(e.doseSuggested || e.dose || ''));
-                        if (dose !== null && !isNaN(parseFloat(dose))) {
-                          updateJournalDoseActual(e.id, parseFloat(dose));
-                        }
-                      }} style={{ background: `${cc.accent}12`, border: `1px solid ${cc.accent}40`, borderRadius: 4, padding: '2px 8px', color: cc.accent, fontSize: 11, cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace" }}>
-                        {t("saisirDoseReelle")}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Aliments */}
-                  <div style={{ fontSize: 11, color: cc.muted, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {e.aliments || t("pasAliments")}
-                  </div>
-                </div>
-                );
-              })
-            )}
-
-            {/* Disclaimer en bas du journal */}
-            <div style={{ ...card, marginTop: 8, borderColor: isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)', background: isDark ? 'rgba(239,68,68,0.04)' : 'rgba(239,68,68,0.02)' }}>
-              <div style={{ fontSize: 11, color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 1.6 }}>
-                ⚕️ {t("disclaimerFull")}
-              </div>
-              <div style={{ marginTop: 8, padding: '8px 12px', background: isDark ? 'rgba(14,165,233,0.08)' : 'rgba(14,165,233,0.04)', borderRadius: 8, border: `1px solid ${cc.accent}30`, textAlign: 'center' }}>
-                <span style={{ fontSize: 12, color: cc.accent, fontWeight: 600 }}>📞 {t("contactMedecin")}</span>
-              </div>
-            </div>
-          </div>
+          <JournalTab
+            selections={selections}
+            totalCarbs={totalCarbs}
+            doseCalculated={result?.total}
+            glycemia={gVal}
+            onExportPdf={handleExportPdf}
+            patientName={patientName}
+          />
         )}
 
         {/* === PARAMETRES === */}
@@ -761,6 +682,8 @@ export default function App() {
             imc={imc} bsa={bsa} bmr={bmr}
             locale={locale} setLocale={setLocale}
             t={t} isRTL={isRTL}
+            timeProfiles={timeProfiles} setTimeProfiles={setTimeProfiles}
+            useTimeProfiles={useTimeProfiles} setUseTimeProfiles={setUseTimeProfiles}
           />
         )}
       </div>
