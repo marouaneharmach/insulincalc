@@ -435,6 +435,9 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                   <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose || suggeree)); }}
                                     className="text-xs text-blue-500 hover:underline">
                                     💉 <span className="font-bold">{dose || suggeree}U</span>
+                                    {entry.bolusType === 'etendu' &&
+                                      <span className="ml-1 text-indigo-500">(étendu 3 phases)</span>
+                                    }
                                     {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
                                       <span className="ml-1 text-amber-500">(fractionné)</span>
                                     }
@@ -450,7 +453,38 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           </div>
                         );
                       })()}
-                      {/* Split injection steps for fractionné */}
+                      {/* Extended 3-phase injection plan */}
+                      {entry.bolusType === 'etendu' && entry.splitPhases && (
+                        <div className={`mt-2 space-y-1.5 pl-2 border-l-2 ${isDark ? 'border-indigo-700' : 'border-indigo-200'}`}>
+                          {entry.splitPhases.map((phase, pi) => {
+                            const phaseTime = new Date(new Date(entry.date).getTime() + phase.delayMinutes * 60000);
+                            const timeStr = phaseTime.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+                            return (
+                              <div key={pi} className="flex items-center gap-2">
+                                <span className="text-sm">{phase.done ? '✅' : '⬜'}</span>
+                                <button
+                                  onClick={() => {
+                                    setJournal(prev => prev.map(e => {
+                                      if (e.id !== entry.id) return e;
+                                      const phases = [...e.splitPhases];
+                                      phases[pi] = { ...phases[pi], done: !phases[pi].done };
+                                      return { ...e, splitPhases: phases };
+                                    }));
+                                  }}
+                                  className={`text-xs ${phase.done
+                                    ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
+                                    : (isDark ? 'text-indigo-300' : 'text-indigo-600')
+                                  }`}
+                                >
+                                  {phase.units}u — {phase.label} ({timeStr})
+                                  {!phase.done && <span className="ml-1 opacity-60">(tap)</span>}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Split injection steps for fractionné (2-phase) */}
                       {entry.bolusType === 'fractionne' && entry.splitImmediate != null && (
                         <div className={`mt-2 space-y-1.5 pl-2 border-l-2 ${isDark ? 'border-teal-700' : 'border-teal-200'}`}>
                           {/* Step 1: Immediate - always "done" since it's saved */}
