@@ -17,7 +17,7 @@ export default function ConsultationScreen({
   glycemia, setGlycemia, ratio, isf, targetGMin, targetGMax,
   maxDose, postKeto, slowDigestion, dia,
   journal, selections, foods, customFoods, toggleFood, updateMult,
-  timeProfiles, onSaveToJournal, onPhotoMeal, t, isRTL, isDark,
+  timeProfiles, onSaveToJournal, onPhotoMeal, onSaveCustomFood, t, isRTL, isDark,
 }) {
   const [trend, setTrend] = useState('?');
   const [hour, setHour] = useState(() => {
@@ -136,6 +136,7 @@ export default function ConsultationScreen({
       targetMin: targetGMin, targetMax: targetGMax,
       iobTotal, lastInjectionMinutesAgo,
       slowDigestion, postKeto, maxDose,
+      totalFatGrams: manualCarbs > 0 ? null : totalFatGrams,
     });
     setResult(r);
   };
@@ -284,7 +285,8 @@ export default function ConsultationScreen({
             fatLevel={fatLevel} setFatLevel={setFatLevel}
             foods={foods} selections={selectionsArray} toggleFood={toggleFood}
             updateMult={updateMult} customFoods={customFoods}
-            onPhotoMeal={onPhotoMeal} t={t} isDark={isDark}
+            onPhotoMeal={onPhotoMeal} onSaveCustomFood={onSaveCustomFood}
+            t={t} isDark={isDark}
             totalFatGrams={totalFatGrams} />
 
           <ContextInput activity={activity} setActivity={setActivity}

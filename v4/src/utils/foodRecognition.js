@@ -40,7 +40,7 @@ function blobToBase64(blob) {
 const FOOD_PROMPT = `You are a food identification expert for a diabetes management app. Analyze this meal photo.
 
 Return ONLY valid JSON (no markdown, no code blocks, no explanation):
-{"foods":[{"name":"english name","nameFr":"nom français simple","confidence":85,"estimatedCarbs":30,"estimatedFat":12,"estimatedWeight":200}]}
+{"foods":[{"name":"english name","nameFr":"nom français simple","confidence":85,"estimatedCarbs":30,"estimatedFat":12,"estimatedWeight":200,"estimatedGI":"moyen"}]}
 
 CRITICAL rules:
 - Identify the COMPLETE DISH first (e.g. "cheeseburger", "pizza margherita", "tajine poulet"), then individual sides
@@ -51,6 +51,7 @@ CRITICAL rules:
 - "estimatedCarbs" = total carbs in grams for the visible portion
 - "estimatedFat" = total fat/lipids in grams for the visible portion
 - "estimatedWeight" = estimated total weight in grams for the visible portion
+- "estimatedGI" = glycemic index category: "faible" (low GI, e.g. legumes, whole grains), "moyen" (medium, e.g. basmati rice, whole wheat), "élevé" (high GI, e.g. white bread, sugar, fries)
 - Recognize ALL cuisines: Moroccan, Mediterranean, Asian, fast-food, etc.
 - If no food visible, return {"foods":[]}
 - Max 5 items`;
@@ -135,6 +136,7 @@ export async function recognizeFood(imageFile) {
       estimatedCarbs: f.estimatedCarbs ?? null,
       estimatedFat: f.estimatedFat ?? null,
       estimatedWeight: f.estimatedWeight ?? null,
+      estimatedGI: f.estimatedGI || null,
       id: `groq_${i}_${Date.now()}`
     }));
 }

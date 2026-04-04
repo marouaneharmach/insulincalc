@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import { deriveFatLevel } from '../utils/foodRecognition';
 
 const FAT_LEVELS = [
   { value: 'aucun', labelKey: 'cl_aucune', fallback: 'Aucun' },
@@ -20,6 +21,7 @@ export default function MealInput({
   updateMult,
   customFoods = [],
   onPhotoMeal,
+  onSaveCustomFood,
   t, isDark,
   totalFatGrams = 0
 }) {
@@ -30,6 +32,11 @@ export default function MealInput({
   const [photoResults, setPhotoResults] = useState(null); // null=no photo, []=empty results, [...]= results
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [editingItem, setEditingItem] = useState(null); // AI edit modal state
+  const [editCarbs, setEditCarbs] = useState('');
+  const [editFat, setEditFat] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [saveAsCustom, setSaveAsCustom] = useState(false);
   const cameraRef = useRef(null);
   const albumRef = useRef(null);
 
@@ -51,6 +58,11 @@ export default function MealInput({
     } finally {
       setPhotoLoading(false);
     }
+  };
+
+  /** Generate a small base64 thumbnail for journal persistence */
+  const getPhotoThumbnail = () => {
+    return mealPhoto || null;
   };
 
   const clearPhoto = () => {
@@ -273,20 +285,38 @@ export default function MealInput({
               {photoResults !== null && photoResults.length > 0 && !photoLoading && (
                 <div className="mt-2">
                   <p className={`text-[10px] mb-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {photoResults.length} {t('alimentsDetectes') || 'aliment(s) détecté(s)'} — {t('tapPourAjouter') || 'Tapez pour ajouter au repas'}
+                    {photoResults.length} {t?.('alimentsDetectes') || 'aliment(s) détecté(s)'} — {t?.('tapPourAjouter') || 'Tapez pour ajouter au repas'}
                   </p>
                   <div className="space-y-1">
-                    {photoResults.map((item, i) => (
+                    {photoResults.map((item, i) => {
+                      const canAdd = item.mapped || item.estimatedCarbs != null;
+                      const carbsDisplay = item.mapped ? item.localFood.carbs : item.estimatedCarbs;
+                      const fatDisplay = item.mapped ? null : item.estimatedFat;
+                      const isImplausible = item.estimatedCarbs != null && (item.estimatedCarbs > 150 || item.estimatedFat > 80);
+
+                      return (
                       <button
                         key={i}
-                        onClick={() => item.mapped && toggleFood(item.localFood)}
-                        disabled={!item.mapped}
+                        onClick={() => {
+                          if (item.mapped) {
+                            toggleFood(item.localFood);
+                          } else if (item.estimatedCarbs != null) {
+                            // Open edit modal for AI-estimated food
+                            setEditingItem(item);
+                            setEditCarbs(String(Math.round(item.estimatedCarbs)));
+                            setEditFat(String(Math.round(item.estimatedFat ?? 0)));
+                            setEditWeight(String(item.estimatedWeight ?? ''));
+                            setSaveAsCustom(false);
+                          }
+                        }}
+                        disabled={!canAdd}
                         className={`w-full flex items-center gap-2 p-2 rounded-xl text-left transition ${
-                          item.mapped
+                          canAdd
                             ? isDark ? 'hover:bg-teal-900/20 border border-slate-700' : 'hover:bg-teal-50 border border-gray-100'
                             : 'opacity-50 cursor-not-allowed border border-dashed ' + (isDark ? 'border-slate-700' : 'border-gray-200')
                         }`}
                       >
+                        {/* Confidence badge */}
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                           item.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
                           item.confidence >= 50 ? 'bg-amber-100 text-amber-700' :
@@ -295,26 +325,146 @@ export default function MealInput({
                           {item.confidence}%
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium capitalize truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                            {item.nameFr || item.name}
-                          </p>
+                          <div className="flex items-center gap-1">
+                            <p className={`text-sm font-medium capitalize truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                              {item.nameFr || item.name}
+                            </p>
+                            {/* Source badge */}
+                            {item.mapped ? (
+                              <span className="text-[8px] px-1 py-0.5 rounded bg-teal-100 text-teal-700 shrink-0">DB</span>
+                            ) : item.estimatedCarbs != null ? (
+                              <span className="text-[8px] px-1 py-0.5 rounded bg-purple-100 text-purple-700 shrink-0">IA</span>
+                            ) : null}
+                          </div>
                           {item.mapped ? (
                             <p className={`text-[10px] truncate ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
-                              → {item.localFood.name} ({item.localFood.carbs}g {t('cl_glucides') || 'glucides'})
+                              → {item.localFood.name} ({item.localFood.carbs}g {t?.('cl_glucides') || 'glucides'})
+                            </p>
+                          ) : item.estimatedCarbs != null ? (
+                            <p className={`text-[10px] ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                              ~{Math.round(item.estimatedCarbs)}g gluc.
+                              {item.estimatedFat != null && ` · ~${Math.round(item.estimatedFat)}g lip.`}
+                              {isImplausible && <span className="ml-1 text-amber-500">⚠️</span>}
                             </p>
                           ) : (
                             <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                              {t('nonTrouveDansBase') || 'non trouvé dans la base'}
+                              {t?.('nonTrouveDansBase') || 'non trouvé dans la base'}
                             </p>
                           )}
                         </div>
-                        {item.mapped && (
-                          <span className={`text-xs font-bold shrink-0 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
-                            + {item.localFood.carbs}g
-                          </span>
+                        {canAdd && carbsDisplay != null && (
+                          <div className="text-right shrink-0">
+                            <span className={`text-xs font-bold block ${item.mapped ? (isDark ? 'text-teal-400' : 'text-teal-600') : (isDark ? 'text-purple-400' : 'text-purple-600')}`}>
+                              + {Math.round(carbsDisplay)}g
+                            </span>
+                            {fatDisplay != null && (
+                              <span className={`text-[9px] block ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>
+                                {Math.round(fatDisplay)}g lip.
+                              </span>
+                            )}
+                          </div>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* AI Edit Modal */}
+              {editingItem && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setEditingItem(null)}>
+                  <div className={`w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 ${isDark ? 'bg-slate-800' : 'bg-white'}`}
+                    onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                        {editingItem.nameFr || editingItem.name}
+                        <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">estimation IA</span>
+                      </h3>
+                      <button onClick={() => setEditingItem(null)} className={`text-lg ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>✕</button>
+                    </div>
+
+                    {/* Plausibility warning */}
+                    {(parseFloat(editCarbs) > 150 || parseFloat(editFat) > 80) && (
+                      <div className={`mb-3 p-2 rounded-xl text-[11px] ${isDark ? 'bg-amber-900/20 text-amber-400 border border-amber-800' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                        ⚠️ {t?.('valeurImplausible') || 'Valeurs inhabituelles — vérifiez les estimations'}
+                      </div>
+                    )}
+
+                    {/* Editable fields */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`text-[10px] block mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {t?.('cl_glucides') || 'Glucides'} (g)
+                        </label>
+                        <input type="number" step="1" min="0" max="500" value={editCarbs}
+                          onChange={e => setEditCarbs(e.target.value)}
+                          className={`w-full text-center text-xl font-bold p-2 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                      </div>
+                      <div>
+                        <label className={`text-[10px] block mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {t?.('totalLipides') || 'Lipides'} (g)
+                        </label>
+                        <input type="number" step="1" min="0" max="200" value={editFat}
+                          onChange={e => setEditFat(e.target.value)}
+                          className={`w-full text-center text-xl font-bold p-2 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                      </div>
+                      <div>
+                        <label className={`text-[10px] block mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {t?.('poidsEstime') || 'Poids estimé'} (g)
+                        </label>
+                        <input type="number" step="10" min="0" value={editWeight}
+                          onChange={e => setEditWeight(e.target.value)}
+                          className={`w-full text-center text-lg p-2 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-200'}`} />
+                      </div>
+
+                      {/* Save as custom food checkbox */}
+                      <label className={`flex items-center gap-2 text-xs cursor-pointer ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <input type="checkbox" checked={saveAsCustom} onChange={e => setSaveAsCustom(e.target.checked)}
+                          className="w-4 h-4 rounded" />
+                        {t?.('sauvegarderAlimentPerso') || 'Sauvegarder comme aliment personnalisé'}
+                      </label>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-4">
+                      <button onClick={() => setEditingItem(null)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'}`}>
+                        {t?.('annuler') || 'Annuler'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const carbs = Math.max(0, Math.round(parseFloat(editCarbs) || 0));
+                          const fat = Math.max(0, Math.round(parseFloat(editFat) || 0));
+                          const weight = Math.round(parseFloat(editWeight) || 0);
+                          const aiFood = {
+                            id: `ai_${editingItem.nameFr}_${Date.now()}`,
+                            name: `${editingItem.nameFr} (IA)`,
+                            carbs,
+                            fat: deriveFatLevel(fat),
+                            gi: editingItem.estimatedGI || 'moyen',
+                            unit: weight > 0 ? `~${weight}g (estimation IA)` : '(estimation IA)',
+                            qty: 'plat',
+                            note: `Estimation IA ajustée — glucides: ${carbs}g, lipides: ${fat}g`,
+                            aiEstimated: true,
+                          };
+                          toggleFood(aiFood);
+                          // Save as custom food if checked
+                          if (saveAsCustom && onSaveCustomFood) {
+                            onSaveCustomFood({
+                              ...aiFood,
+                              id: `custom_${editingItem.nameFr}_${Date.now()}`,
+                              name: editingItem.nameFr,
+                              aiEstimated: false,
+                            });
+                          }
+                          setEditingItem(null);
+                        }}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-purple-500 text-white hover:bg-purple-600 transition"
+                      >
+                        {t?.('ajouterAuRepas') || 'Ajouter au repas'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

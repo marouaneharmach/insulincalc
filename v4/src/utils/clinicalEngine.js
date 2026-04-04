@@ -72,9 +72,25 @@ export function round05(v) {
  *   doseSuggeree: number,
  * }}
  */
+/**
+ * Compute continuous fat factor from actual fat grams when available.
+ * Falls back to qualitative FAT_FACTOR lookup.
+ * Curve: 0g→0%, 5g→4%, 15g→14%, 30g→27%, caps at 35%.
+ * @param {string}      fatLevel    - Qualitative level
+ * @param {number|null} totalFatGrams - Actual fat in grams (null = use qualitative)
+ * @returns {number} Multiplier for fat bonus
+ */
+export function computeFatFactor(fatLevel, totalFatGrams) {
+  if (totalFatGrams != null && totalFatGrams > 0) {
+    // Continuous curve: min(0.35, 0.009 * grams)
+    return Math.min(0.35, totalFatGrams * 0.009);
+  }
+  return FAT_FACTOR[fatLevel] ?? 0;
+}
+
 export function calculateDose({
   totalCarbs, glycemia, ratio, isf, targetMax, iobTotal,
-  fatLevel, activity,
+  fatLevel, activity, totalFatGrams,
 }) {
   const bolusRepas = totalCarbs / ratio;
 
@@ -84,7 +100,7 @@ export function calculateDose({
 
   const correctionNette = Math.max(0, correction - iobTotal);
 
-  const bonusGras = bolusRepas * FAT_FACTOR[fatLevel];
+  const bonusGras = bolusRepas * computeFatFactor(fatLevel, totalFatGrams);
 
   const doseBeforeActivity = bolusRepas + correctionNette + bonusGras;
 
@@ -383,6 +399,7 @@ export function analyzeAndRecommend(inputs) {
     glycemia, trend, totalCarbs, fatLevel, activity,
     ratio, isf, targetMin, targetMax, iobTotal,
     lastInjectionMinutesAgo, slowDigestion, postKeto, maxDose,
+    totalFatGrams,
   } = inputs;
 
   // ── Step 1: classify glycemia ──────────────────────────────────────────────
@@ -390,7 +407,7 @@ export function analyzeAndRecommend(inputs) {
 
   // ── Step 2: calculate dose ─────────────────────────────────────────────────
   const doseResult = calculateDose({
-    totalCarbs, glycemia, ratio, isf, targetMax, iobTotal, fatLevel, activity,
+    totalCarbs, glycemia, ratio, isf, targetMax, iobTotal, fatLevel, activity, totalFatGrams,
   });
 
   // ── Step 3: apply safety rules ─────────────────────────────────────────────
@@ -455,6 +472,11 @@ export function analyzeAndRecommend(inputs) {
     instruction = `Contrôler la glycémie dans ${checkTime} min.`;
   }
 
+  // ── Step 8: post-meal prediction ────────────────────────────────────────────
+  const prediction = predictPostMealGlycemia({
+    glycemia, totalCarbs, dose: adjustedDose, isf, ratio,
+  });
+
   return {
     analysis: {
       glycemiaStatus,
@@ -478,5 +500,101 @@ export function analyzeAndRecommend(inputs) {
       checkTime,
       instruction,
     },
+    prediction,
+  };
+}
+
+// ─── Post-Meal Prediction ────────────────────────────────────────────────────
+
+/**
+ * Predict post-meal glycemia at +2h based on current glycemia, carbs, and dose.
+ *
+ * Simplified model:
+ *   glycPost ≈ glycemia + (totalCarbs / ratio - dose) × isf
+ *
+ * If dose perfectly matches bolus+correction, glycPost ≈ targetMax.
+ *
+ * @param {object} params
+ * @param {number} params.glycemia   - Current glycemia (g/L)
+ * @param {number} params.totalCarbs - Carbs to be eaten (g)
+ * @param {number} params.dose       - Insulin dose (U)
+ * @param {number} params.isf        - Insulin sensitivity factor (g/L per U)
+ * @param {number} params.ratio      - Insulin-to-carb ratio (g/U)
+ * @returns {{ predicted: number, delta: number, zone: string }}
+ */
+export function predictPostMealGlycemia({ glycemia, totalCarbs, dose, isf, ratio }) {
+  if (!dose || dose <= 0) {
+    // No insulin: glycemia rises by carb impact
+    const carbRise = totalCarbs > 0 ? (totalCarbs / ratio) * isf : 0;
+    const predicted = Math.round((glycemia + carbRise) * 100) / 100;
+    return { predicted, delta: carbRise, zone: classifyPrediction(predicted) };
+  }
+
+  // Net insulin effect: dose covers carbs + correction
+  const carbBolus = totalCarbs / ratio;
+  const netEffect = (dose - carbBolus) * isf; // positive = glycemia drops
+  const predicted = Math.round((glycemia - netEffect) * 100) / 100;
+  const delta = Math.round((predicted - glycemia) * 100) / 100;
+
+  return { predicted, delta, zone: classifyPrediction(predicted) };
+}
+
+function classifyPrediction(glycemia) {
+  if (glycemia < 0.70) return 'hypo';
+  if (glycemia < 0.90) return 'bas';
+  if (glycemia <= 1.80) return 'cible';
+  if (glycemia <= 2.50) return 'haut';
+  return 'hyper';
+}
+
+// ─── Daily Summary ───────────────────────────────────────────────────────────
+
+/**
+ * Compute daily summary statistics from journal entries for a given date.
+ *
+ * @param {Array} journal  - Full journal array
+ * @param {string} dateStr - ISO date string (YYYY-MM-DD) to summarize
+ * @param {number} targetMin
+ * @param {number} targetMax
+ * @returns {{ totalDose: number, totalCarbs: number, injections: number, glycReadings: number, avgGlycemia: number|null, timeInRange: number|null, minGlyc: number|null, maxGlyc: number|null }}
+ */
+export function computeDailySummary(journal, dateStr, targetMin, targetMax) {
+  const dayEntries = journal.filter(e => {
+    const d = new Date(e.date);
+    return d.toISOString().slice(0, 10) === dateStr;
+  });
+
+  let totalDose = 0, totalCarbs = 0, injections = 0;
+  const glycReadings = [];
+
+  for (const e of dayEntries) {
+    const dose = e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0;
+    if (dose > 0) { totalDose += dose; injections++; }
+    totalCarbs += e.totalGlucides ?? e.totalCarbs ?? 0;
+    if (e.glycPre > 0) glycReadings.push(e.glycPre);
+    if (e.glycPost > 0) glycReadings.push(e.glycPost);
+  }
+
+  const avgGlycemia = glycReadings.length > 0
+    ? Math.round(glycReadings.reduce((s, v) => s + v, 0) / glycReadings.length * 100) / 100
+    : null;
+
+  const inRange = glycReadings.filter(g => g >= targetMin && g <= targetMax).length;
+  const timeInRange = glycReadings.length > 0
+    ? Math.round(inRange / glycReadings.length * 100)
+    : null;
+
+  const minGlyc = glycReadings.length > 0 ? Math.min(...glycReadings) : null;
+  const maxGlyc = glycReadings.length > 0 ? Math.max(...glycReadings) : null;
+
+  return {
+    totalDose: Math.round(totalDose * 10) / 10,
+    totalCarbs: Math.round(totalCarbs),
+    injections,
+    glycReadings: glycReadings.length,
+    avgGlycemia,
+    timeInRange,
+    minGlyc,
+    maxGlyc,
   };
 }

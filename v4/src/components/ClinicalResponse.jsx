@@ -89,7 +89,7 @@ function DoseBreakdown({ reasoning, t, isDark }) {
 export default function ClinicalResponse({ result, t, isDark = true }) {
   if (!result) return null;
 
-  const { analysis, recommendation, vigilance, nextStep } = result;
+  const { analysis, recommendation, vigilance, nextStep, prediction } = result;
 
   const hasVigilance =
     (vigilance?.risks?.length > 0) || (vigilance?.warnings?.length > 0);
@@ -149,7 +149,11 @@ export default function ClinicalResponse({ result, t, isDark = true }) {
               </span>
               <span className={`text-lg font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>U</span>
 
-              {recommendation.split?.type === 'fractionne' ? (
+              {recommendation.split?.type === 'etendu' ? (
+                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 uppercase tracking-wide">
+                  {t('etendu3Phases') || 'Étendu 3 phases'}
+                </span>
+              ) : recommendation.split?.type === 'fractionne' ? (
                 <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-500 border border-purple-500/30 uppercase tracking-wide">
                   {t('cl_doseFractionnee')}
                 </span>
@@ -159,6 +163,31 @@ export default function ClinicalResponse({ result, t, isDark = true }) {
                 </span>
               )}
             </div>
+
+            {/* Extended 3-phase details */}
+            {recommendation.split?.type === 'etendu' && recommendation.split.phases && (
+              <div className="mt-3 space-y-1.5">
+                {recommendation.split.phases.map((phase, i) => (
+                  <div key={i} className={`flex items-center gap-3 p-2 rounded-lg border ${
+                    isDark ? 'bg-indigo-900/15 border-indigo-700/30' : 'bg-indigo-50 border-indigo-200'
+                  }`}>
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isDark ? 'bg-indigo-700 text-indigo-200' : 'bg-indigo-200 text-indigo-700'
+                    }`}>{i + 1}</span>
+                    <div className="flex-1">
+                      <p className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>{phase.label}</p>
+                      <p className={`text-[10px] ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`}>
+                        {phase.delayMinutes === 0 ? 'Maintenant' : `+${phase.delayMinutes} min`}
+                        {phase.checkGlycemia && ' · 🩸 contrôle'}
+                      </p>
+                    </div>
+                    <span className={`text-lg font-bold tabular-nums ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+                      {phase.units}U
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Split details */}
             {recommendation.split?.type === 'fractionne' && (
@@ -215,7 +244,41 @@ export default function ClinicalResponse({ result, t, isDark = true }) {
         </Section>
       )}
 
-      {/* ── Section 4 : Prochaine étape ──────────────────────────────────────── */}
+      {/* ── Section 4 : Prediction post-repas ──────────────────────────────── */}
+      {prediction && !recommendation.blocked && recommendation.dose > 0 && (
+        <Section icon="📈" title={t('predictionPostRepas') || 'Prédiction post-repas'} isDark={isDark}>
+          <div className="flex items-center gap-3">
+            <div className={`flex flex-col items-center px-4 py-2 rounded-lg border shrink-0 ${
+              prediction.zone === 'cible' ? (isDark ? 'bg-green-900/30 border-green-700/40' : 'bg-green-50 border-green-200')
+              : prediction.zone === 'hypo' || prediction.zone === 'bas' ? (isDark ? 'bg-red-900/30 border-red-700/40' : 'bg-red-50 border-red-200')
+              : (isDark ? 'bg-orange-900/30 border-orange-700/40' : 'bg-orange-50 border-orange-200')
+            }`}>
+              <span className={`text-2xl font-bold tabular-nums leading-none ${
+                prediction.zone === 'cible' ? (isDark ? 'text-green-400' : 'text-green-700')
+                : prediction.zone === 'hypo' || prediction.zone === 'bas' ? (isDark ? 'text-red-400' : 'text-red-700')
+                : (isDark ? 'text-orange-400' : 'text-orange-700')
+              }`}>
+                {prediction.predicted.toFixed(2)}
+              </span>
+              <span className={`text-[10px] uppercase tracking-wider mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                g/L à +2h
+              </span>
+            </div>
+            <div className="flex-1">
+              <p className={`text-xs leading-snug ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {prediction.delta > 0 ? '+' : ''}{prediction.delta.toFixed(2)} g/L
+                {prediction.zone === 'cible' && ' — dans la cible ✓'}
+                {prediction.zone === 'hypo' && ' — risque hypo ⚠️'}
+                {prediction.zone === 'bas' && ' — attention glycémie basse'}
+                {prediction.zone === 'haut' && ' — glycémie restera élevée'}
+                {prediction.zone === 'hyper' && ' — hyperglycémie persistante ⚠️'}
+              </p>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {/* ── Section 5 : Prochaine étape ──────────────────────────────────────── */}
       {nextStep && (
         <Section icon="⏱️" title={t('cl_prochaineEtape')} isDark={isDark}>
           <div className="flex items-center gap-3">

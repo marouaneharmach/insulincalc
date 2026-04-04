@@ -510,6 +510,46 @@ const fr = {
   essayerAutrePhoto: 'Essayez avec une autre photo ou ajoutez manuellement',
   alimentsDetectes: 'aliment(s) détecté(s)',
   totalLipides: 'Total lipides',
+
+  // V5.7 — AI recognition enhancements
+  tapPourAjouter: 'Tapez pour ajouter au repas',
+  analyseEnCours: 'Analyse en cours...',
+  estimationIA: 'estimation IA',
+  valeurImplausible: 'Valeurs inhabituelles — vérifiez les estimations',
+  ajouterAuRepas: 'Ajouter au repas',
+  sauvegarderAlimentPerso: 'Sauvegarder comme aliment personnalisé',
+  poidsEstime: 'Poids estimé',
+  annuler: 'Annuler',
+
+  // V5.7 — Extended injection plan
+  planInjection: "Plan d'injection",
+  nouvelleConsultation: 'Nouvelle consultation',
+  phaseTerminee: 'Phase terminée',
+  marquerFait: 'Marquer fait',
+  phasesCompletees: 'phases complétées',
+  doseTotal: 'Dose totale',
+  dansXmin: 'dans {0} min',
+  controleGlycemie: 'Contrôle glycémie',
+
+  // V5.7 — Fat calculation
+  bonusGrasContinu: 'Bonus gras continu',
+  fatGramsLabel: 'g de lipides',
+
+  // V5.7 — Journal & timeline
+  estimationIAMarker: '(estimation IA)',
+  photoRepas: 'Photo repas',
+  etendu3Phases: '(étendu 3 phases)',
+  doseReelle: 'Dose réellement injectée',
+  confirmerEnregistrer: '💉 Confirmer',
+
+  // V5.7 — Glycemic prediction
+  predictionPostRepas: 'Prédiction post-repas',
+  glycemiePrevue: 'Glycémie prévue à +2h',
+  bilanJournalier: 'Bilan journalier',
+  tempsEnCible: 'Temps en cible',
+  moyenneGlycemie: 'Moyenne glycémie',
+  nbInjections: 'Injections',
+  totalGlucidesJour: 'Glucides du jour',
 };
 
 export default fr;
