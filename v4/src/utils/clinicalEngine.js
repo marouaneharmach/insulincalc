@@ -216,6 +216,7 @@ export function applySafetyRules({
  * digestion speed.
  *
  * Split schemas:
+ *  - Fat "élevé" + carbs > 60g : extended 3 phases over 4h (50% / 30% / 20%)
  *  - Fat "moyen"  : 60% immediate + 40% delayed at +45 min
  *  - Fat "élevé"  : 50% immediate + 50% delayed at +60 min
  *  - slowDigestion alone (fat not moyen/élevé) : 70% immediate + 30% at +60 min
@@ -227,17 +228,37 @@ export function applySafetyRules({
  * @param {number}  dose          - Adjusted dose in units (already rounded to 0.5)
  * @param {string}  fatLevel      - One of: 'aucun','faible','moyen','élevé'
  * @param {boolean} slowDigestion - Whether patient has slow digestion
+ * @param {number}  [totalCarbs=0] - Total carbohydrates in grams (used for extended plan)
  * @returns {{
- *   type: 'unique'|'fractionne',
+ *   type: 'unique'|'fractionne'|'etendu',
  *   immediate: number,
  *   delayed: number,
  *   delayMinutes: number,
+ *   phases?: Array<{pct: number, units: number, delayMinutes: number, label: string, checkGlycemia: boolean}>,
  * }}
  */
-export function determineSplit(dose, fatLevel, slowDigestion) {
+export function determineSplit(dose, fatLevel, slowDigestion, totalCarbs = 0) {
   // Zero dose — no injection, no split
   if (dose <= 0) {
     return { type: 'unique', immediate: 0, delayed: 0, delayMinutes: 0 };
+  }
+
+  // Extended 3-phase plan: fat élevé + rich meal (> 60g carbs)
+  if (fatLevel === 'élevé' && totalCarbs > 60) {
+    const p1 = round05(dose * 0.50);
+    const p2 = round05(dose * 0.30);
+    const p3 = round05(dose - p1 - p2); // remainder to avoid rounding drift
+    return {
+      type: 'etendu',
+      immediate: p1,
+      delayed: p2 + p3,
+      delayMinutes: 60,
+      phases: [
+        { pct: 50, units: p1, delayMinutes: 0,   label: 'Glucides rapides', checkGlycemia: false },
+        { pct: 30, units: p2, delayMinutes: 60,   label: 'Absorption graisses', checkGlycemia: true },
+        { pct: 20, units: p3, delayMinutes: 180,  label: 'Queue de digestion lente', checkGlycemia: true },
+      ],
+    };
   }
 
   // Fat scheme takes priority over slowDigestion alone
@@ -388,7 +409,7 @@ export function analyzeAndRecommend(inputs) {
   const { blocked, adjustedDose, risks, warnings } = safetyResult;
 
   // ── Step 4: determine split ────────────────────────────────────────────────
-  const split = determineSplit(adjustedDose, fatLevel, slowDigestion);
+  const split = determineSplit(adjustedDose, fatLevel, slowDigestion, totalCarbs);
 
   // ── Step 5: build reasoning ────────────────────────────────────────────────
   const reasoning = [];

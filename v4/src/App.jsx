@@ -166,8 +166,16 @@ export default function App() {
 
     // Schedule notifications
     if (notifEnabled) {
+      // Extended plan: remind for each future phase
+      if (entry.bolusType === 'etendu' && entry.splitPhases) {
+        entry.splitPhases.forEach(phase => {
+          if (phase.delayMinutes > 0) {
+            scheduleSplitReminder(phase.delayMinutes, phase.units);
+          }
+        });
+      }
       // Split bolus: remind for 2nd injection
-      if (entry.bolusType === 'fractionne' && entry.splitDelayed > 0 && entry.splitDelayMinutes > 0) {
+      else if (entry.bolusType === 'fractionne' && entry.splitDelayed > 0 && entry.splitDelayMinutes > 0) {
         scheduleSplitReminder(entry.splitDelayMinutes, entry.splitDelayed);
       }
       // Always schedule post-meal glycemia check (2h)

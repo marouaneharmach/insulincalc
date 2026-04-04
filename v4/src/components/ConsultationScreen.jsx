@@ -4,6 +4,7 @@ import GlycemiaInput from './GlycemiaInput';
 import MealInput from './MealInput';
 import ContextInput from './ContextInput';
 import ClinicalResponse from './ClinicalResponse';
+import ExtendedPlan from './ExtendedPlan';
 import { analyzeAndRecommend } from '../utils/clinicalEngine';
 import { calcTotalIOB } from '../utils/iobCurve';
 import OverdoseDialog from './OverdoseDialog';
@@ -154,17 +155,25 @@ export default function ConsultationScreen({
 
     // Capture injection plan before reset
     const now = new Date();
+    const splitResult = result.recommendation.split;
     const plan = {
       doseReelle: !isNaN(parseFloat(actualDose)) ? parseFloat(actualDose) : result.recommendation.dose,
-      split: { ...result.recommendation.split },
+      split: { ...splitResult },
       heure: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
       checkTime: now.getTime() + 120 * 60000,
+      startTime: now.getTime(),
     };
-    if (plan.split.type === 'fractionne') {
-      plan.secondInjectionTime = now.getTime() + plan.split.delayMinutes * 60000;
+    if (splitResult.type === 'fractionne') {
+      plan.secondInjectionTime = now.getTime() + splitResult.delayMinutes * 60000;
+    }
+    if (splitResult.type === 'etendu' && splitResult.phases) {
+      plan.phases = splitResult.phases.map(p => ({ ...p, done: p.delayMinutes === 0 }));
+      // Set check time to last phase
+      const lastPhase = splitResult.phases[splitResult.phases.length - 1];
+      plan.checkTime = now.getTime() + (lastPhase.delayMinutes + 60) * 60000;
     }
 
-    onSaveToJournal({
+    const journalEntry = {
       glycPre: gVal, tendance: trend, heure: hour,
       totalGlucides: totalCarbs,
       niveauGras: manualCarbs > 0 ? fatLevel : autoFatLevel,
@@ -178,14 +187,19 @@ export default function ConsultationScreen({
       iobAuMoment: parseFloat(iobTotal.toFixed(1)),
       doseSuggeree: result.recommendation.dose,
       doseReelle: !isNaN(parseFloat(actualDose)) ? parseFloat(actualDose) : result.recommendation.dose,
-      bolusType: result.recommendation.split.type,
-      splitImmediate: result.recommendation.split.immediate,
-      splitDelayed: result.recommendation.split.delayed,
-      splitDelayMinutes: result.recommendation.split.delayMinutes,
+      bolusType: splitResult.type,
+      splitImmediate: splitResult.immediate,
+      splitDelayed: splitResult.delayed,
+      splitDelayMinutes: splitResult.delayMinutes,
+      // Extended plan phases (3-phase for rich fatty meals)
+      splitPhases: splitResult.phases
+        ? splitResult.phases.map(p => ({ ...p, done: p.delayMinutes === 0 }))
+        : null,
       activitePhysique: activity,
       alertes: [...result.vigilance.risks, ...result.vigilance.warnings],
       notes: '',
-    });
+    };
+    onSaveToJournal(journalEntry);
 
     setSavedPlan(plan);
 
@@ -202,45 +216,64 @@ export default function ConsultationScreen({
   return (
     <div className="space-y-4 p-4" dir={isRTL ? 'rtl' : 'ltr'}>
       {savedPlan ? (
-        <div className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-emerald-900/20 border-emerald-700' : 'bg-emerald-50 border-emerald-200'}`}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={`font-bold text-sm ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-              {'📋 '}{t('planInjection') || "Plan d'injection"}
-            </h3>
-            <button onClick={() => setSavedPlan(null)}
-              className={`text-xs px-2 py-1 rounded-lg ${isDark ? 'bg-slate-700 text-slate-400' : 'bg-gray-100 text-gray-500'}`}>
-              {t('nouvelleConsultation') || 'Nouvelle consultation'}
-            </button>
-          </div>
+        <div className="space-y-3">
+          {/* Extended 3-phase plan */}
+          {savedPlan.phases ? (
+            <ExtendedPlan
+              plan={savedPlan}
+              onTogglePhase={(i) => {
+                setSavedPlan(prev => {
+                  const next = { ...prev, phases: prev.phases.map((p, j) => j === i ? { ...p, done: !p.done } : p) };
+                  return next;
+                });
+              }}
+              isDark={isDark}
+              t={t}
+            />
+          ) : (
+            <div className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-emerald-900/20 border-emerald-700' : 'bg-emerald-50 border-emerald-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`font-bold text-sm ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                  {'📋 '}{t('planInjection') || "Plan d'injection"}
+                </h3>
+              </div>
 
-          {/* Step 1: First injection */}
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-lg">{'✅'}</span>
-            <p className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-              {savedPlan.split.immediate}u — {t('cl_immediat') || 'maintenant'} ({savedPlan.heure})
-            </p>
-          </div>
+              {/* Step 1: First injection */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-lg">{'✅'}</span>
+                <p className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                  {savedPlan.split.immediate}u — {t('cl_immediat') || 'maintenant'} ({savedPlan.heure})
+                </p>
+              </div>
 
-          {/* Step 2: Second injection (fractionné only) */}
-          {savedPlan.split.type === 'fractionne' && savedPlan.secondInjectionTime && (
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-lg">{'⏰'}</span>
-              <p className={`text-sm font-semibold ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
-                {savedPlan.split.delayed}u — dans {savedPlan.split.delayMinutes}min
-                <span className={`text-xs ml-1 ${isDark ? 'text-purple-400' : 'text-purple-500'}`}>
-                  ({'\u00e0 '}{new Date(savedPlan.secondInjectionTime).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})})
-                </span>
-              </p>
+              {/* Step 2: Second injection (fractionné only) */}
+              {savedPlan.split.type === 'fractionne' && savedPlan.secondInjectionTime && (
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-lg">{'⏰'}</span>
+                  <p className={`text-sm font-semibold ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                    {savedPlan.split.delayed}u — dans {savedPlan.split.delayMinutes}min
+                    <span className={`text-xs ml-1 ${isDark ? 'text-purple-400' : 'text-purple-500'}`}>
+                      ({'\u00e0 '}{new Date(savedPlan.secondInjectionTime).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})})
+                    </span>
+                  </p>
+                </div>
+              )}
+
+              {/* Step 3: Glycemia check */}
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{'📊'}</span>
+                <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {t('cl_recontrole') || 'Contrôle glycémie'} — {'\u00e0 '}{new Date(savedPlan.checkTime).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Step 3: Glycemia check */}
-          <div className="flex items-center gap-3">
-            <span className="text-lg">{'📊'}</span>
-            <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {t('cl_recontrole') || 'Contrôle glycémie'} — {'\u00e0 '}{new Date(savedPlan.checkTime).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}
-            </p>
-          </div>
+          {/* New consultation button */}
+          <button onClick={() => setSavedPlan(null)}
+            className={`w-full py-2 rounded-xl text-sm font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'}`}>
+            {t('nouvelleConsultation') || 'Nouvelle consultation'}
+          </button>
         </div>
       ) : (
         <>

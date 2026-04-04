@@ -40,7 +40,7 @@ function blobToBase64(blob) {
 const FOOD_PROMPT = `You are a food identification expert for a diabetes management app. Analyze this meal photo.
 
 Return ONLY valid JSON (no markdown, no code blocks, no explanation):
-{"foods":[{"name":"english name","nameFr":"nom français simple","confidence":85,"estimatedCarbs":30}]}
+{"foods":[{"name":"english name","nameFr":"nom français simple","confidence":85,"estimatedCarbs":30,"estimatedFat":12,"estimatedWeight":200}]}
 
 CRITICAL rules:
 - Identify the COMPLETE DISH first (e.g. "cheeseburger", "pizza margherita", "tajine poulet"), then individual sides
@@ -49,6 +49,8 @@ CRITICAL rules:
 - "nameFr" must be a SIMPLE common name: "Cheeseburger", "Pizza", "Couscous", "Tajine", "Sushi" — NOT long descriptions
 - "confidence" = 0-100 certainty
 - "estimatedCarbs" = total carbs in grams for the visible portion
+- "estimatedFat" = total fat/lipids in grams for the visible portion
+- "estimatedWeight" = estimated total weight in grams for the visible portion
 - Recognize ALL cuisines: Moroccan, Mediterranean, Asian, fast-food, etc.
 - If no food visible, return {"foods":[]}
 - Max 5 items`;
@@ -130,13 +132,22 @@ export async function recognizeFood(imageFile) {
       name: f.name || f.nameFr || 'unknown',
       nameFr: f.nameFr || f.name,
       confidence: f.confidence || 80,
-      estimatedCarbs: f.estimatedCarbs || null,
+      estimatedCarbs: f.estimatedCarbs ?? null,
+      estimatedFat: f.estimatedFat ?? null,
+      estimatedWeight: f.estimatedWeight ?? null,
       id: `groq_${i}_${Date.now()}`
     }));
 }
 
 function normalize(str) {
   return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+/** Convert fat grams to qualitative level used by dose calculations */
+export function deriveFatLevel(fatGrams) {
+  if (fatGrams == null || fatGrams <= 5) return 'faible';
+  if (fatGrams <= 15) return 'moyen';
+  return 'élevé';
 }
 
 // Keyword aliases: AI name → DB search keywords
