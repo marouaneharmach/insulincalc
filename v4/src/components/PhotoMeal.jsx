@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
-import { recognizeFood, mapToLocalFoods, compressImage } from '../utils/foodRecognition';
+import { recognizeFood, mapToLocalFoods, compressImage, deriveFatLevel } from '../utils/foodRecognition';
 
 /**
- * PhotoMeal — Take a photo of a meal, recognize foods via Clarifai,
- * then let user confirm/adjust and add to meal selection
+ * PhotoMeal — Take a photo of a meal, recognize foods via Groq Vision,
+ * then let user confirm/adjust and add to meal selection.
+ * Supports both DB-mapped foods and AI-estimated foods (unmapped).
  */
 export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'results' | 'error'
@@ -34,9 +35,23 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
     }
   };
 
-  const addFood = (food) => {
-    if (food.localFood) {
-      toggleFood(food.localFood);
+  const addFood = (item) => {
+    if (item.localFood) {
+      toggleFood(item.localFood);
+    } else if (item.estimatedCarbs != null) {
+      // AI-estimated food not in local DB — create temporary food entry
+      const aiFood = {
+        id: `ai_${item.nameFr}_${Date.now()}`,
+        name: `${item.nameFr} (IA)`,
+        carbs: Math.round(item.estimatedCarbs),
+        fat: deriveFatLevel(item.estimatedFat),
+        gi: 'moyen',
+        unit: `~${item.estimatedWeight || '?'}g (estimation IA)`,
+        qty: 'plat',
+        note: 'Estimation IA — ajustez si besoin',
+        aiEstimated: true,
+      };
+      toggleFood(aiFood);
     }
   };
 
@@ -141,13 +156,18 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
           </p>
 
           <div className="space-y-1">
-            {results.map((item, i) => (
+            {results.map((item, i) => {
+              const canAdd = item.mapped || item.estimatedCarbs != null;
+              const carbsDisplay = item.mapped ? item.localFood.carbs : item.estimatedCarbs;
+              const fatDisplay = item.mapped ? null : item.estimatedFat;
+
+              return (
               <button
                 key={i}
                 onClick={() => addFood(item)}
-                disabled={!item.mapped}
+                disabled={!canAdd}
                 className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition ${
-                  item.mapped
+                  canAdd
                     ? isDark ? 'hover:bg-teal-900/20 border border-slate-700' : 'hover:bg-teal-50 border border-gray-100'
                     : 'opacity-50 cursor-not-allowed border border-dashed ' + (isDark ? 'border-slate-700' : 'border-gray-200')
                 }`}
@@ -169,20 +189,35 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
                     <p className={`text-[10px] ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
                       → {item.localFood.name} ({item.localFood.carbs}g glucides)
                     </p>
+                  ) : item.estimatedCarbs != null ? (
+                    <p className={`text-[10px] ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                      ~{Math.round(item.estimatedCarbs)}g glucides
+                      {item.estimatedFat != null && ` · ~${Math.round(item.estimatedFat)}g lipides`}
+                      {item.estimatedWeight != null && ` · ~${item.estimatedWeight}g`}
+                      {' '}(estimation IA)
+                    </p>
                   ) : (
                     <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                      {item.name} — {t('nonTrouveDansBase') || 'non trouvé dans la base'}
+                      {item.name} — {t?.('nonTrouveDansBase') || 'non trouvé dans la base'}
                     </p>
                   )}
                 </div>
 
-                {item.mapped && (
-                  <span className={`text-xs font-bold shrink-0 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
-                    + {item.localFood.carbs}g
-                  </span>
+                {canAdd && carbsDisplay != null && (
+                  <div className="text-right shrink-0">
+                    <span className={`text-xs font-bold block ${item.mapped ? (isDark ? 'text-teal-400' : 'text-teal-600') : (isDark ? 'text-purple-400' : 'text-purple-600')}`}>
+                      + {Math.round(carbsDisplay)}g
+                    </span>
+                    {fatDisplay != null && (
+                      <span className={`text-[9px] block ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>
+                        {Math.round(fatDisplay)}g lip.
+                      </span>
+                    )}
+                  </div>
                 )}
               </button>
-            ))}
+              );
+            })}
           </div>
           </>
           )}
