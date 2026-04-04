@@ -507,6 +507,46 @@ const ar = {
   essayerAutrePhoto: 'جرب صورة أخرى أو أضف يدويًا',
   alimentsDetectes: 'أطعمة تم اكتشافها',
   totalLipides: 'إجمالي الدهون',
+
+  // V5.7 — AI recognition enhancements
+  tapPourAjouter: 'انقر للإضافة إلى الوجبة',
+  analyseEnCours: 'جاري التحليل...',
+  estimationIA: 'تقدير الذكاء الاصطناعي',
+  valeurImplausible: 'قيم غير معتادة — تحقق من التقديرات',
+  ajouterAuRepas: 'إضافة إلى الوجبة',
+  sauvegarderAlimentPerso: 'حفظ كطعام مخصص',
+  poidsEstime: 'الوزن المقدر',
+  annuler: 'إلغاء',
+
+  // V5.7 — Extended injection plan
+  planInjection: 'خطة الحقن',
+  nouvelleConsultation: 'استشارة جديدة',
+  phaseTerminee: 'المرحلة مكتملة',
+  marquerFait: 'وضع علامة مكتمل',
+  phasesCompletees: 'مراحل مكتملة',
+  doseTotal: 'الجرعة الإجمالية',
+  dansXmin: 'في {0} دقيقة',
+  controleGlycemie: 'فحص السكر',
+
+  // V5.7 — Fat calculation
+  bonusGrasContinu: 'مكافأة الدهون المستمرة',
+  fatGramsLabel: 'غ دهون',
+
+  // V5.7 — Journal & timeline
+  estimationIAMarker: '(تقدير ذكاء اصطناعي)',
+  photoRepas: 'صورة الوجبة',
+  etendu3Phases: '(ممتد 3 مراحل)',
+  doseReelle: 'الجرعة الفعلية المحقونة',
+  confirmerEnregistrer: '💉 تأكيد',
+
+  // V5.7 — Glycemic prediction
+  predictionPostRepas: 'توقع ما بعد الوجبة',
+  glycemiePrevue: 'السكر المتوقع بعد ساعتين',
+  bilanJournalier: 'الحصيلة اليومية',
+  tempsEnCible: 'الوقت في النطاق',
+  moyenneGlycemie: 'متوسط السكر',
+  nbInjections: 'الحقن',
+  totalGlucidesJour: 'كربوهيدرات اليوم',
 };
 
 export default ar;

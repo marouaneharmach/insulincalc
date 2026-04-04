@@ -127,9 +127,19 @@ export default function App() {
     setSelections(prev => prev.map(s => s.food.id === id ? { ...s, mult: Math.max(0.25, Math.min(mult, 10)) } : s));
   }, [setSelections]);
 
+  // Photo thumbnail state for journal persistence
+  const [lastPhotoThumbnail, setLastPhotoThumbnail] = useState(null);
+
   // Photo meal recognition handler — returns results for MealInput to display
-  // Errors are propagated to MealInput for display to user
+  // Also generates a small thumbnail for journal persistence
   const handlePhotoMeal = useCallback(async (file) => {
+    // Generate small thumbnail (80px) for journal
+    const { compressImage } = await import('./utils/foodRecognition');
+    const thumb = await compressImage(file, 80);
+    const reader = new FileReader();
+    reader.onloadend = () => setLastPhotoThumbnail(reader.result);
+    reader.readAsDataURL(thumb);
+
     const results = await recognizeFood(file);
     const mapped = mapToLocalFoods(results, allFoods);
     return mapped;
@@ -151,9 +161,11 @@ export default function App() {
       id: Date.now(),
       date: new Date().toISOString(),
       ...entry,
-      doseReelle: entry.doseReelle ?? entry.doseSuggeree, // keep patient's input if provided
+      doseReelle: entry.doseReelle ?? entry.doseSuggeree,
       glycPost: null,
+      photoThumbnail: lastPhotoThumbnail || null,
     };
+    setLastPhotoThumbnail(null); // reset after save
 
     // Overdose check
     if (fullEntry.doseSuggeree > maxDose) {
@@ -239,6 +251,7 @@ export default function App() {
             timeProfiles={timeProfiles}
             onSaveToJournal={onSaveToJournalV5}
             onPhotoMeal={handlePhotoMeal}
+            onSaveCustomFood={(food) => setCustomFoods(prev => [...prev, food])}
             t={t} isRTL={isRTL} isDark={isDark}
           />
         )}

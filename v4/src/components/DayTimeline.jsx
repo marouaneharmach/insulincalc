@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { calcIOB } from '../utils/calculations';
 import { DIGESTION_PROFILES } from '../data/constants';
-import { evaluatePostPrandial } from '../utils/clinicalEngine';
+import { evaluatePostPrandial, computeDailySummary } from '../utils/clinicalEngine';
 import GlycEvolutionChart from './GlycEvolutionChart';
 
 function glycColor(v) {
@@ -13,7 +13,7 @@ function glycColor(v) {
   return '#EF4444';
 }
 
-export default function DayTimeline({ journal, setJournal, targetGMin, targetGMax, targetGMid, isf, t, colors, isDark }) {
+export default function DayTimeline({ journal, setJournal, targetGMin, targetGMax, targetGMid, isf, ratio, t, colors, isDark }) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Get entries for selected date
@@ -261,6 +261,45 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
         </div>
       )}
 
+      {/* Daily glycemic summary */}
+      {(() => {
+        const summary = computeDailySummary(journal, selectedDate, targetGMin, targetGMax);
+        if (summary.glycReadings === 0) return null;
+        return (
+          <div className={cardClass}>
+            <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              📊 {t('bilanJournalier') || 'Bilan journalier'}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="text-center">
+                <p className={`text-lg font-bold ${
+                  summary.timeInRange >= 70 ? 'text-green-500' : summary.timeInRange >= 50 ? 'text-amber-500' : 'text-red-500'
+                }`}>{summary.timeInRange}%</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('tempsEnCible') || 'En cible'}</p>
+              </div>
+              <div className="text-center">
+                <p className={`text-lg font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{summary.avgGlycemia}</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('moyenneGlycemie') || 'Moy. g/L'}</p>
+              </div>
+              <div className="text-center">
+                <p className={`text-lg font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{summary.injections}</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('nbInjections') || 'Injections'}</p>
+              </div>
+              <div className="text-center">
+                <p className={`text-lg font-bold ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>{summary.totalCarbs}g</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('totalGlucidesJour') || 'Glucides'}</p>
+              </div>
+            </div>
+            {summary.minGlyc != null && (
+              <div className={`flex justify-center gap-4 mt-2 text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span>Min: <span style={{ color: glycColor(summary.minGlyc) }}>{summary.minGlyc.toFixed(2)}</span></span>
+                <span>Max: <span style={{ color: glycColor(summary.maxGlyc) }}>{summary.maxGlyc.toFixed(2)}</span></span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Glycemia evolution chart */}
       <GlycEvolutionChart
         journal={journal}
@@ -368,14 +407,23 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                   {type === 'meal' && (
                     <>
                       <div className="flex items-center justify-between mb-2">
-                        <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                          {entry.aliments
-                            ? Array.isArray(entry.aliments)
-                              ? entry.aliments.slice(0, 3).map(a => a.name || a).join(', ')
-                              : entry.aliments.split(',').slice(0, 3).join(', ')
-                            : 'Repas'}
-                          {entry.aliments && (Array.isArray(entry.aliments) ? entry.aliments.length : entry.aliments.split(',').length) > 3 && '...'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          {entry.photoThumbnail && (
+                            <img src={entry.photoThumbnail} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                          )}
+                          <p className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                            {entry.aliments
+                              ? Array.isArray(entry.aliments)
+                                ? entry.aliments.slice(0, 3).map(a => {
+                                    const name = a.name || a;
+                                    const isAI = a.id?.startsWith('ai_') || a.aiEstimated;
+                                    return isAI ? `${name} ✦` : name;
+                                  }).join(', ')
+                                : entry.aliments.split(',').slice(0, 3).join(', ')
+                              : 'Repas'}
+                            {entry.aliments && (Array.isArray(entry.aliments) ? entry.aliments.length : entry.aliments.split(',').length) > 3 && '...'}
+                          </p>
+                        </div>
                         <div className="flex items-center">
                           {entry.activitePhysique && entry.activitePhysique !== 'aucune' && (
                             <span className="text-xs ml-2">
