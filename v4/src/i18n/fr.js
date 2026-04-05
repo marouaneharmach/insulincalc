@@ -485,8 +485,8 @@ const fr = {
   cl_digestionLente: 'Digestion lente habituelle',
   cl_dureeAction: "Durée d'action insuline rapide",
 
-  // Consultation
-  cl_consultation: 'Consultation',
+  // Accueil
+  cl_accueil: 'Accueil',
   cl_journal: 'Journal',
   cl_reglages: 'Réglages',
 

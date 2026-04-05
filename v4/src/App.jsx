@@ -24,7 +24,7 @@ export default function App() {
 
   const [onboarded, setOnboarded] = useLocalStorage('onboarded', false);
 
-  const [tab, setTab] = useState('consultation');
+  const [tab, setTab] = useState('accueil');
 
   // Core parameters
   const [glycemia, setGlycemia] = useLocalStorage('glycemia', '');
@@ -235,7 +235,7 @@ export default function App() {
 
       {/* Main content */}
       <div className="max-w-lg mx-auto pb-24 px-0 sm:px-2">
-        {tab === 'consultation' && (
+        {tab === 'accueil' && (
           <ConsultationScreen
             glycemia={glycemia} setGlycemia={setGlycemia}
             ratio={ratio} isf={isf}

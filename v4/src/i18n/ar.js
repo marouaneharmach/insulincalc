@@ -483,7 +483,7 @@ const ar = {
   cl_dureeAction: 'مدة تأثير الأنسولين السريع',
 
   // Consultation
-  cl_consultation: 'الاستشارة',
+  cl_accueil: 'الصفحة الرئيسية',
   cl_journal: 'السجل',
   cl_reglages: 'الإعدادات',
 
