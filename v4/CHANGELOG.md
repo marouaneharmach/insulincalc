@@ -1,5 +1,31 @@
 # Changelog — InsulinCalc
 
+## v5.8.0 (2026-04-05)
+
+### Spécialisation des écrans
+- Onglet "Consultation" renommé en **"Accueil"** avec icône 🏠
+- L'écran Accueil est dédié à l'interaction utilisateur (saisie glycémie, repas, contexte, analyse)
+- L'écran Journal reste dédié à l'affichage historique et au suivi
+
+### Correction affichage dose fractionnée
+- **Avant** : la dose totale était affichée en gros (text-4xl) comme affichage principal, avec les fractions en dessous — ce qui prêtait à confusion avec une dose unique
+- **Après** : quand la dose est fractionnée, les **2 fractions sont l'affichage principal** (text-3xl dans des boxes colorées teal/purple), et le total apparaît en petit en dessous comme information secondaire
+- Affichage inchangé pour les doses uniques (total en gros) et les plans étendus 3 phases
+
+### Fichiers modifiés
+- `src/components/BottomNav3.jsx` — tab key `consultation` → `accueil`, icône 💉 → 🏠
+- `src/App.jsx` — état initial tab `consultation` → `accueil`, condition de rendu mise à jour
+- `src/components/ClinicalResponse.jsx` — refonte section Recommandation pour affichage fractionné (fractions en principal, total en secondaire)
+- `src/i18n/fr.js` — clé `cl_consultation` → `cl_accueil: 'Accueil'`
+- `src/i18n/ar.js` — clé `cl_consultation` → `cl_accueil: 'الصفحة الرئيسية'`
+
+### Vérification
+- 395/395 tests unitaires passent
+- Build production OK
+- Vérifié visuellement via preview (onglet Accueil + affichage fractionné)
+
+---
+
 ## v5.7.0 (2026-04-04)
 
 ### Phase A — Modal d'édition IA
