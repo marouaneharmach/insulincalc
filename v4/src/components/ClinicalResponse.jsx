@@ -142,74 +142,89 @@ export default function ClinicalResponse({ result, t, isDark = true }) {
           </div>
         ) : (
           <>
-            {/* Large dose number */}
-            <div className="flex items-baseline gap-2">
-              <span className={`text-4xl font-bold tabular-nums leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {recommendation.dose}
-              </span>
-              <span className={`text-lg font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>U</span>
+            {/* ── Fractionné: fractions as primary display ── */}
+            {recommendation.split?.type === 'fractionne' ? (
+              <>
+                {/* Badge */}
+                <div className="mb-3">
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-500 border border-purple-500/30 uppercase tracking-wide">
+                    {t('cl_doseFractionnee')}
+                  </span>
+                </div>
 
-              {recommendation.split?.type === 'etendu' ? (
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 uppercase tracking-wide">
-                  {t('etendu3Phases') || 'Étendu 3 phases'}
-                </span>
-              ) : recommendation.split?.type === 'fractionne' ? (
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-500 border border-purple-500/30 uppercase tracking-wide">
-                  {t('cl_doseFractionnee')}
-                </span>
-              ) : (
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/20 text-teal-500 border border-teal-500/30 uppercase tracking-wide">
-                  {t('cl_doseUnique')}
-                </span>
-              )}
-            </div>
-
-            {/* Extended 3-phase details */}
-            {recommendation.split?.type === 'etendu' && recommendation.split.phases && (
-              <div className="mt-3 space-y-1.5">
-                {recommendation.split.phases.map((phase, i) => (
-                  <div key={i} className={`flex items-center gap-3 p-2 rounded-lg border ${
-                    isDark ? 'bg-indigo-900/15 border-indigo-700/30' : 'bg-indigo-50 border-indigo-200'
-                  }`}>
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      isDark ? 'bg-indigo-700 text-indigo-200' : 'bg-indigo-200 text-indigo-700'
-                    }`}>{i + 1}</span>
-                    <div className="flex-1">
-                      <p className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>{phase.label}</p>
-                      <p className={`text-[10px] ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`}>
-                        {phase.delayMinutes === 0 ? 'Maintenant' : `+${phase.delayMinutes} min`}
-                        {phase.checkGlycemia && ' · 🩸 contrôle'}
-                      </p>
-                    </div>
-                    <span className={`text-lg font-bold tabular-nums ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                      {phase.units}U
+                {/* Two fraction boxes — primary display */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 flex flex-col items-center p-3 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                    <span className="text-[10px] uppercase tracking-wider text-teal-500 mb-1">
+                      {t('cl_immediat')}
                     </span>
+                    <span className={`text-3xl font-bold tabular-nums ${isDark ? 'text-teal-300' : 'text-teal-600'}`}>
+                      {recommendation.split.immediate}
+                    </span>
+                    <span className={`text-xs font-medium ${isDark ? 'text-teal-500' : 'text-teal-400'}`}>U</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <span className={`text-xl font-bold ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>+</span>
+                  <div className="flex-1 flex flex-col items-center p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                    <span className="text-[10px] uppercase tracking-wider text-purple-500 mb-1">
+                      +{recommendation.split.delayMinutes} min
+                    </span>
+                    <span className={`text-3xl font-bold tabular-nums ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      {recommendation.split.delayed}
+                    </span>
+                    <span className={`text-xs font-medium ${isDark ? 'text-purple-500' : 'text-purple-400'}`}>U</span>
+                  </div>
+                </div>
 
-            {/* Split details */}
-            {recommendation.split?.type === 'fractionne' && (
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex-1 flex flex-col items-center p-2.5 rounded-lg bg-teal-500/10 border border-teal-500/20">
-                  <span className="text-[10px] uppercase tracking-wider text-teal-500 mb-1">
-                    {t('cl_immediat')}
+                {/* Total — secondary, small */}
+                <p className={`mt-2 text-center text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Total : <span className="font-semibold">{recommendation.dose} U</span>
+                </p>
+              </>
+            ) : (
+              <>
+                {/* ── Unique / Étendu: total as primary display ── */}
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-4xl font-bold tabular-nums leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {recommendation.dose}
                   </span>
-                  <span className="text-xl font-bold text-teal-400 tabular-nums">
-                    {recommendation.split.immediate} U
-                  </span>
+                  <span className={`text-lg font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>U</span>
+
+                  {recommendation.split?.type === 'etendu' ? (
+                    <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 uppercase tracking-wide">
+                      {t('etendu3Phases') || 'Étendu 3 phases'}
+                    </span>
+                  ) : (
+                    <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/20 text-teal-500 border border-teal-500/30 uppercase tracking-wide">
+                      {t('cl_doseUnique')}
+                    </span>
+                  )}
                 </div>
-                <span className={`text-lg ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>+</span>
-                <div className="flex-1 flex flex-col items-center p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <span className="text-[10px] uppercase tracking-wider text-purple-500 mb-1">
-                    +{recommendation.split.delayMinutes} min
-                  </span>
-                  <span className="text-xl font-bold text-purple-400 tabular-nums">
-                    {recommendation.split.delayed} U
-                  </span>
-                </div>
-              </div>
+
+                {/* Extended 3-phase details */}
+                {recommendation.split?.type === 'etendu' && recommendation.split.phases && (
+                  <div className="mt-3 space-y-1.5">
+                    {recommendation.split.phases.map((phase, i) => (
+                      <div key={i} className={`flex items-center gap-3 p-2 rounded-lg border ${
+                        isDark ? 'bg-indigo-900/15 border-indigo-700/30' : 'bg-indigo-50 border-indigo-200'
+                      }`}>
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          isDark ? 'bg-indigo-700 text-indigo-200' : 'bg-indigo-200 text-indigo-700'
+                        }`}>{i + 1}</span>
+                        <div className="flex-1">
+                          <p className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>{phase.label}</p>
+                          <p className={`text-[10px] ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`}>
+                            {phase.delayMinutes === 0 ? 'Maintenant' : `+${phase.delayMinutes} min`}
+                            {phase.checkGlycemia && ' · 🩸 contrôle'}
+                          </p>
+                        </div>
+                        <span className={`text-lg font-bold tabular-nums ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+                          {phase.units}U
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Dose breakdown */}

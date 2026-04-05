@@ -1,6 +1,6 @@
 // v4/src/components/BottomNav3.jsx
 const TABS = [
-  { key: 'consultation', icon: '💉', labelKey: 'cl_consultation', fallback: 'Consultation' },
+  { key: 'accueil', icon: '🏠', labelKey: 'cl_accueil', fallback: 'Accueil' },
   { key: 'journal', icon: '📋', labelKey: 'cl_journal', fallback: 'Journal' },
   { key: 'reglages', icon: '⚙️', labelKey: 'cl_reglages', fallback: 'Réglages' },
 ];
