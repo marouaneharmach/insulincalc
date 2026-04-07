@@ -1,6 +1,6 @@
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import fr from './fr';
-import ar from './ar';
+import ar from './ar.js';
 
 const LOCALES = { fr, ar };
 

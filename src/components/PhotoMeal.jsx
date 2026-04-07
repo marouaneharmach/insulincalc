@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { recognizeFood, mapToLocalFoods, compressImage, isApiConfigured } from '../utils/foodRecognition.js';
+import { recognizeFood, mapToLocalFoods, compressImage } from '../utils/foodRecognition.js';
 
 export default function PhotoMeal({ allFoods, toggleFood, t, colors, theme }) {
   const cc = colors || {};

@@ -3,7 +3,7 @@ import { C, GI_COLOR } from '../utils/colors.js';
 import FoodCategory from './FoodCategory.jsx';
 import QtyStepper from './QtyStepper.jsx';
 
-const FoodList = memo(function FoodList({ search, setSearch, filteredDB, selections, openCat, setOpenCat, expandedId, toggleFood, updateMult, inp, customFoods, onDeleteCustomFood, recentFoodIds, allFoods, t, colors, theme, isRTL }) {
+const FoodList = memo(function FoodList({ search, setSearch, filteredDB, selections, openCat, setOpenCat, expandedId, toggleFood, updateMult, inp, customFoods, onDeleteCustomFood, recentFoodIds, allFoods, t, colors, theme }) {
   const GI_BADGE_LABEL = { faible: t ? t("igBas") : "IG Bas", moyen: t ? t("igMoy") : "IG Moy", "élevé": t ? t("igHaut") : "IG Haut" };
   const cc = colors || C;
   const isDark = theme === 'dark' || !theme;

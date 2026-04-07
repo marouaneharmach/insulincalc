@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
-export default function DataExport({ journal, t, isDark, colors }) {
-  const [importing, setImporting] = useState(false);
+export default function DataExport({ isDark }) {
   const [importResult, setImportResult] = useState(null);
 
   const PREFIX = 'insulincalc_v4_';
@@ -26,7 +25,7 @@ export default function DataExport({ journal, t, isDark, colors }) {
     try {
       const j = localStorage.getItem(PREFIX + 'journal');
       if (j) data.journal = JSON.parse(j);
-    } catch {}
+    } catch { /* no-op */ }
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

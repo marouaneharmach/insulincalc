@@ -82,7 +82,7 @@ export default function App() {
 
   // Selections
   const [selData, setSelData] = useLocalStorage('selections', []);
-  const [favorites, setFavorites] = useLocalStorage('favorites', []);
+  const [, /* favorites */] = useLocalStorage('favorites', []);
   const [customFoods, setCustomFoods] = useLocalStorage('custom_foods', []);
 
   // All foods map
@@ -159,7 +159,15 @@ export default function App() {
   const onSaveToJournalV5 = useCallback((entry) => {
     const fullEntry = {
       id: Date.now(),
-      date: new Date().toISOString(),
+      date: (() => {
+        if (entry.heure) {
+          const [h, m] = entry.heure.split(':').map(Number);
+          const d = new Date();
+          d.setHours(h, m, 0, 0);
+          return d.toISOString();
+        }
+        return new Date().toISOString();
+      })(),
       ...entry,
       doseReelle: entry.doseReelle ?? entry.doseSuggeree,
       glycPost: null,
@@ -262,11 +270,7 @@ export default function App() {
               setJournal={setJournal}
               targetGMin={targetGMin}
               targetGMax={targetGMax}
-              targetGMid={targetGMid}
-              isf={isf}
-              ratio={ratio}
               t={t}
-              colors={colors}
               isDark={isDark}
             />
             <PdfExport

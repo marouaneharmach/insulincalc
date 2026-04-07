@@ -50,7 +50,6 @@ export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, is
 
   const xStep = chartEntries.length > 1 ? chartW / (chartEntries.length - 1) : chartW;
   const yG = (v) => padT + chartH - ((v - minG) / (maxG - minG)) * chartH;
-  const yD = (v) => padT + chartH - (v / maxD) * chartH;
 
   const buildPath = (pts, yFn) => {
     let d = '';

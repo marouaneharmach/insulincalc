@@ -1,7 +1,7 @@
 const ACTIVITY_OPTIONS = [
   { value: 'aucune', labelKey: 'cl_aucune', fallback: 'Aucune', icon: '🪑' },
-  { value: 'légère', labelKey: 'cl_legere', fallback: 'Légère', icon: '🚶' },
-  { value: 'modérée', labelKey: 'cl_moderee', fallback: 'Modérée', icon: '🏃' },
+  { value: 'legere', labelKey: 'cl_legere', fallback: 'Légère', icon: '🚶' },
+  { value: 'moderee', labelKey: 'cl_moderee', fallback: 'Modérée', icon: '🏃' },
   { value: 'intense', labelKey: 'cl_intense', fallback: 'Intense', icon: '⚡' },
 ];
 
@@ -11,7 +11,6 @@ export default function ContextInput({
   t, isDark
 }) {
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
-  const labelClass = `text-[10px] uppercase tracking-wider font-semibold mb-2 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`;
 
   const hasIob = iobTotal != null && iobTotal > 0;
 

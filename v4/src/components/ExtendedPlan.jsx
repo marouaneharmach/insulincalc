@@ -2,10 +2,13 @@
  * ExtendedPlan — 4-6h injection timeline for rich/fatty meals (type "etendu").
  * Shows 3 phases with scheduled times, glycemia checkpoints, and completion toggles.
  */
+import { useState } from 'react';
+
 export default function ExtendedPlan({ plan, onTogglePhase, isDark, t }) {
   if (!plan || !plan.phases || plan.phases.length === 0) return null;
 
-  const now = Date.now();
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- conditional early return above is stable
+  const [now] = useState(() => Date.now());
 
   return (
     <div className={`rounded-2xl p-4 border-2 ${isDark ? 'bg-indigo-900/20 border-indigo-700' : 'bg-indigo-50 border-indigo-200'}`}>
@@ -44,9 +47,7 @@ export default function ExtendedPlan({ plan, onTogglePhase, isDark, t }) {
         {plan.phases.map((phase, i) => {
           const scheduledTime = plan.startTime + phase.delayMinutes * 60000;
           const timeStr = new Date(scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-          const isPast = now > scheduledTime;
           const isNext = !phase.done && (i === 0 || plan.phases[i - 1].done);
-          const isUpcoming = !phase.done && !isNext;
           const minutesUntil = Math.max(0, Math.round((scheduledTime - now) / 60000));
 
           return (

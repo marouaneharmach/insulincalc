@@ -153,7 +153,7 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  */
 export function applySafetyRules({
   glycemia, doseSuggeree, correction, iobTotal, trend,
-  activity, postKeto, maxDose, lastInjectionMinutesAgo,
+  postKeto, maxDose, lastInjectionMinutesAgo,
 }) {
   const risks = [];
   const warnings = [];

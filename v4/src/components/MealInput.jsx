@@ -18,7 +18,6 @@ export default function MealInput({
   foods = [],
   selections = [],
   toggleFood,
-  updateMult,
   customFoods = [],
   onPhotoMeal,
   onSaveCustomFood,
@@ -58,11 +57,6 @@ export default function MealInput({
     } finally {
       setPhotoLoading(false);
     }
-  };
-
-  /** Generate a small base64 thumbnail for journal persistence */
-  const getPhotoThumbnail = () => {
-    return mealPhoto || null;
   };
 
   const clearPhoto = () => {

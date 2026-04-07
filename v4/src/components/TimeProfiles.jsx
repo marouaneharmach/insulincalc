@@ -7,27 +7,7 @@ const DEFAULT_PROFILES = [
   { id: 'nuit', label: '🌑 Nuit', hours: '22h-6h', ratio: null, isf: null },
 ];
 
-export function getActiveProfile(timeProfiles, globalRatio, globalIsf) {
-  if (!timeProfiles || timeProfiles.every(p => !p.ratio && !p.isf)) {
-    return { ratio: globalRatio, isf: globalIsf, slot: null };
-  }
-  const h = new Date().getHours();
-  let slotId;
-  if (h >= 6 && h < 11) slotId = 'matin';
-  else if (h >= 11 && h < 16) slotId = 'midi';
-  else if (h >= 16 && h < 22) slotId = 'soir';
-  else slotId = 'nuit';
-
-  const profile = timeProfiles.find(p => p.id === slotId);
-  return {
-    ratio: profile?.ratio || globalRatio,
-    isf: profile?.isf || globalIsf,
-    slot: slotId,
-    label: profile?.label || '',
-  };
-}
-
-export default function TimeProfiles({ timeProfiles, setTimeProfiles, globalRatio, globalIsf, isDark, t }) {
+export default function TimeProfiles({ timeProfiles, setTimeProfiles, globalRatio, globalIsf, isDark }) {
   const [enabled, setEnabled] = useState(timeProfiles?.some(p => p.ratio || p.isf) || false);
 
   const profiles = timeProfiles?.length === 4 ? timeProfiles : DEFAULT_PROFILES;

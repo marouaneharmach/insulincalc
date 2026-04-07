@@ -19,6 +19,7 @@ export default function ConsultationScreen({
   journal, selections, foods, customFoods, toggleFood, updateMult,
   timeProfiles, onSaveToJournal, onPhotoMeal, onSaveCustomFood, t, isRTL, isDark,
 }) {
+  const [mountTime] = useState(() => Date.now());
   const [trend, setTrend] = useState('?');
   const [hour, setHour] = useState(() => {
     const now = new Date();
@@ -41,11 +42,13 @@ export default function ConsultationScreen({
     prevResultRef.current = result;
   }, [result]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (result?.recommendation?.dose != null) {
       setActualDose(String(result.recommendation.dose));
     }
   }, [result?.recommendation?.dose]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Calculate total carbs (expert mode: manual, assisted mode: from selections)
   const totalCarbs = useMemo(() => {
@@ -78,27 +81,25 @@ export default function ConsultationScreen({
   // Calculate IOB from recent journal entries
   const diaMinutes = (dia || 4.5) * 60;
   const iobTotal = useMemo(() => {
-    const now = Date.now();
     const injections = journal
       .filter(e => (e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0) > 0)
       .map(e => ({
         dose: e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0,
-        minutesAgo: (now - new Date(e.date).getTime()) / 60000,
+        minutesAgo: (mountTime - new Date(e.date).getTime()) / 60000,
       }))
       .filter(i => i.minutesAgo < diaMinutes && i.minutesAgo >= 0);
     return calcTotalIOB(injections, diaMinutes);
-  }, [journal, diaMinutes]);
+  }, [journal, diaMinutes, mountTime]);
 
   // Last injection time
   const lastInjectionMinutesAgo = useMemo(() => {
-    const now = Date.now();
     const recent = journal
       .filter(e => (e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0) > 0)
-      .map(e => (now - new Date(e.date).getTime()) / 60000)
+      .map(e => (mountTime - new Date(e.date).getTime()) / 60000)
       .filter(m => m >= 0)
       .sort((a, b) => a - b);
     return recent.length > 0 ? recent[0] : null;
-  }, [journal]);
+  }, [journal, mountTime]);
 
   // Get active time profile ratio/isf
   const activeParams = useMemo(() => {
@@ -132,7 +133,7 @@ export default function ConsultationScreen({
       glycemia: gVal, trend, totalCarbs,
       fatLevel: manualCarbs > 0 ? fatLevel : autoFatLevel,
       activity,
-      ratio: activeParams.ratio, isf: activeParams.isf,
+      ratio: activeParams.ratio, isf: activeParams.isf / 100,
       targetMin: targetGMin, targetMax: targetGMax,
       iobTotal, lastInjectionMinutesAgo,
       slowDigestion, postKeto, maxDose,
@@ -290,7 +291,7 @@ export default function ConsultationScreen({
             totalFatGrams={totalFatGrams} />
 
           <ContextInput activity={activity} setActivity={setActivity}
-            iobTotal={iobTotal} t={t} />
+            iobTotal={iobTotal} t={t} isDark={isDark} />
 
           <button onClick={handleAnalyze}
             disabled={isNaN(gVal) || gVal <= 0}
@@ -336,7 +337,7 @@ export default function ConsultationScreen({
               maxDose={maxDose}
               onConfirm={() => doSave()}
               onCancel={() => setShowOverdoseDialog(false)}
-              isDark={false}
+              isDark={isDark}
             />
           )}
         </>

@@ -11,8 +11,6 @@ import {
   getOverallFat,
   getDominantGI,
   buildSchedule,
-  estimateHbA1c,
-  detectPatterns,
 } from '../utils/calculations';
 
 // ─── TESTS UNITAIRES ─────────────────────────────────────────────────────────

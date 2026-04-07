@@ -12,7 +12,7 @@ const MEAL_TYPES = [
 // Flatten food database into a searchable array (computed once)
 const ALL_FOODS = Object.values(FOOD_DB).flat();
 
-export default function JournalEntryForm({ onSave, onCancel, selections, totalCarbs, doseCalculated, glycemia, editEntry }) {
+export default function JournalEntryForm({ onSave, onCancel, selections, doseCalculated, glycemia, editEntry }) {
   const [mealType, setMealType] = useState(editEntry?.mealType || guessMealType());
   const [preMealGlycemia, setPreMealGlycemia] = useState(
     editEntry?.preMealGlycemia?.toString() || glycemia || ""

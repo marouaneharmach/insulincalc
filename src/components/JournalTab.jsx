@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { C, SPACE, FONT, glycColor, glycLabel } from '../utils/colors.js';
+import { C, SPACE, FONT, glycColor } from '../utils/colors.js';
 import { estimateHbA1c, detectPatterns } from '../utils/calculations.js';
 import { detectAdvancedPatterns } from '../utils/patternDetector.js';
-import { getEntries, getStats, addEntry, updateEntry, deleteEntry } from '../data/journalStore.js';
+import { getStats, addEntry, updateEntry, deleteEntry } from '../data/journalStore.js';
 import { generateMedicalReport } from '../utils/exportPdf.js';
 import TimeInRange from './TimeInRange.jsx';
 import JournalEntryForm from './JournalEntryForm.jsx';

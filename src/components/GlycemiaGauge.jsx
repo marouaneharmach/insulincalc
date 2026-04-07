@@ -10,9 +10,6 @@ export default function GlycemiaGauge({ value, targetG }) {
 
   // Arc geometry
   const cx = 150, cy = 140, r = 110;
-  const startAngle = Math.PI; // 180° (left)
-  const endAngle = 0;        // 0° (right)
-
   // Zone boundaries in g/L mapped to arc fractions [0..1]
   // 0.3 → 0, 6.0 → 1
   const minG = 0.3, maxG = 4.0; // clamp display range

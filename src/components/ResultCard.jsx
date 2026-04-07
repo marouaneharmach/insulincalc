@@ -20,12 +20,13 @@ export default function ResultCard({ result, selections, totalCarbs, digestion, 
     // Update actualDose to match sum of actual doses from plan
     const totalActual = plan.reduce((sum, s) => sum + (s.actualDose != null ? s.actualDose : 0), 0);
     setActualDose(String(totalActual));
-  }, []);
+  }, [setActualDose]);
 
   const handleSave = () => {
     if (!result || !onSaveJournal) return;
     const dose = parseFloat(actualDose);
     // Pass dosagePlan along with the actual dose
+    // eslint-disable-next-line no-unused-vars
     const planForSave = dosagePlan ? dosagePlan.map(({ color, icon, ...rest }) => rest) : undefined;
     onSaveJournal(isNaN(dose) ? result.total : dose, planForSave);
     setSaved(true);

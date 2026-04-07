@@ -13,7 +13,7 @@ export default function Settings({
   weight, setWeight, height, setHeight, age, setAge, sex, setSex,
   imc,
   notifEnabled, setNotifEnabled,
-  theme, isDark, toggleTheme,
+  isDark, toggleTheme,
   locale, setLocale,
   timeProfiles, setTimeProfiles,
   journal,
@@ -23,7 +23,7 @@ export default function Settings({
   postKeto, setPostKeto,
   slowDigestion, setSlowDigestion,
   dia, setDia,
-  t, colors, isRTL
+  t, colors
 }) {
   const [section, setSection] = useState('profil');
   const [notifPermission, setNotifPermission] = useState(() =>
@@ -314,6 +314,9 @@ export default function Settings({
               <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                 Chaque contrôle glycémique prévu dans le calendrier d'injection déclenchera une notification.
                 Le timing s'adapte au profil de digestion du repas.
+              </p>
+              <p className={`text-xs mt-1 italic ${isDark ? 'text-amber-400/70' : 'text-amber-600/70'}`}>
+                ⏳ Fonctionnalité en cours de développement — disponible prochainement.
               </p>
             </div>
           )}

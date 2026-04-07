@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { round05, calcPostMealCorrection, calcIOB, buildSchedule, getOverallFat, getDominantGI, calcWeightSuggestions } from '../utils/calculations';
+import { round05, calcPostMealCorrection, calcIOB, buildSchedule, calcWeightSuggestions } from '../utils/calculations';
 import { validateGlycemia, validateDose } from '../utils/validation';
 import fr from '../i18n/fr';
 import ar from '../i18n/ar';

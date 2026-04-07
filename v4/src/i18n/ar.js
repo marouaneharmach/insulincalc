@@ -49,7 +49,6 @@ const ar = {
   indexGlycemique: "مؤشر السكر",
   graisses: "الدهون",
   vitesseDigestion: "سرعة الهضم المقدّرة",
-  rechercherAliment: "🔍  ابحث عن طعام أو وجبة...",
   ajouterAlimentPerso: "+ أضف مكوّن مخصص",
   mesAliments: "⭐ مكوّناتي",
   recents: "🕐 الأخيرة",
@@ -153,7 +152,6 @@ const ar = {
   cibleMin: "الحد الأدنى (غ/ل)",
   cibleMax: "الحد الأقصى (غ/ل)",
   correctionVers: "تصحيح نحو",
-  votreCible: "الهدف",
   digestionDefaut: "سرعة الهضم الافتراضية",
   securite: "الأمان",
   seuilAlerte: "حد التنبيه للجرعة القصوى",
@@ -212,6 +210,15 @@ const ar = {
   onb_isf: "عامل الحساسية",
   onb_isf_desc: "انخفاض السكر (ملغ/دل) لكل وحدة",
   onb_cible: "السكر المستهدف (غ/ل)",
+  onb_profil_desc: "المعلومات الأساسية ونوع الأنسولين",
+  onb_params_desc: "قيم مسبقة — يمكن تعديلها لاحقاً",
+  onb_disclaimer_title: "تحذير طبي",
+  onb_disclaimer_head: "هذه الأداة لا تغني عن المتابعة الطبية",
+  onb_disc_1: "الجرعات المحسوبة هي اقتراحات مبنية على إعداداتك.",
+  onb_disc_2: "تحقق دائماً من الجرعات مع طبيب السكري أو طبيبك المعالج.",
+  onb_disc_3: "في حالة الشك أو ظهور أعراض غير عادية، استشر مختصاً صحياً.",
+  onb_disc_4: "لا تغيّر علاجك أبداً بدون استشارة طبية.",
+  onb_accept: "أفهم أن هذه الأداة هي مساعد حسابي وليست جهازاً طبياً معتمداً. أستخدم هذه البيانات تحت مسؤوليتي الشخصية.",
   onb_terminer: "إنهاء الإعداد",
   onb_step: "خطوة",
 
@@ -223,7 +230,6 @@ const ar = {
   indexGI: "مؤشر السكر",
   note: "ملاحظة (اختياري)",
   enregistrer: "حفظ",
-  annuler: "إلغاء",
   nouvelAliment: "مكوّن مخصص جديد",
 
   // Favorites
@@ -258,12 +264,6 @@ const ar = {
   controleGraisses: "مراقبة — هضم الدهون",
   controleFin: "مراقبة — نهاية المفعول",
   unites: "وحدات",
-  controleGlycemie: "قياس السكر",
-
-  // Post-meal corrector
-  correcteurPostRepas: "مصحح بعد الوجبة",
-  glycemiePostRepas: "نسبة السكر بعد الوجبة",
-  insulineRestante: "الأنسولين المتبقي (IOB)",
   correctionSuggeree: "التصحيح المقترح",
 
   // Stats
@@ -273,7 +273,6 @@ const ar = {
   hba1cEstimee: "HbA1c المقدّرة",
 
   // Journal stats
-  resumeEvolution: "التطور",
   enCible: "في النطاق",
   doseMoyenne: "متوسط الجرعة",
   dosesChart: "الجرعات",
@@ -375,7 +374,6 @@ const ar = {
 
   // V4.3 — Sécurité dose
   doseEleveeDetectee: "تم اكتشاف جرعة عالية",
-  confirmerEnregistrer: "تأكيد وتسجيل",
   annulerVerifier: "إلغاء والتحقق",
   verifierParametres: "تحقق من إعداداتك",
 
@@ -386,7 +384,6 @@ const ar = {
 
   // V4.3.1
   saisieRapide: "إدخال سريع للسكر / الحقنة",
-  doseReelle: "الجرعة المحقونة فعلياً",
 
   // V4.3.2
   correcteurPostRepas: "مصحح ما بعد الوجبة",
@@ -399,12 +396,8 @@ const ar = {
   resumeEvolution: "تطور السكر",
 
   // V4.4
-  photoRepas: "صورة الوجبة",
   prendrePhoto: "التقاط صورة للوجبة",
   iaReconnaitraAliments: "الذكاء الاصطناعي سيتعرف على الأطعمة",
-  analyseEnCours: "جاري التحليل...",
-  tapPourAjouter: "اضغط لإضافة للوجبة",
-  planInjection: "خطة الحقن",
   rechercherAliment: "البحث عن طعام...",
   vider: "إفراغ",
   digestionHabituelle: "الهضم المعتاد",

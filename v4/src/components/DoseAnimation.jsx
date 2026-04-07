@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function DoseAnimation({ dose, bolusType, isDark }) {
   const [animate, setAnimate] = useState(false);
-  const [prevDose, setPrevDose] = useState(null);
+  const prevDoseRef = useRef(null);
 
   useEffect(() => {
-    if (dose !== prevDose) {
-      setAnimate(true);
-      setPrevDose(dose);
+    if (dose !== prevDoseRef.current) {
+      prevDoseRef.current = dose;
+      // Use requestAnimationFrame to avoid synchronous setState in effect
+      const raf = requestAnimationFrame(() => setAnimate(true));
       const timer = setTimeout(() => setAnimate(false), 1200);
-      return () => clearTimeout(timer);
+      return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
     }
-  }, [dose, prevDose]);
+  }, [dose]);
 
   return (
     <div className={`relative flex flex-col items-center justify-center py-2 transition-all duration-500 ${animate ? 'scale-110' : 'scale-100'}`}>

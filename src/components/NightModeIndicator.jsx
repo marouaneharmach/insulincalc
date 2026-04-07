@@ -2,7 +2,7 @@
  * NightModeIndicator - Shows a compact badge when night mode is active (21h-06h)
  * Uses amber color (#f59e0b) with subtle glow effect.
  */
-export default function NightModeIndicator({ active, t, colors }) {
+export default function NightModeIndicator({ active, t }) {
   if (!active) return null;
   return (
     <div style={{

@@ -10,7 +10,6 @@ export default function Onboarding({
   setIsf,
   setTargetGMin,
   setTargetGMax,
-  setDigestion,
   setInsulinBasal,
   setInsulinRapid,
   onComplete,
@@ -385,7 +384,7 @@ export default function Onboarding({
                 className={`flex-1 py-2.5 rounded-lg font-semibold text-white transition-all text-sm ${
                   !accepted ? 'opacity-40 cursor-not-allowed' : ''
                 }`}
-                style={{ backgroundColor: accepted ? colors.primary : undefined, backgroundColor: !accepted ? (isDark ? '#374151' : '#9ca3af') : colors.primary }}
+                style={{ backgroundColor: !accepted ? (isDark ? '#374151' : '#9ca3af') : colors.primary }}
               >
                 {t('onb_terminer') || 'Commencer'}
               </button>

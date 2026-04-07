@@ -1,11 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   base: '/insulincalc/',
+  test: {
+    exclude: ['node_modules/**', '.claude/**', 'v4/**', 'worker/**'],
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {

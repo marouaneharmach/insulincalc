@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   determineSplit,
   analyzeAndRecommend,
-  round05,
 } from '../utils/clinicalEngine';
 
 // ─── determineSplit — basic behavior (unchanged) ─────────────────────────────

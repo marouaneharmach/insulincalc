@@ -9,8 +9,9 @@ const getGlycemiaColor = (value, targetMin, targetMax) => {
   return { bg: '#FFB3B3', text: '#CC0000', label: 'Hyper' };
 };
 
-export default function PdfExport({ journal, patientName, ratio, isf, targetGMin, targetGMax, t, colors, isDark }) {
+export default function PdfExport({ journal, patientName, ratio, isf, targetGMin, targetGMax, t, isDark }) {
   const [showPrintView, setShowPrintView] = useState(false);
+  const [mountTime] = useState(() => Date.now());
 
   const computeStats = () => {
     // Accessor functions for backwards compatibility (v5 field names with v4 fallbacks)
@@ -33,7 +34,7 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
     }
 
     // Get last 30 days of data
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = mountTime - 30 * 24 * 60 * 60 * 1000;
     const recentEntries = journal.filter(e => e.id >= thirtyDaysAgo);
 
     const validGlycPreEntries = recentEntries.filter(e => getGlycPre(e) && !isNaN(parseFloat(getGlycPre(e))));
@@ -64,8 +65,8 @@ export default function PdfExport({ journal, patientName, ratio, isf, targetGMin
     const estimatedHbA1c = ((avgGlycMgDl + 46.7) / 28.7).toFixed(1);
 
     // Date range
-    const firstDate = new Date(recentEntries[recentEntries.length - 1]?.date || Date.now());
-    const lastDate = new Date(recentEntries[0]?.date || Date.now());
+    const firstDate = new Date(recentEntries[recentEntries.length - 1]?.date || mountTime);
+    const lastDate = new Date(recentEntries[0]?.date || mountTime);
     const dateRange = `${firstDate.toLocaleDateString('fr-FR')} à ${lastDate.toLocaleDateString('fr-FR')}`;
 
     return {

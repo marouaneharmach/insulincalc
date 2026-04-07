@@ -14,11 +14,9 @@ import { describe, it, expect } from 'vitest';
 import {
   computeFatFactor,
   calculateDose,
-  determineSplit,
   analyzeAndRecommend,
   predictPostMealGlycemia,
   computeDailySummary,
-  evaluatePostPrandial,
   round05,
   FAT_FACTOR,
 } from '../utils/clinicalEngine';

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useId } from 'react';
 import { recognizeFood, mapToLocalFoods, compressImage, deriveFatLevel } from '../utils/foodRecognition';
 
 /**
@@ -12,6 +12,8 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
   const [error, setError] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   const fileRef = useRef(null);
+  const idPrefix = useId();
+  const counterRef = useRef(0);
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0];
@@ -41,7 +43,7 @@ export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
     } else if (item.estimatedCarbs != null) {
       // AI-estimated food not in local DB — create temporary food entry
       const aiFood = {
-        id: `ai_${item.nameFr}_${Date.now()}`,
+        id: `ai_${idPrefix}_${item.nameFr}_${++counterRef.current}`,
         name: `${item.nameFr} (IA)`,
         carbs: Math.round(item.estimatedCarbs),
         fat: deriveFatLevel(item.estimatedFat),

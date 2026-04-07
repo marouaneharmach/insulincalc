@@ -142,7 +142,7 @@ describe('recognizeFood response parsing', () => {
     vi.stubEnv('VITE_GROQ_API_KEY', 'test-key');
 
     // Dynamic import to pick up env
-    const mod = await import('../utils/foodRecognition');
+    await import('../utils/foodRecognition');
 
     // Since GROQ_API_KEY is read at module init, we test the parsing logic directly
     // by testing the output format expectations

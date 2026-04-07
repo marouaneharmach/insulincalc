@@ -49,7 +49,6 @@ const fr = {
   indexGlycemique: "INDEX GLYCÉMIQUE",
   graisses: "GRAISSES",
   vitesseDigestion: "Vitesse de digestion estimée",
-  rechercherAliment: "🔍  Rechercher un aliment ou un plat...",
   ajouterAlimentPerso: "+ Ajouter un aliment personnalisé",
   mesAliments: "⭐ Mes aliments",
   recents: "🕐 Récents",
@@ -153,7 +152,6 @@ const fr = {
   cibleMin: "Min (g/L)",
   cibleMax: "Max (g/L)",
   correctionVers: "correction vers",
-  votreCible: "Cible",
   digestionDefaut: "Vitesse de digestion par défaut",
   securite: "Sécurité",
   seuilAlerte: "Seuil d'alerte dose maximale",
@@ -212,6 +210,15 @@ const fr = {
   onb_isf: "Facteur de sensibilité",
   onb_isf_desc: "Baisse glycémie (mg/dL) par unité",
   onb_cible: "Glycémie cible (g/L)",
+  onb_profil_desc: "Informations de base et type d'insuline",
+  onb_params_desc: "Valeurs pré-remplies — modifiables plus tard",
+  onb_disclaimer_title: "Avertissement médical",
+  onb_disclaimer_head: "Cet outil ne remplace pas un suivi médical",
+  onb_disc_1: "Les doses calculées sont des suggestions basées sur vos paramètres.",
+  onb_disc_2: "Validez toujours les doses avec votre diabétologue ou médecin traitant.",
+  onb_disc_3: "En cas de doute ou symptôme inhabituel, consultez un professionnel de santé.",
+  onb_disc_4: "Ne modifiez jamais votre traitement sans avis médical.",
+  onb_accept: "Je comprends que cet outil est une aide au calcul et non un dispositif médical certifié. J'utilise ces données sous ma propre responsabilité.",
   onb_terminer: "Terminer la configuration",
   onb_step: "Étape",
 
@@ -223,7 +230,6 @@ const fr = {
   indexGI: "Index glycémique",
   note: "Note (optionnel)",
   enregistrer: "Enregistrer",
-  annuler: "Annuler",
   nouvelAliment: "Nouvel aliment personnalisé",
 
   // Favorites
@@ -258,22 +264,14 @@ const fr = {
   controleGraisses: "Contrôle — digestion graisses",
   controleFin: "Contrôle — fin d'action",
   unites: "unités",
-  controleGlycemie: "Contrôler glycémie",
-
-  // Post-meal corrector
-  correcteurPostRepas: "Correcteur post-repas",
-  glycemiePostRepas: "Glycémie post-repas",
-  insulineRestante: "Insuline restante (IOB)",
   correctionSuggeree: "Correction suggérée",
 
   // Stats
   toutesEntrees: "Toutes les entrées",
   moyenne: "Moyenne",
-  tirLabel: "Temps dans la cible",
-  hba1cEstimee: "HbA1c estimée",
+
 
   // Journal stats
-  resumeEvolution: "Évolution",
   enCible: "En cible",
   doseMoyenne: "Dose moy.",
   dosesChart: "Doses",
@@ -290,9 +288,6 @@ const fr = {
   saisirGlycPost: "Glycémie post-repas",
   ajouter: "Ajouter",
   saisirDoseReelle: "Saisir dose réelle",
-
-  // Greeting
-  bonjour: "Bonjour",
 
   // Legal disclaimer
   disclaimerBanner: "Outil indicatif uniquement. Ne remplace pas l'avis médical. Consultez votre endocrinologue avant toute modification de traitement.",
@@ -378,7 +373,6 @@ const fr = {
 
   // V4.3 — Sécurité dose
   doseEleveeDetectee: "Dose élevée détectée",
-  confirmerEnregistrer: "Confirmer et enregistrer",
   annulerVerifier: "Annuler et vérifier",
   verifierParametres: "Vérifiez vos paramètres",
 
@@ -389,7 +383,6 @@ const fr = {
 
   // V4.3.1 — Timeline inline add, dose réelle, terminologie
   saisieRapide: "Saisie rapide glycémie / injection",
-  doseReelle: "Dose réellement injectée",
 
   // V4.3.2 — PostMealCorrector, graphique évolution
   correcteurPostRepas: "Correcteur post-repas",
@@ -402,12 +395,8 @@ const fr = {
   resumeEvolution: "Évolution glycémique",
 
   // V4.4 — Photo repas, InjectionTracker, recherche
-  photoRepas: "Photo du repas",
   prendrePhoto: "Photographier votre repas",
   iaReconnaitraAliments: "L'IA reconnaîtra les aliments",
-  analyseEnCours: "Analyse en cours...",
-  tapPourAjouter: "Tapez pour ajouter au repas",
-  planInjection: "Plan d'injection",
   rechercherAliment: "Rechercher un aliment...",
   vider: "Vider",
   digestionHabituelle: "Digestion habituelle",

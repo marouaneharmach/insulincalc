@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { calcIOB } from '../utils/calculations';
+import { calcIOB } from '../utils/iobCurve';
 import { DIGESTION_PROFILES } from '../data/constants';
 import { evaluatePostPrandial, computeDailySummary } from '../utils/clinicalEngine';
 import GlycEvolutionChart from './GlycEvolutionChart';
@@ -13,7 +13,7 @@ function glycColor(v) {
   return '#EF4444';
 }
 
-export default function DayTimeline({ journal, setJournal, targetGMin, targetGMax, targetGMid, isf, ratio, t, colors, isDark }) {
+export default function DayTimeline({ journal, setJournal, targetGMin, targetGMax, t, isDark }) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Get entries for selected date
@@ -382,7 +382,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
           {/* Vertical line */}
           <div className={`absolute left-6 top-0 bottom-0 w-0.5 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`} />
 
-          {entriesWithIOB.map((entry, idx) => {
+          {entriesWithIOB.map((entry) => {
             const type = getEventType(entry);
             const config = eventConfig[type];
             const glycPre = parseFloat(entry.glycPre);

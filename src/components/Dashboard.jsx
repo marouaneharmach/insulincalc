@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { C, SPACE, FONT, glycColor } from '../utils/colors.js';
 import { getEntries } from '../data/journalStore.js';
 import { calcIOB, INSULIN_DURATION_MIN } from '../utils/calculations.js';
-import { calcHypoRiskScore, classifyRisk } from '../utils/hypoRisk.js';
+import { calcHypoRiskScore } from '../utils/hypoRisk.js';
 import { isNightMode } from '../utils/clinicalEngine.js';
 import VelocityIndicator from './VelocityIndicator.jsx';
 import HypoRiskBadge from './HypoRiskBadge.jsx';

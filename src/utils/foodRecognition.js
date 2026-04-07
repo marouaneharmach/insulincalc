@@ -115,7 +115,7 @@ const EN_FR_FOOD = {
   omelette: 'omelette', bacon: 'bacon', sausage: 'saucisse', ham: 'jambon',
   radish: 'radis', kale: 'chou frisé', zucchini: 'courgette', eggplant: 'aubergine',
   'sweet potato': 'patate douce', 'french fries': 'frites', turkey: 'dinde',
-  sardine: 'sardine', shrimp: 'crevette', squid: 'calamar',
+  sardine: 'sardine', squid: 'calamar',
   tagine: 'tajine', harira: 'harira', msemen: 'msemen', harcha: 'harcha',
   baghrir: 'baghrir', pastilla: 'pastilla', rfissa: 'rfissa',
   dates: 'dattes', figs: 'figues', olives: 'olives', almonds: 'amandes',

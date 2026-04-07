@@ -42,7 +42,7 @@ export async function requestNotificationPermission() {
 }
 
 // Schedule multiple notifications based on injection schedule
-export function scheduleFromPlan(schedule, mealTime = new Date()) {
+export function scheduleFromPlan(schedule) {
   cancelAll();
 
   schedule.forEach((step, index) => {

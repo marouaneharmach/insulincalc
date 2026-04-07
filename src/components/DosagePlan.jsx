@@ -13,7 +13,7 @@ import { SPACE, FONT } from '../utils/colors.js';
  *   colors       — theme colors object
  *   theme        — "dark" | "light"
  */
-export default function DosagePlan({ schedule, totalDose, bolusType, onPlanChange, t, colors, theme }) {
+export default function DosagePlan({ schedule, totalDose, onPlanChange, t, colors, theme }) {
   const cc = colors || {};
   const isDark = theme === 'dark' || !theme;
 
