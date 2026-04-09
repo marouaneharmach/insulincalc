@@ -1,83 +1,100 @@
-// ─── DATA MIGRATION UTILITY ─────────────────────────────────────────────────
-// Versioned, idempotent migrations for localStorage schema changes.
-// Must run before the app renders.
-
-export const CURRENT_VERSION = 2;
+/**
+ * Data migration utilities for v4 → v5 upgrade
+ * Handles field renaming, new field defaults, and idempotent operations
+ */
 
 /**
- * Run all pending data migrations.
- * Safe to call multiple times — skips already-applied versions.
+ * Check if journal entry needs migration to v5
+ * @param {string|null|undefined} appVersion - Current app version
+ * @returns {boolean} true if migration needed
  */
-export function migrateData() {
-  const currentVersion = parseInt(localStorage.getItem('insulincalc_v1_dataVersion') || '0');
-  if (currentVersion >= CURRENT_VERSION) return;
+export function needsMigration(appVersion) {
+  if (!appVersion) return true;
 
-  if (currentVersion < 1) migrateV0ToV1();
-  if (currentVersion < 2) migrateV1ToV2();
-
-  localStorage.setItem('insulincalc_v1_dataVersion', String(CURRENT_VERSION));
+  const major = parseInt(appVersion.split('.')[0], 10);
+  return major < 5;
 }
 
-// ─── V0 → V1: Migrate App.jsx journal → journalStore format ────────────────
-
-function migrateV0ToV1() {
-  const oldRaw = localStorage.getItem('journal');
-  if (!oldRaw) return;
-
-  const oldEntries = JSON.parse(oldRaw);
-  const existingRaw = localStorage.getItem('insulincalc_v1_journal');
-  const existing = existingRaw ? JSON.parse(existingRaw) : [];
-
-  const migrated = oldEntries.map(e => ({
-    id: String(e.id),
-    date: e.date,
-    mealType: guessMealTypeFromHour(new Date(e.date).getHours()),
-    preMealGlycemia: parseFloat(e.glycPre) || null,
-    postMealGlycemia: e.glycPost ? parseFloat(e.glycPost) : null,
-    postMealTime: null,
-    foods: (e.alimentIds || []).map((fid, i) => ({
-      foodId: fid,
-      name: (e.aliments || '').split(', ')[i] || fid,
-      mult: 1,
-      carbs: 0, // cannot reconstruct from old schema
-    })),
-    totalCarbs: 0,
-    doseCalculated: e.doseSuggested || 0,
-    doseInjected: e.doseActual || e.doseSuggested || 0,
-    correction: null,
-    notes: '',
-  }));
-
-  const existingIds = new Set(existing.map(e => String(e.id)));
-  const deduped = migrated.filter(e => !existingIds.has(String(e.id)));
-  const merged = [...deduped, ...existing];
-  localStorage.setItem('insulincalc_v1_journal', JSON.stringify(merged));
+/**
+ * Extract time (HH:MM) from ISO datetime string
+ * @param {string} dateStr - ISO format date string
+ * @returns {string} HH:MM format
+ */
+function extractTime(dateStr) {
+  if (!dateStr) return null;
+  const match = dateStr.match(/T(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : null;
 }
 
-// ─── V1 → V2: Single ratio/ISF → per-period profiles ───────────────────────
+/**
+ * Migrate a single v4 journal entry to v5 format
+ * Field mappings:
+ *   preMealGlycemia → glycPre
+ *   postMealGlycemia → glycPost
+ *   totalCarbs → totalGlucides
+ *   foods → aliments
+ *   doseCalculated → doseSuggeree
+ *   doseInjected → doseReelle
+ *
+ * New v5 fields (with defaults if not present):
+ *   tendance: null
+ *   niveauGras: 'aucun'
+ *   iobAuMoment: null
+ *   bolusType: 'unique'
+ *   activitePhysique: 'aucune'
+ *   alertes: []
+ *   notes: ''
+ *   heure: extracted from date
+ *
+ * @param {Object} entry - v4 journal entry
+ * @returns {Object} Migrated v5 entry (idempotent)
+ */
+export function migrateEntry(entry) {
+  if (!entry) return entry;
 
-function migrateV1ToV2() {
-  const ratio = parseFloat(localStorage.getItem('insulincalc_v1_ratio'));
-  const isf = parseFloat(localStorage.getItem('insulincalc_v1_isf'));
+  // Start with a copy to avoid mutating input
+  const migrated = { ...entry };
 
-  if (!isNaN(ratio) && !isNaN(isf)) {
-    const profile = { ratio, isf };
-    const profiles = {
-      matin: { ...profile },
-      midi: { ...profile },
-      gouter: { ...profile },
-      soir: { ...profile },
-      nuit: { ...profile },
-    };
-    localStorage.setItem('insulincalc_v1_timeProfiles', JSON.stringify(profiles));
+  // Field mappings (old → new)
+  const fieldMappings = {
+    preMealGlycemia: 'glycPre',
+    postMealGlycemia: 'glycPost',
+    totalCarbs: 'totalGlucides',
+    foods: 'aliments',
+    doseCalculated: 'doseSuggeree',
+    doseInjected: 'doseReelle',
+  };
+
+  // Apply field mappings: copy old field to new if present
+  Object.entries(fieldMappings).forEach(([oldKey, newKey]) => {
+    if (oldKey in entry && !(newKey in entry)) {
+      migrated[newKey] = entry[oldKey];
+    }
+  });
+
+  // Extract heure from date if not already present
+  if (!migrated.heure && entry.date) {
+    migrated.heure = extractTime(entry.date);
   }
+
+  // Add new v5 fields with defaults (only if not already present - idempotent)
+  if (!('tendance' in migrated)) migrated.tendance = null;
+  if (!('iobAuMoment' in migrated)) migrated.iobAuMoment = null;
+  if (!('niveauGras' in migrated)) migrated.niveauGras = 'aucun';
+  if (!('bolusType' in migrated)) migrated.bolusType = 'unique';
+  if (!('activitePhysique' in migrated)) migrated.activitePhysique = 'aucune';
+  if (!('alertes' in migrated)) migrated.alertes = [];
+  if (!('notes' in migrated)) migrated.notes = '';
+
+  return migrated;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-export function guessMealTypeFromHour(h) {
-  if (h < 10) return 'petit-déjeuner';
-  if (h < 15) return 'déjeuner';
-  if (h < 18) return 'collation';
-  return 'dîner';
+/**
+ * Migrate an array of journal entries to v5 format
+ * @param {Array<Object>} entries - Array of v4 entries
+ * @returns {Array<Object>} Array of migrated v5 entries
+ */
+export function migrateAllEntries(entries) {
+  if (!Array.isArray(entries)) return entries;
+  return entries.map(migrateEntry);
 }

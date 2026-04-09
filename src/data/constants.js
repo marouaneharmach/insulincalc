@@ -1,4 +1,3 @@
-// ─── QUANTITY PROFILES ─────────────────────────────────────────────────────
 export const QTY_PROFILES = {
   pain:    [{l:"½ tr.",m:0.5},{l:"1 tr.",m:1},{l:"2 tr.",m:2},{l:"3 tr.",m:3},{l:"4 tr.",m:4}],
   piece:   [{l:"½ pc",m:0.5},{l:"1 pc",m:1},{l:"2 pc",m:2},{l:"3 pc",m:3}],
@@ -17,18 +16,16 @@ export const QTY_PROFILES = {
   gramme:  [{l:"50g",m:0.5},{l:"100g",m:1},{l:"150g",m:1.5},{l:"200g",m:2},{l:"250g",m:2.5},{l:"300g",m:3}],
 };
 
-// ─── DIGESTION PROFILES ─────────────────────────────────────────────────────
 export const DIGESTION_PROFILES = {
   rapide:   {label:"Rapide",   desc:"Estomac vide, liquides, sucres simples", icon:"⚡", peakMin:30,  tail:120, fatDelay:0  },
   normal:   {label:"Normal",   desc:"Repas standard équilibré",               icon:"🔄", peakMin:60,  tail:180, fatDelay:30 },
-  lent:     {label:"Lent",     desc:"Repas riche, gras, fibres ++",           icon:"🐢", peakMin:90,  tail:240, fatDelay:60 },
-  tres_lent:{label:"Très lent",desc:"Tajine/couscous complet, fête",          icon:"🏔", peakMin:120, tail:300, fatDelay:90 },
+  lent:     {label:"Lent",     desc:"Repas riche, gras, fibres ++",           icon:"🐢", peakMin:90,  tail:210, fatDelay:45 },
+  tres_lent:{label:"Très lent",desc:"Tajine/couscous complet, fête",          icon:"🏔", peakMin:120, tail:240, fatDelay:75 },
 };
 
 export const FAT_SCORE  = {"aucun":0,"faible":1,"moyen":2,"élevé":3};
 export const FAT_FACTOR = {"aucun":0,"faible":0.04,"moyen":0.14,"élevé":0.27};
 
-// ─── AGE GROUP PROFILES (Fix #11) ──────────────────────────────────────────
 export const AGE_PROFILES = {
   enfant:  { label: "Enfant (< 12 ans)",   tddRange: [0.7, 1.0], icrRule: 300, isfRule: 2000 },
   ado:     { label: "Ado (12-18 ans)",      tddRange: [0.8, 1.2], icrRule: 400, isfRule: 1500 },
@@ -43,3 +40,11 @@ export function getAgeGroup(age) {
   if (age > 65) return "senior";
   return "adulte";
 }
+
+// V4 NEW: Meal type constants
+export const MEAL_TYPES = [
+  { key: "petit-dejeuner", icon: "🌅", label: "Petit-déj", defaultHour: 8 },
+  { key: "dejeuner", icon: "☀️", label: "Déjeuner", defaultHour: 13 },
+  { key: "diner", icon: "🌙", label: "Dîner", defaultHour: 20 },
+  { key: "collation", icon: "🍎", label: "Collation", defaultHour: 16 },
+];

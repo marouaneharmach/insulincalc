@@ -1,7 +1,7 @@
-// ─── JOURNAL GLYCÉMIQUE — Data Store ─────────────────────────────────────────
-// Clé localStorage : insulincalc_v1_journal (compatible avec useLocalStorage)
+// ─── JOURNAL GLYCÉMIQUE — Data Store V4 ─────────────────────────────────────
+// Clé localStorage : insulincalc_v4_journal
 
-const STORAGE_KEY = "insulincalc_v1_journal";
+const STORAGE_KEY = "insulincalc_v4_journal";
 
 function readAll() {
   try {
@@ -39,6 +39,7 @@ export function addEntry(entry) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     date: new Date().toISOString(),
     mealType: "déjeuner",
+    // v4 fields (keep for backwards compat)
     preMealGlycemia: null,
     foods: [],
     totalCarbs: 0,
@@ -47,21 +48,21 @@ export function addEntry(entry) {
     postMealGlycemia: null,
     postMealTime: null,
     correction: null,
+    schedule: null,
+    // v5 fields
+    glycPre: null,
+    glycPost: null,
+    tendance: null,
+    totalGlucides: 0,
+    niveauGras: 'aucun',
+    aliments: null,
+    iobAuMoment: null,
+    doseSuggeree: 0,
+    doseReelle: 0,
+    bolusType: 'unique',
+    activitePhysique: 'aucune',
+    alertes: [],
     notes: "",
-    // Enriched fields (Task 7)
-    periodeJour: null,
-    heureExacte: null,
-    glycemiaPrecedente: null,
-    intervalleMinutes: null,
-    velocity: null,
-    velocityTrend: null,
-    iobAuMoment: 0,
-    hypoRiskScore: null,
-    hypoRiskLevel: null,
-    modeNocturne: false,
-    stress: null,
-    sommeil: null,
-    activitePhysique: null,
     ...entry,
   };
   entries.push(full);
@@ -90,14 +91,15 @@ export function deleteEntry(id) {
 export function getStats(days = 30) {
   const entries = getEntries(days);
 
-  // Collect all glycemia values (pre + post)
   const glycValues = [];
   entries.forEach(e => {
-    if (e.preMealGlycemia != null && !isNaN(e.preMealGlycemia)) {
-      glycValues.push(e.preMealGlycemia);
+    const pre = e.glycPre ?? e.preMealGlycemia;
+    if (pre != null && !isNaN(pre)) {
+      glycValues.push(parseFloat(pre));
     }
-    if (e.postMealGlycemia != null && !isNaN(e.postMealGlycemia)) {
-      glycValues.push(e.postMealGlycemia);
+    const post = e.glycPost ?? e.postMealGlycemia;
+    if (post != null && !isNaN(post)) {
+      glycValues.push(parseFloat(post));
     }
   });
 
@@ -121,7 +123,6 @@ export function getStats(days = 30) {
   const variance = glycValues.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / glycValues.length;
   const stdDev = Math.sqrt(variance);
 
-  // Time in range zones (g/L)
   const hypo = glycValues.filter(v => v < 0.7).length;
   const low = glycValues.filter(v => v >= 0.7 && v < 1.0).length;
   const target = glycValues.filter(v => v >= 1.0 && v <= 1.8).length;

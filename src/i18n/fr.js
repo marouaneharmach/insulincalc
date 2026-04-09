@@ -1,13 +1,12 @@
 const fr = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "Diabète Type 1 · Cuisine marocaine",
+  appSubtitle: "Calculateur d'insuline",
   glucides: "GLUCIDES",
   aliment: "aliment",
   aliments: "aliments",
 
   // Tabs
-  tabAccueil: "🏠 Accueil",
   tabRepas: "🍽 Repas",
   tabSaisie: "🩸 Saisie",
   tabResultat: "⚡ Résultat",
@@ -50,12 +49,12 @@ const fr = {
   indexGlycemique: "INDEX GLYCÉMIQUE",
   graisses: "GRAISSES",
   vitesseDigestion: "Vitesse de digestion estimée",
-  rechercherAliment: "🔍  Rechercher un aliment ou un plat...",
   ajouterAlimentPerso: "+ Ajouter un aliment personnalisé",
   mesAliments: "⭐ Mes aliments",
   recents: "🕐 Récents",
   suggestions: "💡 Suggestions",
   nouveauRepas: "🔄 Nouveau repas",
+  nouveauRepasBtn: "Nouveau repas",
 
   // Digestion
   picMin: "Pic",
@@ -142,19 +141,17 @@ const fr = {
   rappelPostRepas: "Rappel post-repas",
   rappelMesurer: "Rappel pour mesurer la glycémie après le repas",
   notifBloquees: "⚠ Notifications bloquées par le navigateur. Autorisez-les dans les paramètres.",
+  autoriserNotifications: "Autoriser les notifications",
+  notifActivees: "Notifications activées",
   delaiRappel: "Délai de rappel",
   parametresManuels: "Paramètres manuels",
-  ratioUnique: "Ratio/ISF unique",
-  parPeriode: "Par période",
-  periodeActuelle: "Période actuelle",
-  ratioInsulineGlucides: "Ratio insuline / glucides (ICR)",
-  facteurCorrection: "Facteur de correction (ISF)",
+  ratioInsulineGlucides: "Combien de grammes de glucides pour 1 unité d'insuline ?",
+  facteurCorrection: "De combien baisse votre glycémie avec 1 unité d'insuline ?",
   glycemieCible: "Glycémie cible",
   glycemieCiblePlage: "Plage glycémique cible",
   cibleMin: "Min (g/L)",
   cibleMax: "Max (g/L)",
   correctionVers: "correction vers",
-  votreCible: "Cible",
   digestionDefaut: "Vitesse de digestion par défaut",
   securite: "Sécurité",
   seuilAlerte: "Seuil d'alerte dose maximale",
@@ -194,6 +191,37 @@ const fr = {
   commencer: "🚀 Commencer",
   valeursEstim: "⚕️ Ces valeurs sont des estimations basées sur votre poids. Validez-les avec votre endocrinologue et ajustez-les dans Réglages.",
 
+  // New onboarding keys
+  onb_bienvenue: "Bienvenue",
+  onb_tagline: "Calcul intelligent d'insuline pour diabète type 1",
+  onb_disclaimer: "Cet outil ne remplace pas l'avis médical. Consultez toujours votre médecin.",
+  onb_commencer: "Commencer",
+  onb_profil: "Votre profil",
+  onb_prenom: "Votre prénom",
+  onb_age: "Âge",
+  onb_sexe: "Sexe",
+  onb_taille: "Taille (cm)",
+  onb_poids: "Poids (kg)",
+  onb_suivant: "Suivant",
+  onb_precedent: "Précédent",
+  onb_params: "Paramètres insuline",
+  onb_ratio: "Ratio glucides",
+  onb_ratio_desc: "1 unité pour X grammes de glucides",
+  onb_isf: "Facteur de sensibilité",
+  onb_isf_desc: "Baisse glycémie (mg/dL) par unité",
+  onb_cible: "Glycémie cible (g/L)",
+  onb_profil_desc: "Informations de base et type d'insuline",
+  onb_params_desc: "Valeurs pré-remplies — modifiables plus tard",
+  onb_disclaimer_title: "Avertissement médical",
+  onb_disclaimer_head: "Cet outil ne remplace pas un suivi médical",
+  onb_disc_1: "Les doses calculées sont des suggestions basées sur vos paramètres.",
+  onb_disc_2: "Validez toujours les doses avec votre diabétologue ou médecin traitant.",
+  onb_disc_3: "En cas de doute ou symptôme inhabituel, consultez un professionnel de santé.",
+  onb_disc_4: "Ne modifiez jamais votre traitement sans avis médical.",
+  onb_accept: "Je comprends que cet outil est une aide au calcul et non un dispositif médical certifié. J'utilise ces données sous ma propre responsabilité.",
+  onb_terminer: "Terminer la configuration",
+  onb_step: "Étape",
+
   // Custom food form
   nomAliment: "Nom de l'aliment",
   glucidesParPortion: "Glucides par portion (g)",
@@ -202,7 +230,6 @@ const fr = {
   indexGI: "Index glycémique",
   note: "Note (optionnel)",
   enregistrer: "Enregistrer",
-  annuler: "Annuler",
   nouvelAliment: "Nouvel aliment personnalisé",
 
   // Favorites
@@ -237,22 +264,14 @@ const fr = {
   controleGraisses: "Contrôle — digestion graisses",
   controleFin: "Contrôle — fin d'action",
   unites: "unités",
-  controleGlycemie: "Contrôler glycémie",
-
-  // Post-meal corrector
-  correcteurPostRepas: "Correcteur post-repas",
-  glycemiePostRepas: "Glycémie post-repas",
-  insulineRestante: "Insuline restante (IOB)",
   correctionSuggeree: "Correction suggérée",
 
   // Stats
   toutesEntrees: "Toutes les entrées",
   moyenne: "Moyenne",
-  tirLabel: "Temps dans la cible",
-  hba1cEstimee: "HbA1c estimée",
+
 
   // Journal stats
-  resumeEvolution: "Évolution",
   enCible: "En cible",
   doseMoyenne: "Dose moy.",
   dosesChart: "Doses",
@@ -270,131 +289,256 @@ const fr = {
   ajouter: "Ajouter",
   saisirDoseReelle: "Saisir dose réelle",
 
-  // Photo recognition
-  photoRepas: "Photo du repas",
-  prendrePhoto: "Photographier votre repas",
-  iaReconnaitraAliments: "L'IA reconnaîtra les aliments",
-  analyseEnCours: "Analyse en cours...",
-  identificationIA: "Identification des aliments par IA",
-  photoErreur: "Erreur lors de la reconnaissance",
-  photoNonConfiguree: "Reconnaissance photo non configurée. Ajoutez VITE_CLARIFAI_PROXY ou VITE_CLARIFAI_PAT.",
-  alimentDetecte: "aliment détecté",
-  alimentsDetectes: "aliments détectés",
-  tapPourAjouter: "Tapez pour ajouter au repas",
-  nonTrouveDansBase: "non trouvé dans la base",
-  autrePhoto: "Autre photo",
-  reessayer: "Réessayer",
-
-  // Post-meal corrector details
-  tempsEcoule: "Temps écoulé",
-  hypoAlerte: "HYPOGLYCÉMIE — Agir immédiatement",
-  glycemieCritique: "Glycémie critique",
-  prendre15gSucre: "Prendre 15g de sucres rapides",
-  controler15min: "Contrôler à nouveau dans 15 minutes",
-  pasInjection: "Ne pas injecter d'insuline",
-  aucuneCorrectionNecessaire: "Aucune correction nécessaire",
-  dansCible: "dans la cible",
-  pasInjectionSupp: "Pas d'injection supplémentaire.",
-  urgenceCorrectionImmediate: "URGENCE — Correction immédiate",
-  seuilCritique: "seuil critique",
-  correctionBrute: "Correction brute",
-  controler45min: "Contrôler dans 45 min. Consultez votre médecin si ≥ 3.0 g/L persiste.",
-  hyperSevereInjection: "Hyperglycémie sévère — Injection recommandée",
-  controler45_60min: "Contrôler dans 45–60 min.",
-  hyperInjection: "Hyperglycémie — Injection recommandée",
-  auDessusDe: "au-dessus de",
-  controler1h: "Contrôler dans 1h.",
-  glycemieMesuree: "Glycémie mesurée",
-  ecart: "Écart",
-  iobDeduit: "IOB déduit",
-  correctionNette: "Correction nette",
-  verifierMedecin: "Vérifiez toujours avec votre médecin avant de corriger.",
-
-  // Greeting
-  bonjour: "Bonjour",
-
   // Legal disclaimer
   disclaimerBanner: "Outil indicatif uniquement. Ne remplace pas l'avis médical. Consultez votre endocrinologue avant toute modification de traitement.",
   disclaimerFull: "Les doses et mesures affichées sont strictement à titre indicatif et ne constituent en aucun cas un avis médical. L'utilisateur est seul responsable de l'utilisation de ces informations. En cas de doute, contactez immédiatement votre médecin ou votre équipe soignante. Ne modifiez jamais votre traitement sans l'accord de votre endocrinologue.",
   contactMedecin: "En cas de doute, consultez votre médecin",
 
-  // Night mode
-  modeNocturne: "Mode nocturne",
-  seuilsRenforces: "Seuils renforcés",
-  glycemieNocturneAcceptable: "Glycémie nocturne acceptable",
-  collationRecommandee: "Collation recommandée",
-
-  // Velocity
-  chuteRapide: "Chute rapide",
-  baisseModerée: "Baisse modérée",
-  stable: "Stable",
-  hausseModerée: "Hausse modérée",
-  monteeRapide: "Montée rapide",
-
-  // Hypo risk
-  risqueFaible: "Risque faible",
-  risqueModere: "Risque modéré",
-  risqueEleve: "Risque élevé",
-  risqueCritique: "Risque critique",
-  scoreRisqueHypo: "Score de risque hypoglycémique",
-
-  // Patterns
-  phenomeneAube: "Phénomène de l'aube",
-  hypoMatinale: "Hypoglycémie matinale",
-  rebondSomogyi: "Rebond de Somogyi",
-  surCorrection: "Sur-correction",
-  creneauProblematique: "Créneau problématique",
-  empilementRecurrent: "Empilement récurrent",
-
-  // Dashboard
+  // V4 new keys
+  tabHome: "Accueil",
+  tabTimeline: "Journée",
+  bonjour: "Bonjour",
   derniereMesure: "Dernière mesure",
   ilYA: "il y a",
-  iobRestant: "IOB restant",
-  actionsRapides: "Actions rapides",
-  correctionSeule: "Correction seule",
-  alertesActives: "Alertes actives",
-  etatActuel: "État actuel",
-  insulineActive: "Insuline active (IOB)",
-  encoreEnAction: "encore en action",
-  aucuneInsulineResiduelle: "aucune insuline résiduelle",
-  aucuneMesure: "Aucune mesure enregistrée.",
-  commencezCalculer: "Commencez par calculer un repas.",
-  nouveauRepasBtn: "Nouveau repas",
-  derniersEnregistrements: "Derniers enregistrements",
-  voirTout: "Voir tout",
+  heures: "heures",
+  minutes: "minutes",
+  ajouterGlycemie: "Glycémie",
+  ajouterRepas: "Repas",
+  ajouterInsuline: "Insuline",
+  ajouterActivite: "Activité",
+  tirLabel: "Temps dans la cible",
+  moyenneGL: "Moyenne",
+  hba1cEstimee: "HbA1c est.",
+  mesures: "mesures",
+  aujourdhui: "Aujourd'hui",
+  hier: "Hier",
+  pasDeRepasAujourdhui: "Aucun repas enregistré aujourd'hui",
+  ajouterPremierRepas: "Ajouter votre premier repas",
+  notifScheduled: "notifications programmées",
+  rappelControle: "Contrôle glycémie prévu",
+  rappelInjection: "Rappel injection",
+  insulineActive: "Insuline active",
+  mesurerMaintenant: "Mesurer maintenant",
+  voirPlanning: "Voir le planning",
 
-  // Journal context
-  contexte: "Contexte",
-  stress: "Stress",
-  sommeil: "Sommeil",
-  activitePhysique: "Activité physique",
-  aucune: "Aucune",
-  legere: "Légère",
-  moderee: "Modérée",
-  intense: "Intense",
-  bon: "Bon",
-  mauvais: "Mauvais",
-  normal: "Normal",
-  eleve_ctx: "Élevé",
-  tresEleve: "Très élevé",
+  // V4.2 — Injection tracking & correction
+  correctionLabel: "Correction",
+  basalLabel: "Basale",
+  manualLabel: "Autre",
+  injecterCorrection: "Enregistrer glycémie + injection correction",
+  correctionConfirmee: "Correction sera enregistrée dans la timeline",
+  resumeInsulineJour: "Résumé insuline du jour",
+  enCours: "en cours",
+  restant: "restant",
+  etapes: "étapes",
 
-  // PDF export
-  rapportMedecin: "Rapport médecin",
-  resumeExecutif: "Résumé exécutif",
-  profilGlycemique: "Profil glycémique",
-  patternsAlertes: "Patterns & Alertes",
-  donneesInsuliniques: "Données insuliniques",
-  recommandations: "Recommandations",
-  periodeAnalysee: "Période analysée",
-  nombreMesures: "Nombre de mesures",
-  coefficientVariation: "Coefficient de variation",
-  suggestionsMedecin: "Suggestions à discuter avec votre médecin",
+  // V4.2 — Keto
+  ketoCategory: "Keto & Low-Carb",
+  saladeMarocaineCategory: "Salades marocaines",
 
-  // Dosage plan
-  planDosage: "Plan de dosage",
-  dosePreuve: "Dose d'épreuve",
-  pris: "Pris",
-  nonPris: "Non pris",
+  // V4.3 — Validation
+  glycTropBasse: "Glycémie trop basse (min 0.3 g/L)",
+  glycTropHaute: "Glycémie trop haute (max 6.0 g/L)",
+  poidsHorsBornes: "Poids hors limites (15-300 kg)",
+  ratioHorsBornes: "Ratio hors limites (1-50)",
+  isfHorsBornes: "ISF hors limites (5-200 mg/dL)",
+  doseNegative: "La dose ne peut pas être négative",
+  doseAbsurde: "Dose anormalement élevée (> 100 U)",
+  doseDepasseSeuil: "Dose dépasse le seuil de sécurité",
+  ageHorsBornes: "Âge hors limites (1-120)",
+  tailleHorsBornes: "Taille hors limites (50-250 cm)",
+
+  // V4.3 — Export/Import
+  sauvegardeRestauration: "Sauvegarde & Restauration",
+  exporter: "Exporter",
+  importer: "Importer",
+  formatInvalide: "Format de fichier invalide",
+  importReussi: "Import réussi",
+  fichierCorrompu: "Fichier corrompu",
+
+  // V4.3 — Tendances
+  tendances: "Tendances",
+  hypos: "Hypos",
+  tendance: "Tendance",
+  tempsDansCible: "Temps dans la cible",
+
+  // V4.3 — Profils horaires
+  profilsHoraires: "Profils horaires ICR/ISF",
+  profilsHorairesDesc: "Ratios différents selon le moment de la journée",
+  creneau: "Créneau",
+  matin: "Matin",
+  midi: "Midi",
+  soir: "Soir",
+  nuit: "Nuit",
+
+  // V4.3 — Sécurité dose
+  doseEleveeDetectee: "Dose élevée détectée",
+  annulerVerifier: "Annuler et vérifier",
+  verifierParametres: "Vérifiez vos paramètres",
+
+  // V4.3 — Error boundary
+  erreurInattendue: "Erreur inattendue",
+  reessayer: "Réessayer",
+  redemarrer: "Redémarrer l'application",
+
+  // V4.3.1 — Timeline inline add, dose réelle, terminologie
+  saisieRapide: "Saisie rapide glycémie / injection",
+
+  // V4.3.2 — PostMealCorrector, graphique évolution
+  correcteurPostRepas: "Correcteur post-repas",
+  tempsEcoule: "Temps écoulé depuis le repas",
+  glycemiePostRepas: "Glycémie post-repas",
+  insulineRestante: "Insuline restante (IOB)",
+  votreCible: "Cible",
+  aucuneCorrection: "Aucune correction nécessaire",
+  enregistrerCorrection: "Enregistrer correction dans la timeline",
+  resumeEvolution: "Évolution glycémique",
+
+  // V4.4 — Photo repas, InjectionTracker, recherche
+  prendrePhoto: "Photographier votre repas",
+  iaReconnaitraAliments: "L'IA reconnaîtra les aliments",
+  rechercherAliment: "Rechercher un aliment...",
+  vider: "Vider",
+  digestionHabituelle: "Digestion habituelle",
+
+  // Clinical response
+  cl_analyse: 'Analyse',
+  cl_recommandation: 'Recommandation',
+  cl_vigilance: 'Vigilance',
+  cl_prochaineEtape: 'Prochaine étape',
+  cl_analyser: 'Analyser',
+
+  // Glycemia status
+  cl_hypoSevere: 'Hypoglycémie sévère',
+  cl_hypo: 'Hypoglycémie',
+  cl_hypoProche: 'Glycémie basse',
+  cl_cible: 'Dans la cible',
+  cl_elevee: 'Glycémie élevée',
+  cl_haute: 'Glycémie haute',
+  cl_hyperSevere: 'Hyperglycémie sévère',
+  cl_sousCible: 'Sous la cible',
+
+  // Recommendation
+  cl_doseUnique: 'Injection unique',
+  cl_doseFractionnee: 'Injection fractionnée',
+  cl_immediat: 'immédiat',
+  cl_differe: 'différé',
+  cl_fractionne: 'fractionné',
+  cl_bolusRepas: 'Bolus repas',
+  cl_correction: 'Correction',
+  cl_bonusGras: 'Bonus gras',
+  cl_iobSoustraite: 'IOB soustraite',
+
+  // Safety
+  cl_antiHypo: 'Ne pas injecter. Prendre 15g de sucre rapide.',
+  cl_hypoProcheDose: 'Dose réduite de 50% (glycémie basse).',
+  cl_antiStacking: 'insuline encore active. IOB déjà soustraite de la correction.',
+  cl_alerteTiming: 'Dernière injection il y a moins de 2h. Prudence.',
+  cl_surdosage: 'Dose dépasse le seuil de sécurité.',
+  cl_surCorrection: 'Tendance à la baisse. Correction réduite.',
+  cl_postKeto: 'Profil post-keto : attention aux hausses retardées.',
+  cl_activiteModere: 'Activité modérée : dose réduite de 20%.',
+  cl_activiteIntense: 'Activité intense : dose réduite de 30%.',
+
+  // Next step
+  cl_recontrole: 'Recontrôler la glycémie dans',
+  cl_recontroleResucrage: 'Recontrôler dans {min} min après resucrage',
+  cl_minutes: 'min',
+
+  // IOB
+  cl_iobActive: 'Insuline active',
+  cl_unites: 'u',
+
+  // Context
+  cl_activite: 'Activité physique',
+  cl_aucune: 'Aucune',
+  cl_legere: 'Légère',
+  cl_moderee: 'Modérée',
+  cl_intense: 'Intense',
+
+  // Trend
+  cl_tendance: 'Tendance',
+  cl_tendanceInconnue: 'Inconnue',
+
+  // Meal input
+  cl_modeExpert: 'Glucides directs',
+  cl_modeAssiste: 'Base alimentaire',
+  cl_glucidesTotal: 'Glucides totaux (g)',
+  cl_niveauGras: 'Niveau de gras',
+
+  // Settings - new fields
+  cl_insulineBasale: 'Insuline basale',
+  cl_insulineRapide: 'Insuline rapide',
+  cl_doseBasale: 'Dose basale quotidienne',
+  cl_profilPostKeto: 'Profil post-keto',
+  cl_digestionLente: 'Digestion lente habituelle',
+  cl_dureeAction: "Durée d'action insuline rapide",
+
+  // Accueil
+  cl_accueil: 'Accueil',
+  cl_journal: 'Journal',
+  cl_reglages: 'Réglages',
+
+  // Post-prandial
+  cl_postPrandialGood: 'Bonne correction',
+  cl_postPrandialUnder: 'Sous-corrigé',
+  cl_postPrandialOver: 'Sur-corrigé',
+
+  // Hardcoded strings fix
+  cl_glucides: 'glucides',
+  cl_gras: 'Gras',
+  enregistrerInjecter: '💉 Enregistrer & Injecter',
+  prendreUnePhoto: 'Prendre une photo',
+  choisirDepuisAlbum: "Choisir depuis l'album",
+  nonTrouveDansBase: 'non trouvé dans la base',
+  fatAucun: 'Aucun',
+  fatFaible: 'Faible',
+  fatMoyen: 'Moyen',
+  fatEleve: 'Élevé',
+  aucunAlimentReconnu: 'Aucun aliment reconnu',
+  essayerAutrePhoto: 'Essayez avec une autre photo ou ajoutez manuellement',
+  alimentsDetectes: 'aliment(s) détecté(s)',
+  totalLipides: 'Total lipides',
+
+  // V5.7 — AI recognition enhancements
+  tapPourAjouter: 'Tapez pour ajouter au repas',
+  analyseEnCours: 'Analyse en cours...',
+  estimationIA: 'estimation IA',
+  valeurImplausible: 'Valeurs inhabituelles — vérifiez les estimations',
+  ajouterAuRepas: 'Ajouter au repas',
+  sauvegarderAlimentPerso: 'Sauvegarder comme aliment personnalisé',
+  poidsEstime: 'Poids estimé',
+  annuler: 'Annuler',
+
+  // V5.7 — Extended injection plan
+  planInjection: "Plan d'injection",
+  nouvelleConsultation: 'Nouvelle consultation',
+  phaseTerminee: 'Phase terminée',
+  marquerFait: 'Marquer fait',
+  phasesCompletees: 'phases complétées',
+  doseTotal: 'Dose totale',
+  dansXmin: 'dans {0} min',
+  controleGlycemie: 'Contrôle glycémie',
+
+  // V5.7 — Fat calculation
+  bonusGrasContinu: 'Bonus gras continu',
+  fatGramsLabel: 'g de lipides',
+
+  // V5.7 — Journal & timeline
+  estimationIAMarker: '(estimation IA)',
+  photoRepas: 'Photo repas',
+  etendu3Phases: '(étendu 3 phases)',
+  doseReelle: 'Dose réellement injectée',
+  confirmerEnregistrer: '💉 Confirmer',
+
+  // V5.7 — Glycemic prediction
+  predictionPostRepas: 'Prédiction post-repas',
+  glycemiePrevue: 'Glycémie prévue à +2h',
+  bilanJournalier: 'Bilan journalier',
+  tempsEnCible: 'Temps en cible',
+  moyenneGlycemie: 'Moyenne glycémie',
+  nbInjections: 'Injections',
+  totalGlucidesJour: 'Glucides du jour',
 };
 
 export default fr;
