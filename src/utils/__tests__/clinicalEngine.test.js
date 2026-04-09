@@ -1,166 +1,305 @@
-// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { applySafetyRules, isNightMode, predictGlycemia } from '../clinicalEngine.js';
+import {
+  calculateDose,
+  applySafetyRules,
+  determineSplit,
+  analyzeAndRecommend,
+  evaluatePostPrandial,
+  FAT_FACTOR,
+  ACTIVITY_REDUCTION,
+} from '../clinicalEngine.js';
 
-describe('clinicalEngine', () => {
-  const baseInput = {
-    glycemia: 1.8,
-    suggestedDose: 4.0,
-    iobTotal: 0,
-    currentHour: 14,
-    lastInjectionMinAgo: 300,
-    cumulCorrections24h: 0,
-    tddEstimated: 30,
-    correction: 1.0,
-    maxDose: 20,
+// ─── Task 18: evaluatePostPrandial ──────────────────────────────────────────
+
+describe('evaluatePostPrandial', () => {
+  it('returns "good" when glycPost is within target', () => {
+    const result = evaluatePostPrandial(1.10, 1.15, 1.00, 1.80);
+    expect(result.verdict).toBe('good');
+  });
+
+  it('returns "under" when glycPost is too high (under-corrected)', () => {
+    const result = evaluatePostPrandial(1.10, 2.20, 1.00, 1.80);
+    expect(result.verdict).toBe('under');
+  });
+
+  it('returns "over" when glycPost is too low (over-corrected)', () => {
+    const result = evaluatePostPrandial(1.10, 0.75, 1.00, 1.80);
+    expect(result.verdict).toBe('over');
+  });
+
+  it('returns null if glycPost is missing', () => {
+    expect(evaluatePostPrandial(1.10, null, 1.00, 1.80)).toBeNull();
+  });
+});
+
+// ─── Task 2: calculateDose ────────────────────────────────────────────────────
+
+describe('calculateDose', () => {
+  const baseParams = {
+    totalCarbs: 60, glycemia: 1.10, ratio: 15, isf: 0.60,
+    targetMax: 1.20, iobTotal: 0, fatLevel: 'aucun', activity: 'aucune',
   };
 
-  describe('anti-hypo rules', () => {
-    it('should block when glycemia < 0.70', () => {
-      const result = applySafetyRules({ ...baseInput, glycemia: 0.60 });
-      expect(result.blocked).toBe(true);
-      expect(result.adjustedDose).toBe(0);
-    });
-
-    it('should reduce dose 50% when glycemia 0.70-0.90', () => {
-      const result = applySafetyRules({ ...baseInput, glycemia: 0.80 });
-      expect(result.adjustedDose).toBeLessThanOrEqual(baseInput.suggestedDose * 0.55);
-      expect(result.adjustedCorrection).toBe(0);
-    });
+  it('calculates simple meal bolus without correction', () => {
+    const r = calculateDose(baseParams);
+    expect(r.bolusRepas).toBeCloseTo(4.0);
+    expect(r.correction).toBe(0);
+    expect(r.doseSuggeree).toBe(4.0);
   });
 
-  describe('RULE 1: IOB dynamic', () => {
-    it('should reduce correction when IOB > 50% of suggested dose', () => {
-      const result = applySafetyRules({ ...baseInput, iobTotal: 3.0, suggestedDose: 4.0, correction: 2.0 });
-      expect(result.warnings.some(w => w.type === 'iob_dynamic')).toBe(true);
-      expect(result.adjustedCorrection).toBeLessThan(2.0);
-    });
-
-    it('should not warn when IOB is low', () => {
-      const result = applySafetyRules({ ...baseInput, iobTotal: 0.5, suggestedDose: 4.0, correction: 1.0 });
-      expect(result.warnings.some(w => w.type === 'iob_dynamic')).toBe(false);
-    });
+  it('adds correction when glycemia > targetMax', () => {
+    const r = calculateDose({ ...baseParams, glycemia: 1.80 });
+    expect(r.correction).toBeCloseTo(1.0);
+    expect(r.doseSuggeree).toBe(5.0);
   });
 
-  describe('RULE 2: Night mode', () => {
-    it('should block correction at night when glycemia < 1.50', () => {
-      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 1.3, correction: 1.0 });
-      expect(result.correctionBlocked).toBe(true);
-      expect(result.warnings.some(w => w.type === 'night_block')).toBe(true);
-    });
-
-    it('should reduce correction by 50% at night when glycemia >= 1.50 (no gap)', () => {
-      // This covers the previously uncovered 2.20-2.50 range
-      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 2.3, correction: 2.0 });
-      expect(result.correctionBlocked).toBeFalsy();
-      expect(result.warnings.some(w => w.type === 'night_reduce')).toBe(true);
-      expect(result.adjustedCorrection).toBeLessThanOrEqual(1.0);
-    });
-
-    it('should also reduce correction at night when glycemia >= 2.50', () => {
-      const result = applySafetyRules({ ...baseInput, currentHour: 23, glycemia: 2.8, correction: 2.0 });
-      expect(result.correctionBlocked).toBeFalsy();
-      expect(result.adjustedCorrection).toBeLessThanOrEqual(1.0);
-    });
-
-    it('should recommend snack when glycemia < 1.50 at night', () => {
-      const result = applySafetyRules({ ...baseInput, currentHour: 2, glycemia: 1.3, correction: 0 });
-      expect(result.warnings.some(w => w.type === 'night_low')).toBe(true);
-    });
+  it('subtracts IOB from correction only', () => {
+    const r = calculateDose({ ...baseParams, glycemia: 1.80, iobTotal: 0.5 });
+    expect(r.correctionNette).toBeCloseTo(0.5);
+    expect(r.doseSuggeree).toBe(4.5);
   });
 
-  describe('RULE 3: Recent injection cap', () => {
-    it('should cap correction to 1U when last injection < 180 min', () => {
-      const result = applySafetyRules({ ...baseInput, lastInjectionMinAgo: 90, correction: 3.0 });
-      expect(result.adjustedCorrection).toBeLessThanOrEqual(1.0);
-    });
-
-    it('should not cap when last injection > 180 min', () => {
-      const result = applySafetyRules({ ...baseInput, lastInjectionMinAgo: 200, correction: 3.0 });
-      expect(result.warnings.some(w => w.type === 'timing_cap')).toBe(false);
-    });
+  it('does not let IOB make correction negative', () => {
+    const r = calculateDose({ ...baseParams, glycemia: 1.50, iobTotal: 3 });
+    expect(r.correctionNette).toBe(0);
+    expect(r.doseSuggeree).toBe(4.0);
   });
 
-  describe('RULE 4: Daily cumul', () => {
-    it('should warn when cumul corrections > 15% TDD', () => {
-      const result = applySafetyRules({ ...baseInput, cumulCorrections24h: 6.0, tddEstimated: 30 });
-      expect(result.warnings.some(w => w.type === 'cumul_high')).toBe(true);
-    });
+  it('applies fat bonus', () => {
+    const r = calculateDose({ ...baseParams, fatLevel: 'moyen' });
+    expect(r.bonusGras).toBeCloseTo(0.56);
+    expect(r.doseSuggeree).toBe(4.5);
   });
 
-  describe('overdose check', () => {
-    it('should warn and cap dose when dose > maxDose', () => {
-      const result = applySafetyRules({ ...baseInput, suggestedDose: 25, maxDose: 20, correction: 0 });
-      expect(result.warnings.some(w => w.type === 'overdose')).toBe(true);
-      expect(result.adjustedDose).toBeLessThanOrEqual(20);
-    });
+  it('reduces dose for moderate activity', () => {
+    const r = calculateDose({ ...baseParams, activity: 'moderee' });
+    expect(r.doseSuggeree).toBe(3.0);
   });
 
-  describe('input validation', () => {
-    it('should block when glycemia is NaN', () => {
-      const result = applySafetyRules({ ...baseInput, glycemia: NaN });
-      expect(result.blocked).toBe(true);
-      expect(result.adjustedDose).toBe(0);
-      expect(result.warnings.some(w => w.type === 'invalid_input')).toBe(true);
-    });
-
-    it('should block when glycemia is null', () => {
-      const result = applySafetyRules({ ...baseInput, glycemia: null });
-      expect(result.blocked).toBe(true);
-    });
-
-    it('should block when glycemia is negative', () => {
-      const result = applySafetyRules({ ...baseInput, glycemia: -1 });
-      expect(result.blocked).toBe(true);
-    });
+  it('reduces dose for intense activity', () => {
+    const r = calculateDose({ ...baseParams, activity: 'intense' });
+    expect(r.doseSuggeree).toBe(3.0);
   });
 
-  describe('isNightMode', () => {
-    it('should return true for 21-06', () => {
-      expect(isNightMode(21)).toBe(true);
-      expect(isNightMode(23)).toBe(true);
-      expect(isNightMode(0)).toBe(true);
-      expect(isNightMode(5)).toBe(true);
-    });
-    it('should return false for day hours', () => {
-      expect(isNightMode(6)).toBe(false);
-      expect(isNightMode(14)).toBe(false);
-      expect(isNightMode(20)).toBe(false);
-    });
+  it('rounds to nearest 0.5', () => {
+    const r = calculateDose({ ...baseParams, totalCarbs: 37 });
+    expect(r.doseSuggeree).toBe(2.5);
+  });
+});
+
+describe('FAT_FACTOR', () => {
+  it('has correct values', () => {
+    expect(FAT_FACTOR.aucun).toBe(0);
+    expect(FAT_FACTOR.faible).toBe(0.04);
+    expect(FAT_FACTOR.moyen).toBe(0.14);
+    expect(FAT_FACTOR['élevé']).toBe(0.27);
+  });
+});
+
+describe('ACTIVITY_REDUCTION', () => {
+  it('has correct values', () => {
+    expect(ACTIVITY_REDUCTION.aucune).toBe(1.0);
+    expect(ACTIVITY_REDUCTION.legere).toBe(1.0);
+    expect(ACTIVITY_REDUCTION.moderee).toBe(0.80);
+    expect(ACTIVITY_REDUCTION.intense).toBe(0.70);
+  });
+});
+
+// ─── Task 3: applySafetyRules ─────────────────────────────────────────────────
+
+describe('applySafetyRules', () => {
+  const baseContext = {
+    glycemia: 1.10, doseSuggeree: 4.0, correction: 0, iobTotal: 0,
+    trend: '?', activity: 'aucune', postKeto: false, maxDose: 10,
+    lastInjectionMinutesAgo: null,
+  };
+
+  it('blocks injection for severe hypo', () => {
+    const r = applySafetyRules({ ...baseContext, glycemia: 0.55, doseSuggeree: 2 });
+    expect(r.blocked).toBe(true);
+    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'anti-hypo' }));
+    expect(r.adjustedDose).toBe(0);
   });
 
-  describe('predictGlycemia', () => {
-    it('should predict hypo within 1h', () => {
-      const prediction = predictGlycemia({
-        currentG: 1.0, velocity: -0.4, iobRemaining: 2.0, isf: 50
-      });
-      expect(prediction.glyc1h).toBeLessThan(0.7);
-      expect(prediction.alert1h).toBe('hypo_imminent');
-    });
+  it('reduces dose 50% for near-hypo', () => {
+    const r = applySafetyRules({ ...baseContext, glycemia: 0.80, doseSuggeree: 4.0 });
+    expect(r.adjustedDose).toBe(2.0);
+    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'hypo-proche' }));
+  });
 
-    it('should predict stable when no velocity', () => {
-      const prediction = predictGlycemia({
-        currentG: 1.4, velocity: null, iobRemaining: 0, isf: 50
-      });
-      expect(prediction).toBeNull();
-    });
+  it('warns about stacking', () => {
+    const r = applySafetyRules({ ...baseContext, iobTotal: 3, correction: 1 });
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'anti-stacking' }));
+  });
 
-    it('should predict hyper when rising fast with no IOB', () => {
-      const prediction = predictGlycemia({
-        currentG: 2.0, velocity: 0.4, iobRemaining: 0, isf: 50
-      });
-      expect(prediction.glyc2h).toBeGreaterThan(2.5);
-      expect(prediction.alert2h).toBe('hyper_probable');
-    });
+  it('warns about timing', () => {
+    const r = applySafetyRules({ ...baseContext, lastInjectionMinutesAgo: 90 });
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'alerte-timing' }));
+  });
 
-    it('should account for IOB bringing down glycemia', () => {
-      const withIOB = predictGlycemia({
-        currentG: 2.0, velocity: 0.1, iobRemaining: 3.0, isf: 50
-      });
-      const withoutIOB = predictGlycemia({
-        currentG: 2.0, velocity: 0.1, iobRemaining: 0, isf: 50
-      });
-      expect(withIOB.glyc2h).toBeLessThan(withoutIOB.glyc2h);
+  it('blocks overdose', () => {
+    const r = applySafetyRules({ ...baseContext, doseSuggeree: 12, maxDose: 10 });
+    expect(r.blocked).toBe(true);
+    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'surdosage' }));
+  });
+
+  it('reduces correction for falling trend', () => {
+    const r = applySafetyRules({
+      ...baseContext, glycemia: 1.80, doseSuggeree: 5.0, correction: 1.0, trend: '↓',
     });
+    expect(r.adjustedDose).toBeLessThan(5.0);
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'sur-correction' }));
+  });
+
+  it('ignores trend when unknown', () => {
+    const r = applySafetyRules({
+      ...baseContext, glycemia: 1.80, doseSuggeree: 5.0, correction: 1.0, trend: '?',
+    });
+    expect(r.warnings.find(w => w.type === 'sur-correction')).toBeUndefined();
+  });
+
+  it('adds post-keto warning', () => {
+    const r = applySafetyRules({ ...baseContext, postKeto: true });
+    expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'post-keto' }));
+  });
+
+  it('returns no issues for normal situation', () => {
+    const r = applySafetyRules(baseContext);
+    expect(r.blocked).toBe(false);
+    expect(r.risks).toHaveLength(0);
+    expect(r.adjustedDose).toBe(4.0);
+  });
+});
+
+// ─── Task 4: determineSplit ───────────────────────────────────────────────────
+
+describe('determineSplit', () => {
+  it('returns unique for low fat without slow digestion', () => {
+    const r = determineSplit(4.0, 'faible', false);
+    expect(r.type).toBe('unique');
+    expect(r.immediate).toBe(4.0);
+  });
+
+  it('splits 60/40 for medium fat', () => {
+    const r = determineSplit(4.0, 'moyen', false);
+    expect(r.type).toBe('fractionne');
+    expect(r.immediate).toBe(2.5);
+    expect(r.delayed).toBe(1.5);
+    expect(r.delayMinutes).toBe(45);
+  });
+
+  it('splits 50/50 for high fat', () => {
+    const r = determineSplit(4.0, 'élevé', false);
+    expect(r.type).toBe('fractionne');
+    expect(r.immediate).toBe(2.0);
+    expect(r.delayed).toBe(2.0);
+    expect(r.delayMinutes).toBe(60);
+  });
+
+  it('splits 70/30 for slow digestion alone', () => {
+    const r = determineSplit(4.0, 'faible', true);
+    expect(r.type).toBe('fractionne');
+    expect(r.immediate).toBe(3.0);
+    expect(r.delayed).toBe(1.0);
+    expect(r.delayMinutes).toBe(60);
+  });
+
+  it('uses fat scheme when both slow digestion and high fat', () => {
+    const r = determineSplit(4.0, 'élevé', true);
+    expect(r.immediate).toBe(2.0);
+    expect(r.delayed).toBe(2.0);
+  });
+
+  it('returns unique for zero dose', () => {
+    const r = determineSplit(0, 'élevé', true);
+    expect(r.type).toBe('unique');
+    expect(r.immediate).toBe(0);
+  });
+});
+
+// ─── Task 4: analyzeAndRecommend ─────────────────────────────────────────────
+
+describe('analyzeAndRecommend', () => {
+  it('returns all 4 sections', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.40, trend: '→', totalCarbs: 60, fatLevel: 'faible',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r).toHaveProperty('analysis');
+    expect(r).toHaveProperty('recommendation');
+    expect(r).toHaveProperty('vigilance');
+    expect(r).toHaveProperty('nextStep');
+    expect(r.recommendation.dose).toBeGreaterThan(0);
+  });
+
+  it('blocks for hypo', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 0.55, trend: '↓', totalCarbs: 0, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.recommendation.dose).toBe(0);
+    expect(r.vigilance.risks.length).toBeGreaterThan(0);
+  });
+
+  it('analysis section contains expected fields', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.10, trend: '→', totalCarbs: 45, fatLevel: 'moyen',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.analysis.glycemiaStatus).toBe('cible');
+    expect(r.analysis.iob).toBe(0);
+    expect(r.analysis.trend).toBe('→');
+    expect(r.analysis.totalCarbs).toBe(45);
+    expect(r.analysis.fatLevel).toBe('moyen');
+  });
+
+  it('classifies hypo-severe correctly', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 0.50, trend: '↓', totalCarbs: 0, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.analysis.glycemiaStatus).toBe('hypo-severe');
+    expect(r.recommendation.blocked).toBe(true);
+    expect(r.nextStep.checkTime).toBe(15);
+  });
+
+  it('applies split for high-fat meal', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'élevé',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.recommendation.split.type).toBe('fractionne');
+    expect(r.recommendation.split.delayMinutes).toBe(60);
+  });
+
+  it('sets checkTime to 30 for hypo-proche', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 0.82, trend: '→', totalCarbs: 30, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.analysis.glycemiaStatus).toBe('hypo-proche');
+    expect(r.nextStep.checkTime).toBe(30);
+  });
+
+  it('sets checkTime to 60 when timing warning present', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: 90, slowDigestion: false,
+      postKeto: false, maxDose: 10,
+    });
+    expect(r.nextStep.checkTime).toBe(60);
   });
 });

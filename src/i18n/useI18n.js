@@ -1,25 +1,23 @@
-import { useLocalStorage } from '../hooks/useLocalStorage.js';
-import fr from './fr.js';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import fr from './fr';
 import ar from './ar.js';
 
-const locales = { fr, ar };
+const LOCALES = { fr, ar };
 
 export function useI18n() {
   const [locale, setLocale] = useLocalStorage('locale', 'fr');
+  const messages = LOCALES[locale] || fr;
 
-  const strings = locales[locale] || fr;
-
-  function t(key, params) {
-    let str = strings[key] || fr[key] || key;
+  const t = (key, params) => {
+    let msg = messages[key] || fr[key] || key;
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
-        str = str.replace(`{${k}}`, v);
+        msg = msg.replace(`{${k}}`, v);
       });
     }
-    return str;
-  }
+    return msg;
+  };
 
   const isRTL = locale === 'ar';
-
   return { t, locale, setLocale, isRTL };
 }

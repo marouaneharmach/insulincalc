@@ -28,15 +28,16 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: v4/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: v4
+
+      - name: Run tests
+        run: npx vitest run
 
       - name: Build
         run: npm run build
-        working-directory: v4
         env:
           VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
 
@@ -46,7 +47,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: v4/build
+          path: build
 
   deploy:
     environment:

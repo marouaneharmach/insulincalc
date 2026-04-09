@@ -1,11 +1,14 @@
-// Food Recognition — Clarifai API + local food matching
-// Supports proxy URL (production) or direct PAT (dev)
+// V5.5 — Groq + Llama 4 Scout Vision Food Recognition
+// Free, ultra-fast inference via Groq API
+// Model: meta-llama/llama-4-scout-17b-16e-instruct (current Groq vision model)
 
-const PROXY_URL = import.meta.env.VITE_CLARIFAI_PROXY || '';
-const CLARIFAI_PAT = import.meta.env.VITE_CLARIFAI_PAT || '';
-const DIRECT_URL = 'https://api.clarifai.com/v2/models/food-item-recognition/versions/1d5fd481e0cf4826aa72ec3ff049e044/outputs';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
-/** Compress image to JPEG, max 800px */
+/**
+ * Compress image to JPEG, max 800px
+ */
 export function compressImage(file, maxSize = 800) {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
@@ -34,132 +37,204 @@ function blobToBase64(blob) {
   });
 }
 
-/** Check if Clarifai API is configured */
-export function isApiConfigured() {
-  return !!(PROXY_URL || CLARIFAI_PAT);
-}
+const FOOD_PROMPT = `You are a food identification expert for a diabetes management app. Analyze this meal photo.
 
-/** Recognize food via Clarifai proxy or direct API */
+Return ONLY valid JSON (no markdown, no code blocks, no explanation):
+{"foods":[{"name":"english name","nameFr":"nom français simple","confidence":85,"estimatedCarbs":30,"estimatedFat":12,"estimatedWeight":200,"estimatedGI":"moyen"}]}
+
+CRITICAL rules:
+- Identify the COMPLETE DISH first (e.g. "cheeseburger", "pizza margherita", "tajine poulet"), then individual sides
+- Do NOT decompose a dish into ingredients (a burger = 1 entry "cheeseburger", NOT bun + patty + cheese + lettuce separately)
+- Only list sides/extras as separate items (e.g. fries, drink, salad on the side)
+- "nameFr" must be a SIMPLE common name: "Cheeseburger", "Pizza", "Couscous", "Tajine", "Sushi" — NOT long descriptions
+- "confidence" = 0-100 certainty
+- "estimatedCarbs" = total carbs in grams for the visible portion
+- "estimatedFat" = total fat/lipids in grams for the visible portion
+- "estimatedWeight" = estimated total weight in grams for the visible portion
+- "estimatedGI" = glycemic index category: "faible" (low GI, e.g. legumes, whole grains), "moyen" (medium, e.g. basmati rice, whole wheat), "élevé" (high GI, e.g. white bread, sugar, fries)
+- Recognize ALL cuisines: Moroccan, Mediterranean, Asian, fast-food, etc.
+- If no food visible, return {"foods":[]}
+- Max 5 items`;
+
+/**
+ * Recognize food via Groq API (Llama 3.2 Vision)
+ * Uses OpenAI-compatible chat completions endpoint
+ */
 export async function recognizeFood(imageFile) {
-  if (!PROXY_URL && !CLARIFAI_PAT) {
-    throw new Error('CLARIFAI_NOT_CONFIGURED');
+  if (!GROQ_API_KEY) {
+    throw new Error('Clé API Groq manquante (VITE_GROQ_API_KEY). Créez-en une gratuitement sur console.groq.com');
   }
 
   const compressed = await compressImage(imageFile);
   const base64 = await blobToBase64(compressed);
 
-  const requestBody = JSON.stringify({
-    user_app_id: { user_id: 'clarifai', app_id: 'main' },
-    inputs: [{ data: { image: { base64 } } }]
+  const response = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: VISION_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${base64}` }
+            },
+            {
+              type: 'text',
+              text: FOOD_PROMPT
+            }
+          ]
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 1024,
+    })
   });
 
-  let response;
-  if (PROXY_URL) {
-    response = await fetch(PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: requestBody,
-    });
-  } else {
-    response = await fetch(DIRECT_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${CLARIFAI_PAT}`,
-        'Content-Type': 'application/json',
-      },
-      body: requestBody,
-    });
-  }
-
   if (!response.ok) {
-    throw new Error(`API_ERROR_${response.status}`);
+    const errText = await response.text().catch(() => '');
+    if (response.status === 429) {
+      throw new Error('Quota Groq dépassé. Réessayez dans quelques secondes (30 req/min gratuit).');
+    }
+    if (response.status === 401) {
+      throw new Error('Clé API Groq invalide. Vérifiez sur console.groq.com');
+    }
+    throw new Error(`Erreur Groq ${response.status}: ${errText.slice(0, 200)}`);
   }
 
   const data = await response.json();
-  if (data.status && data.status.code !== 10000) {
-    throw new Error(data.status.description || 'CLARIFAI_ERROR');
+  const textContent = data.choices?.[0]?.message?.content || '';
+
+  if (!textContent) {
+    throw new Error('Réponse vide de Groq');
   }
 
-  const concepts = data.outputs?.[0]?.data?.concepts || [];
-  return concepts
-    .filter(c => c.value > 0.1)
+  let parsed;
+  try {
+    // Extract JSON — model may wrap in markdown code blocks
+    const jsonStr = textContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    console.warn('[FoodRecognition] Raw response:', textContent);
+    throw new Error('Réponse mal formatée. Réessayez.');
+  }
+
+  if (!parsed.foods || !Array.isArray(parsed.foods)) return [];
+
+  return parsed.foods
+    .filter(f => f.confidence > 20)
     .slice(0, 10)
-    .map(c => ({ name: c.name, confidence: Math.round(c.value * 100), id: c.id }));
+    .map((f, i) => ({
+      name: f.name || f.nameFr || 'unknown',
+      nameFr: f.nameFr || f.name,
+      confidence: f.confidence || 80,
+      estimatedCarbs: f.estimatedCarbs ?? null,
+      estimatedFat: f.estimatedFat ?? null,
+      estimatedWeight: f.estimatedWeight ?? null,
+      estimatedGI: f.estimatedGI || null,
+      id: `groq_${i}_${Date.now()}`
+    }));
 }
 
-// English → French food name mapping for Clarifai results
-const EN_FR_FOOD = {
-  banana: 'banane', apple: 'pomme', orange: 'orange', grape: 'raisin', strawberry: 'fraise',
-  pear: 'poire', peach: 'pêche', watermelon: 'pastèque', melon: 'melon', lemon: 'citron',
-  pineapple: 'ananas', mango: 'mangue', cherry: 'cerise', fig: 'figue', date: 'datte',
-  apricot: 'abricot', plum: 'prune', avocado: 'avocat', coconut: 'noix de coco',
-  pomegranate: 'grenade', kiwi: 'kiwi', clementine: 'clémentine', grapefruit: 'pamplemousse',
-  bread: 'pain', rice: 'riz', pasta: 'pâtes', couscous: 'couscous', noodle: 'nouilles',
-  chicken: 'poulet', beef: 'bœuf', lamb: 'agneau', fish: 'poisson', egg: 'œuf',
-  cheese: 'fromage', milk: 'lait', yogurt: 'yaourt', butter: 'beurre', cream: 'crème',
-  potato: 'pomme de terre', tomato: 'tomate', onion: 'oignon', carrot: 'carotte',
-  cucumber: 'concombre', pepper: 'poivron', lettuce: 'laitue', cabbage: 'chou',
-  broccoli: 'brocoli', spinach: 'épinard', corn: 'maïs', pea: 'petit pois',
-  bean: 'haricot', lentil: 'lentille', chickpea: 'pois chiche',
-  cake: 'gâteau', cookie: 'biscuit', chocolate: 'chocolat', candy: 'bonbon',
-  pizza: 'pizza', hamburger: 'hamburger', sandwich: 'sandwich', fries: 'frites',
-  salad: 'salade', soup: 'soupe', stew: 'ragoût', sauce: 'sauce',
-  coffee: 'café', tea: 'thé', juice: 'jus', soda: 'soda', water: 'eau',
-  almond: 'amande', walnut: 'noix', peanut: 'cacahuète', olive: 'olive',
-  honey: 'miel', sugar: 'sucre', salt: 'sel', oil: 'huile',
-  croissant: 'croissant', baguette: 'baguette', pancake: 'pancake', waffle: 'gaufre',
-  sushi: 'sushi', ramen: 'ramen', kebab: 'kefta', taco: 'taco',
-  steak: 'steak', salmon: 'saumon', shrimp: 'crevette', tuna: 'thon',
-  mushroom: 'champignon', garlic: 'ail', ginger: 'gingembre',
-  'ice cream': 'glace', dessert: 'dessert', pastry: 'pâtisserie',
-  omelette: 'omelette', bacon: 'bacon', sausage: 'saucisse', ham: 'jambon',
-  radish: 'radis', kale: 'chou frisé', zucchini: 'courgette', eggplant: 'aubergine',
-  'sweet potato': 'patate douce', 'french fries': 'frites', turkey: 'dinde',
-  sardine: 'sardine', squid: 'calamar',
-  tagine: 'tajine', harira: 'harira', msemen: 'msemen', harcha: 'harcha',
-  baghrir: 'baghrir', pastilla: 'pastilla', rfissa: 'rfissa',
-  dates: 'dattes', figs: 'figues', olives: 'olives', almonds: 'amandes',
-  walnuts: 'noix', pistachios: 'pistaches', cashews: 'noix de cajou',
-  hummus: 'houmous', falafel: 'falafel', shawarma: 'shawarma',
-  naan: 'pain naan', curry: 'curry', biryani: 'riz biryani',
-  crepe: 'crêpe', brioche: 'brioche', muffin: 'muffin', donut: 'beignet',
+function normalize(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+/** Convert fat grams to qualitative level used by dose calculations */
+export function deriveFatLevel(fatGrams) {
+  if (fatGrams == null || fatGrams <= 5) return 'faible';
+  if (fatGrams <= 15) return 'moyen';
+  return 'élevé';
+}
+
+// Keyword aliases: AI name → DB search keywords
+const KEYWORD_MAP = {
+  'hamburger': ['burger', 'big mac', 'whopper', 'cheeseburger', 'royal cheese', 'mcchicken', 'steak hache'],
+  'cheeseburger': ['burger', 'big mac', 'royal cheese', 'double cheese', 'cheeseburger'],
+  'burger': ['burger', 'big mac', 'whopper', 'royal cheese', 'cheeseburger'],
+  'frites': ['frites'],
+  'pizza': ['pizza'],
+  'sushi': ['sushi', 'maki', 'sashimi'],
+  'kebab': ['kebab', 'doner'],
+  'tacos': ['tacos'],
+  'couscous': ['couscous'],
+  'tajine': ['tajine'],
+  'sandwich': ['sandwich', 'panini', 'croque'],
+  'salade': ['salade'],
+  'riz': ['riz'],
+  'pates': ['pasta', 'carbonara', 'lasagne', 'pates'],
+  'poulet': ['poulet', 'chicken', 'nuggets'],
+  'croissant': ['croissant'],
+  'pain': ['pain', 'baguette', 'tartine'],
 };
 
-function translateFoodName(enName) {
-  const lower = enName.toLowerCase();
-  if (EN_FR_FOOD[lower]) return EN_FR_FOOD[lower];
-  for (const [en, fr] of Object.entries(EN_FR_FOOD)) {
-    if (lower.includes(en) || en.includes(lower)) return fr;
-  }
-  return enName;
-}
-
-/** Map Clarifai results to local food DB */
-export function mapToLocalFoods(clarifaiResults, allFoods) {
+/**
+ * Map recognition results to local food DB
+ * Uses keyword matching + fuzzy substring matching
+ */
+export function mapToLocalFoods(results, allFoods) {
   const foods = Object.values(allFoods);
 
-  return clarifaiResults.map(result => {
-    const enName = result.name.toLowerCase();
-    const frName = translateFoodName(enName).toLowerCase();
+  return results.map(result => {
+    const frName = normalize(result.nameFr || result.name);
+    const enName = normalize(result.name);
 
     let best = null, bestScore = 0;
 
     for (const f of foods) {
-      const fn = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const frNorm = frName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
+      const fn = normalize(f.name);
       let score = 0;
-      if (fn.includes(frNorm) || frNorm.includes(fn)) score = frNorm.length + fn.length;
-      else if (fn.includes(enName) || enName.includes(fn)) score = enName.length + fn.length;
+
+      // 1. Exact match (highest priority)
+      if (fn === frName || fn === enName) {
+        score = 1000;
+      }
+      // 2. Keyword matching: check if AI result maps to known keywords
+      else {
+        for (const [key, keywords] of Object.entries(KEYWORD_MAP)) {
+          if (frName.includes(key) || enName.includes(key)) {
+            for (const kw of keywords) {
+              if (fn.includes(normalize(kw))) {
+                score = Math.max(score, 500 + kw.length);
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Substring match (lower priority) — but require minimum 4 char overlap
+      if (score === 0) {
+        // Split into words and match individual words
+        const frWords = frName.split(/[\s,()/-]+/).filter(w => w.length >= 4);
+        const enWords = enName.split(/[\s,()/-]+/).filter(w => w.length >= 4);
+        const fnWords = fn.split(/[\s,()/-]+/).filter(w => w.length >= 3);
+
+        for (const word of [...frWords, ...enWords]) {
+          for (const fw of fnWords) {
+            if (fw.includes(word) || word.includes(fw)) {
+              const s = 100 + Math.min(word.length, fw.length);
+              score = Math.max(score, s);
+            }
+          }
+        }
+      }
 
       if (score > bestScore) { bestScore = score; best = f; }
     }
 
+    // Require minimum score to avoid false positives
+    const mapped = best != null && bestScore >= 100;
+
     return {
       ...result,
-      nameFr: translateFoodName(result.name),
-      localFood: best,
-      mapped: best != null,
+      nameFr: result.nameFr || result.name,
+      localFood: mapped ? best : null,
+      mapped,
     };
   });
 }

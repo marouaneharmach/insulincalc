@@ -1,9 +1,0 @@
-<svg width="512" height="512" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Zellige & Insuline — InsulinCalc -->
-  <path d="M60 10 L103 32 L103 88 L60 110 L17 88 L17 32 Z" fill="none" stroke="#e8913a" stroke-width="2.5" stroke-linejoin="round"/>
-  <path d="M60 28 L82 40 L82 80 L60 92 L38 80 L38 40 Z" fill="rgba(232,145,58,0.1)" stroke="#e8913a" stroke-width="1" stroke-linejoin="round" opacity="0.5"/>
-  <circle cx="60" cy="44" r="5" fill="#e8913a"/>
-  <rect x="56" y="54" width="8" height="30" rx="4" fill="#e8913a"/>
-  <rect x="78" y="26" width="12" height="3" rx="1.5" fill="#6db082"/>
-  <rect x="82.5" y="21.5" width="3" height="12" rx="1.5" fill="#6db082"/>
-</svg>

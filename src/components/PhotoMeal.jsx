@@ -1,19 +1,25 @@
-import { useState, useRef } from 'react';
-import { recognizeFood, mapToLocalFoods, compressImage } from '../utils/foodRecognition.js';
+import { useState, useRef, useId } from 'react';
+import { recognizeFood, mapToLocalFoods, compressImage, deriveFatLevel } from '../utils/foodRecognition';
 
-export default function PhotoMeal({ allFoods, toggleFood, t, colors, theme }) {
-  const cc = colors || {};
-  const isDark = theme === 'dark' || !theme;
-  const [status, setStatus] = useState('idle');
+/**
+ * PhotoMeal — Take a photo of a meal, recognize foods via Groq Vision,
+ * then let user confirm/adjust and add to meal selection.
+ * Supports both DB-mapped foods and AI-estimated foods (unmapped).
+ */
+export default function PhotoMeal({ allFoods, toggleFood, isDark, t }) {
+  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'results' | 'error'
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   const fileRef = useRef(null);
+  const idPrefix = useId();
+  const counterRef = useRef(0);
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Show preview
     const compressed = await compressImage(file, 400);
     setPhotoPreview(URL.createObjectURL(compressed));
     setStatus('loading');
@@ -26,17 +32,29 @@ export default function PhotoMeal({ allFoods, toggleFood, t, colors, theme }) {
       setStatus('results');
     } catch (err) {
       console.error('[PhotoMeal]', err);
-      if (err.message === 'CLARIFAI_NOT_CONFIGURED') {
-        setError(t('photoNonConfiguree'));
-      } else {
-        setError(t('photoErreur'));
-      }
+      setError(err.message || 'Erreur lors de la reconnaissance');
       setStatus('error');
     }
   };
 
   const addFood = (item) => {
-    if (item.localFood) toggleFood(item.localFood);
+    if (item.localFood) {
+      toggleFood(item.localFood);
+    } else if (item.estimatedCarbs != null) {
+      // AI-estimated food not in local DB — create temporary food entry
+      const aiFood = {
+        id: `ai_${idPrefix}_${item.nameFr}_${++counterRef.current}`,
+        name: `${item.nameFr} (IA)`,
+        carbs: Math.round(item.estimatedCarbs),
+        fat: deriveFatLevel(item.estimatedFat),
+        gi: 'moyen',
+        unit: `~${item.estimatedWeight || '?'}g (estimation IA)`,
+        qty: 'plat',
+        note: 'Estimation IA — ajustez si besoin',
+        aiEstimated: true,
+      };
+      toggleFood(aiFood);
+    }
   };
 
   const reset = () => {
@@ -47,40 +65,34 @@ export default function PhotoMeal({ allFoods, toggleFood, t, colors, theme }) {
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  const card = {
-    background: cc.card, border: `1px solid ${cc.border}`, borderRadius: 14,
-    padding: 16, marginBottom: 12,
-  };
+  const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
 
   return (
-    <div style={card}>
+    <div className={cardClass}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ fontSize: 12, letterSpacing: 2, color: '#a855f7', textTransform: 'uppercase' }}>
-          📷 {t('photoRepas')}
-        </div>
+      <div className="flex items-center justify-between mb-2">
+        <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+          📷 {t?.('photoRepas') || 'Photo du repas'}
+        </p>
         {status !== 'idle' && (
-          <button onClick={reset} style={{
-            background: 'none', border: 'none', color: cc.muted, cursor: 'pointer',
-            fontFamily: "'IBM Plex Mono',monospace", fontSize: 11,
-          }}>✕ {t('annuler')}</button>
+          <button onClick={reset}
+            className={`text-[10px] px-2 py-1 rounded-lg ${isDark ? 'text-slate-500 hover:text-slate-300' : 'text-gray-400 hover:text-gray-600'}`}>
+            ✕ Effacer
+          </button>
         )}
       </div>
 
-      {/* Idle — camera buttons */}
+      {/* Idle — camera button */}
       {status === 'idle' && (
-        <label style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '20px 14px', borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s',
-          border: `2px dashed ${isDark ? '#334155' : '#cbd5e1'}`,
-          background: isDark ? '#0a1520' : '#f8fafc',
-        }}>
-          <span style={{ fontSize: 32, marginBottom: 8 }}>📸</span>
-          <span style={{ fontSize: 13, color: isDark ? '#8aa8bd' : '#475569', fontWeight: 500 }}>
-            {t('prendrePhoto')}
+        <label className={`flex flex-col items-center justify-center py-6 rounded-xl border-2 border-dashed cursor-pointer transition ${
+          isDark ? 'border-slate-600 hover:border-purple-500 hover:bg-purple-900/10' : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+        }`}>
+          <span className="text-3xl mb-2">📸</span>
+          <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {t?.('prendrePhoto') || 'Photographier votre repas'}
           </span>
-          <span style={{ fontSize: 11, color: cc.muted, marginTop: 4 }}>
-            {t('iaReconnaitraAliments')}
+          <span className={`text-[10px] mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+            {t?.('iaReconnaitraAliments') || "L'IA reconnaîtra les aliments"}
           </span>
           <input
             ref={fileRef}
@@ -88,51 +100,38 @@ export default function PhotoMeal({ allFoods, toggleFood, t, colors, theme }) {
             accept="image/*"
             capture="environment"
             onChange={handlePhoto}
-            style={{ display: 'none' }}
+            className="hidden"
           />
         </label>
       )}
 
       {/* Loading */}
       {status === 'loading' && (
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+        <div className="text-center py-6">
           {photoPreview && (
-            <img src={photoPreview} alt="" style={{
-              width: 120, height: 120, objectFit: 'cover', borderRadius: 14,
-              margin: '0 auto 12px', display: 'block',
-              border: `2px solid #a855f7`,
-            }} />
+            <img src={photoPreview} alt="Repas" className="w-32 h-32 object-cover rounded-xl mx-auto mb-3 border-2 border-purple-300" />
           )}
-          <div style={{
-            width: 28, height: 28, border: '3px solid #a855f7', borderTopColor: 'transparent',
-            borderRadius: '50%', margin: '0 auto 10px',
-            animation: 'spin 0.8s linear infinite',
-          }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <div style={{ fontSize: 13, color: '#a855f7' }}>
-            🔍 {t('analyseEnCours')}
-          </div>
-          <div style={{ fontSize: 11, color: cc.muted, marginTop: 4 }}>
-            {t('identificationIA')}
-          </div>
+          <div className="animate-spin w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full mx-auto mb-2" />
+          <p className={`text-sm ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+            🔍 {t?.('analyseEnCours') || 'Analyse en cours...'}
+          </p>
+          <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+            Identification des aliments par IA
+          </p>
         </div>
       )}
 
       {/* Error */}
       {status === 'error' && (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+        <div className="text-center py-4">
           {photoPreview && (
-            <img src={photoPreview} alt="" style={{
-              width: 90, height: 90, objectFit: 'cover', borderRadius: 12,
-              margin: '0 auto 10px', display: 'block', opacity: 0.6,
-            }} />
+            <img src={photoPreview} alt="Repas" className="w-24 h-24 object-cover rounded-xl mx-auto mb-2 opacity-60" />
           )}
-          <div style={{ fontSize: 13, color: '#ef4444', marginBottom: 10 }}>❌ {error}</div>
-          <button onClick={reset} style={{
-            padding: '8px 18px', borderRadius: 10, border: 'none', cursor: 'pointer',
-            background: '#a855f7', color: '#fff', fontSize: 12,
-            fontFamily: "'IBM Plex Mono',monospace",
-          }}>🔄 {t('reessayer')}</button>
+          <p className="text-red-500 text-sm mb-2">❌ {error}</p>
+          <button onClick={reset}
+            className="text-xs px-4 py-2 rounded-xl bg-purple-500 text-white hover:bg-purple-600 transition">
+            🔄 Réessayer
+          </button>
         </div>
       )}
 
@@ -140,77 +139,100 @@ export default function PhotoMeal({ allFoods, toggleFood, t, colors, theme }) {
       {status === 'results' && (
         <div>
           {photoPreview && (
-            <img src={photoPreview} alt="" style={{
-              width: '100%', height: 160, objectFit: 'cover', borderRadius: 12,
-              marginBottom: 12,
-            }} />
+            <img src={photoPreview} alt="Repas" className="w-full h-40 object-cover rounded-xl mb-3" />
           )}
 
-          <div style={{ fontSize: 11, color: cc.muted, marginBottom: 8 }}>
-            {results.length} {results.length > 1 ? t('alimentsDetectes') : t('alimentDetecte')} — {t('tapPourAjouter')}
-          </div>
+          {results.length === 0 ? (
+            <div className={`p-3 rounded-xl text-center border border-dashed ${isDark ? 'border-slate-600 bg-slate-700/30' : 'border-gray-200 bg-gray-50'}`}>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                😕 {t?.('aucunAlimentReconnu') || 'Aucun aliment reconnu'}
+              </p>
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                {t?.('essayerAutrePhoto') || 'Essayez avec une autre photo ou ajoutez manuellement'}
+              </p>
+            </div>
+          ) : (
+          <>
+          <p className={`text-[10px] mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            {results.length} {t?.('alimentsDetectes') || 'aliment(s) détecté(s)'} — {t?.('tapPourAjouter') || 'Tapez pour ajouter au repas'}
+          </p>
 
-          {results.map((item, i) => (
-            <button
-              key={i}
-              onClick={() => addFood(item)}
-              disabled={!item.mapped}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', marginBottom: 4, borderRadius: 10,
-                background: item.mapped ? (isDark ? '#0a1520' : '#f0fdfa') : (isDark ? '#0d1117' : '#f8fafc'),
-                border: `1px solid ${item.mapped ? `${cc.accent}44` : cc.border}`,
-                cursor: item.mapped ? 'pointer' : 'default',
-                opacity: item.mapped ? 1 : 0.5,
-                fontFamily: "'IBM Plex Mono',monospace", textAlign: 'left',
-                transition: 'all 0.12s',
-              }}
-            >
-              {/* Confidence badge */}
-              <div style={{
-                width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 700,
-                background: item.confidence >= 80 ? 'rgba(34,197,94,0.12)' : item.confidence >= 50 ? 'rgba(245,158,11,0.12)' : 'rgba(148,163,184,0.12)',
-                color: item.confidence >= 80 ? '#22c55e' : item.confidence >= 50 ? '#f59e0b' : '#94a3b8',
-                border: `1px solid ${item.confidence >= 80 ? 'rgba(34,197,94,0.3)' : item.confidence >= 50 ? 'rgba(245,158,11,0.3)' : 'rgba(148,163,184,0.3)'}`,
-              }}>
-                {item.confidence}%
-              </div>
+          <div className="space-y-1">
+            {results.map((item, i) => {
+              const canAdd = item.mapped || item.estimatedCarbs != null;
+              const carbsDisplay = item.mapped ? item.localFood.carbs : item.estimatedCarbs;
+              const fatDisplay = item.mapped ? null : item.estimatedFat;
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: isDark ? '#c8d6e5' : '#334155', textTransform: 'capitalize' }}>
-                  {item.nameFr || item.name}
+              return (
+              <button
+                key={i}
+                onClick={() => addFood(item)}
+                disabled={!canAdd}
+                className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition ${
+                  canAdd
+                    ? isDark ? 'hover:bg-teal-900/20 border border-slate-700' : 'hover:bg-teal-50 border border-gray-100'
+                    : 'opacity-50 cursor-not-allowed border border-dashed ' + (isDark ? 'border-slate-700' : 'border-gray-200')
+                }`}
+              >
+                {/* Confidence badge */}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                  item.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                  item.confidence >= 50 ? 'bg-amber-100 text-amber-700' :
+                  'bg-gray-100 text-gray-500'
+                }`}>
+                  {item.confidence}%
                 </div>
-                {item.mapped ? (
-                  <div style={{ fontSize: 11, color: cc.accent, marginTop: 2 }}>
-                    → {item.localFood.name} ({item.localFood.carbs}g {t('glucidesUnit')})
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 11, color: cc.muted, marginTop: 2 }}>
-                    {item.name} — {t('nonTrouveDansBase')}
+
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium capitalize ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                    {item.nameFr || item.name}
+                  </p>
+                  {item.mapped ? (
+                    <p className={`text-[10px] ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
+                      → {item.localFood.name} ({item.localFood.carbs}g glucides)
+                    </p>
+                  ) : item.estimatedCarbs != null ? (
+                    <p className={`text-[10px] ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                      ~{Math.round(item.estimatedCarbs)}g glucides
+                      {item.estimatedFat != null && ` · ~${Math.round(item.estimatedFat)}g lipides`}
+                      {item.estimatedWeight != null && ` · ~${item.estimatedWeight}g`}
+                      {' '}(estimation IA)
+                    </p>
+                  ) : (
+                    <p className={`text-[10px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                      {item.name} — {t?.('nonTrouveDansBase') || 'non trouvé dans la base'}
+                    </p>
+                  )}
+                </div>
+
+                {canAdd && carbsDisplay != null && (
+                  <div className="text-right shrink-0">
+                    <span className={`text-xs font-bold block ${item.mapped ? (isDark ? 'text-teal-400' : 'text-teal-600') : (isDark ? 'text-purple-400' : 'text-purple-600')}`}>
+                      + {Math.round(carbsDisplay)}g
+                    </span>
+                    {fatDisplay != null && (
+                      <span className={`text-[9px] block ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>
+                        {Math.round(fatDisplay)}g lip.
+                      </span>
+                    )}
                   </div>
                 )}
-              </div>
+              </button>
+              );
+            })}
+          </div>
+          </>
+          )}
 
-              {item.mapped && (
-                <span style={{ fontSize: 13, fontWeight: 700, color: cc.accent, flexShrink: 0 }}>
-                  + {item.localFood.carbs}g
-                </span>
-              )}
+          {/* Actions */}
+          <div className="flex gap-2 mt-3">
+            <button onClick={reset}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition ${
+                isDark ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'
+              }`}>
+              📷 Autre photo
             </button>
-          ))}
-
-          {/* Another photo */}
-          <button onClick={reset} style={{
-            width: '100%', padding: 10, marginTop: 8, borderRadius: 10,
-            border: `1px solid ${cc.border}`, cursor: 'pointer',
-            background: isDark ? '#0d1117' : '#f1f5f9',
-            color: cc.muted, fontSize: 12,
-            fontFamily: "'IBM Plex Mono',monospace",
-          }}>
-            📷 {t('autrePhoto')}
-          </button>
+          </div>
         </div>
       )}
     </div>

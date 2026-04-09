@@ -1,72 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#07090f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="InsulinCalc">
-  <title>InsulinCalc - Calculateur d'insuline</title>
-  <link rel="manifest" href="/insulincalc/assets/manifest-Bck0qDIO.json">
-  <link rel="icon" href="/insulincalc/assets/icon-192-yIcsZ9CB.png" type="image/png">
-  <link rel="apple-touch-icon" href="/insulincalc/assets/icon-192-yIcsZ9CB.png">
-  <style>
-    @font-face {
-      font-family: 'IBM Plex Mono';
-      font-weight: 300;
-      font-style: normal;
-      font-display: swap;
-      src: url('/insulincalc/assets/ibm-plex-mono-300-BRS-C4KA.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'IBM Plex Mono';
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-      src: url('/insulincalc/assets/ibm-plex-mono-400-DMJ8VG8y.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'IBM Plex Mono';
-      font-weight: 500;
-      font-style: normal;
-      font-display: swap;
-      src: url('/insulincalc/assets/ibm-plex-mono-500-DSY6xOcd.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'IBM Plex Mono';
-      font-weight: 600;
-      font-style: normal;
-      font-display: swap;
-      src: url('/insulincalc/assets/ibm-plex-mono-600-BgSNZQsw.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Syne Mono';
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-      src: url('/insulincalc/assets/syne-mono-400-KJbW1Qny.woff2') format('woff2');
-    }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'IBM Plex Mono', monospace;
-      background: #07090f;
-      color: #c8d6e5;
-    }
-  </style>
-  <style media="print">
-    @media print {
-      body { background: white !important; color: black !important; }
-      .no-print { display: none !important; }
-    }
-  </style>
-  <script type="module" crossorigin src="/insulincalc/assets/app-B5nrrZR_.js"></script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0D9488" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="version" content="6.0.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>InsulinCalc</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

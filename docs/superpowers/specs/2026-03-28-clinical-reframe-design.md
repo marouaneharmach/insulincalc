@@ -56,16 +56,18 @@ Nouveau module `src/utils/clinicalEngine.js` — logique médicale déterministe
 
 ### 3.1 Insuline Active (IOB)
 
-- **Modèle Walsh** (référence : Walsh et al., "Guidelines for Optimal Bolus Calculator Settings in Adults") pour insuline rapide (NovoRapid)
-- Courbe : décroissance sigmoïde inversée. Formule :
+- **Modèle Walsh triangulaire** (référence : Walsh et al., "Guidelines for Optimal Bolus Calculator Settings in Adults") pour insuline rapide (NovoRapid)
+- Courbe : activité triangulaire avec intégrale en forme fermée. Formule :
   ```
   si T >= DIA : IOB = 0
+  si T <= 0   : IOB = dose
+  si T <= peak :
+    IOB = dose * (1 - T² / (peak * DIA))
   sinon :
-    peak = 75  // minutes pour NovoRapid
-    a = 2.0 * (DIA - peak) / 5.0
-    IOB = dose * (1 - 0.5 * ((T^2) / (a * (DIA - T))))
-    IOB = max(0, min(dose, IOB))  // clamp
+    IOB = dose * (DIA - T)² / (DIA * (DIA - peak))
+  IOB = dose * max(0, min(1, iobFraction))
   ```
+  Paramètres par défaut : peak = 75 min, DIA = 270 min (4h30)
 - Durée d'action (DIA) configurable (défaut 270 min = 4h30)
 - `iob(dose, minutesEcoulees, dureeAction)` → unités restantes
 - IOB totale = somme des IOB de toutes les injections des dernières `DIA` minutes (depuis le journal)
@@ -184,11 +186,11 @@ Tous les textes générés par templates FR/AR selon conditions. Purement déter
 | Paramètre | Défaut |
 |-----------|--------|
 | Ratio glucides (g/u) | 15 |
-| ISF (g/L par unité) | 0.60 |
-| Glycémie cible min | 1.00 |
-| Glycémie cible max | 1.20 |
+| ISF | 60 mg/dL (= 0.60 g/L) |
+| Glycémie cible min | 1.00 g/L |
+| Glycémie cible max | 1.20 g/L |
 | Dose max sécurité (u) | 10 |
-| Durée d'action rapide (h) | 4.5 |
+| Durée d'action rapide (h) | 4.5 (270 min) |
 
 Profils horaires conservés : override ratio/ISF par tranche horaire.
 

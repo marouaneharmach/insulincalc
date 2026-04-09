@@ -1,24 +1,26 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-export function useLocalStorage(key, defaultValue) {
-  const fullKey = "insulincalc_v1_" + key;
-  const [value, setValue] = useState(() => {
+export function useLocalStorage(key, initialValue) {
+  const prefixedKey = `insulincalc_v4_${key}`;
+
+  const [storedValue, setStoredValue] = useState(() => {
     try {
-      const stored = localStorage.getItem(fullKey);
-      if (stored === null) return defaultValue;
-      return JSON.parse(stored);
+      const item = localStorage.getItem(prefixedKey);
+      return item ? JSON.parse(item) : initialValue;
     } catch {
-      return defaultValue;
+      return initialValue;
     }
   });
-  const setAndStore = (newVal) => {
-    setValue(prev => {
-      const resolved = typeof newVal === "function" ? newVal(prev) : newVal;
+
+  const setValue = useCallback((value) => {
+    setStoredValue(prev => {
+      const next = typeof value === 'function' ? value(prev) : value;
       try {
-        localStorage.setItem(fullKey, JSON.stringify(resolved));
-      } catch { /* quota exceeded */ }
-      return resolved;
+        localStorage.setItem(prefixedKey, JSON.stringify(next));
+      } catch { /* quota */ }
+      return next;
     });
-  };
-  return [value, setAndStore];
+  }, [prefixedKey]);
+
+  return [storedValue, setValue];
 }

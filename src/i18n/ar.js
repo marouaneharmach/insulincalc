@@ -1,13 +1,12 @@
 const ar = {
   // App
   appName: "InsulinCalc",
-  appSubtitle: "السكري النوع 1 · المطبخ المغربي",
+  appSubtitle: "حاسبة الأنسولين",
   glucides: "الكربوهيدرات",
   aliment: "مكوّن",
   aliments: "مكوّنات",
 
   // Tabs
-  tabAccueil: "🏠 الرئيسية",
   tabRepas: "🍽 الوجبة",
   tabSaisie: "🩸 الإدخال",
   tabResultat: "⚡ النتيجة",
@@ -50,12 +49,12 @@ const ar = {
   indexGlycemique: "مؤشر السكر",
   graisses: "الدهون",
   vitesseDigestion: "سرعة الهضم المقدّرة",
-  rechercherAliment: "🔍  ابحث عن طعام أو وجبة...",
   ajouterAlimentPerso: "+ أضف مكوّن مخصص",
   mesAliments: "⭐ مكوّناتي",
   recents: "🕐 الأخيرة",
   suggestions: "💡 اقتراحات",
   nouveauRepas: "🔄 وجبة جديدة",
+  nouveauRepasBtn: "وجبة جديدة",
 
   // Digestion
   picMin: "ذروة",
@@ -142,19 +141,17 @@ const ar = {
   rappelPostRepas: "تذكير بعد الوجبة",
   rappelMesurer: "تذكير لقياس السكر بعد الوجبة",
   notifBloquees: "⚠ الإشعارات محظورة من المتصفح. فعّلها من الإعدادات.",
+  autoriserNotifications: "السماح بالإشعارات",
+  notifActivees: "الإشعارات مفعّلة",
   delaiRappel: "مهلة التذكير",
   parametresManuels: "الإعدادات اليدوية",
-  ratioUnique: "نسبة/عامل موحد",
-  parPeriode: "حسب الفترة",
-  periodeActuelle: "الفترة الحالية",
-  ratioInsulineGlucides: "نسبة الأنسولين / الكربوهيدرات (ICR)",
-  facteurCorrection: "عامل التصحيح (ISF)",
+  ratioInsulineGlucides: "كم غرام من الكربوهيدرات لوحدة أنسولين واحدة؟",
+  facteurCorrection: "بكم ينخفض السكر مع وحدة أنسولين واحدة؟",
   glycemieCible: "نسبة السكر المستهدفة",
   glycemieCiblePlage: "نطاق السكر المستهدف",
   cibleMin: "الحد الأدنى (غ/ل)",
   cibleMax: "الحد الأقصى (غ/ل)",
   correctionVers: "تصحيح نحو",
-  votreCible: "الهدف",
   digestionDefaut: "سرعة الهضم الافتراضية",
   securite: "الأمان",
   seuilAlerte: "حد التنبيه للجرعة القصوى",
@@ -194,6 +191,37 @@ const ar = {
   commencer: "🚀 ابدأ",
   valeursEstim: "⚕️ هذه القيم تقديرية بناءً على وزنك. تحقق منها مع طبيب الغدد واضبطها في الإعدادات.",
 
+  // New onboarding keys
+  onb_bienvenue: "مرحبا",
+  onb_tagline: "حساب ذكي للأنسولين لمرضى السكري النوع 1",
+  onb_disclaimer: "هذه الأداة لا تغني عن الاستشارة الطبية. استشر طبيبك دائماً.",
+  onb_commencer: "ابدأ",
+  onb_profil: "ملفك الشخصي",
+  onb_prenom: "اسمك الأول",
+  onb_age: "العمر",
+  onb_sexe: "الجنس",
+  onb_taille: "الطول (سم)",
+  onb_poids: "الوزن (كغ)",
+  onb_suivant: "التالي",
+  onb_precedent: "السابق",
+  onb_params: "إعدادات الأنسولين",
+  onb_ratio: "نسبة الكربوهيدرات",
+  onb_ratio_desc: "وحدة واحدة لكل X غرام من الكربوهيدرات",
+  onb_isf: "عامل الحساسية",
+  onb_isf_desc: "انخفاض السكر (ملغ/دل) لكل وحدة",
+  onb_cible: "السكر المستهدف (غ/ل)",
+  onb_profil_desc: "المعلومات الأساسية ونوع الأنسولين",
+  onb_params_desc: "قيم مسبقة — يمكن تعديلها لاحقاً",
+  onb_disclaimer_title: "تحذير طبي",
+  onb_disclaimer_head: "هذه الأداة لا تغني عن المتابعة الطبية",
+  onb_disc_1: "الجرعات المحسوبة هي اقتراحات مبنية على إعداداتك.",
+  onb_disc_2: "تحقق دائماً من الجرعات مع طبيب السكري أو طبيبك المعالج.",
+  onb_disc_3: "في حالة الشك أو ظهور أعراض غير عادية، استشر مختصاً صحياً.",
+  onb_disc_4: "لا تغيّر علاجك أبداً بدون استشارة طبية.",
+  onb_accept: "أفهم أن هذه الأداة هي مساعد حسابي وليست جهازاً طبياً معتمداً. أستخدم هذه البيانات تحت مسؤوليتي الشخصية.",
+  onb_terminer: "إنهاء الإعداد",
+  onb_step: "خطوة",
+
   // Custom food form
   nomAliment: "اسم المكوّن",
   glucidesParPortion: "كربوهيدرات لكل حصة (غ)",
@@ -202,7 +230,6 @@ const ar = {
   indexGI: "مؤشر السكر",
   note: "ملاحظة (اختياري)",
   enregistrer: "حفظ",
-  annuler: "إلغاء",
   nouvelAliment: "مكوّن مخصص جديد",
 
   // Favorites
@@ -237,12 +264,6 @@ const ar = {
   controleGraisses: "مراقبة — هضم الدهون",
   controleFin: "مراقبة — نهاية المفعول",
   unites: "وحدات",
-  controleGlycemie: "قياس السكر",
-
-  // Post-meal corrector
-  correcteurPostRepas: "مصحح بعد الوجبة",
-  glycemiePostRepas: "نسبة السكر بعد الوجبة",
-  insulineRestante: "الأنسولين المتبقي (IOB)",
   correctionSuggeree: "التصحيح المقترح",
 
   // Stats
@@ -252,7 +273,6 @@ const ar = {
   hba1cEstimee: "HbA1c المقدّرة",
 
   // Journal stats
-  resumeEvolution: "التطور",
   enCible: "في النطاق",
   doseMoyenne: "متوسط الجرعة",
   dosesChart: "الجرعات",
@@ -270,46 +290,6 @@ const ar = {
   ajouter: "إضافة",
   saisirDoseReelle: "إدخال الجرعة الفعلية",
 
-  // Photo recognition
-  photoRepas: "صورة الوجبة",
-  prendrePhoto: "صوّر وجبتك",
-  iaReconnaitraAliments: "سيتعرف الذكاء الاصطناعي على المكوّنات",
-  analyseEnCours: "جارٍ التحليل...",
-  identificationIA: "تعرّف على المكوّنات بالذكاء الاصطناعي",
-  photoErreur: "خطأ أثناء التعرف",
-  photoNonConfiguree: "التعرف بالصورة غير مُعدّ. أضف VITE_CLARIFAI_PROXY أو VITE_CLARIFAI_PAT.",
-  alimentDetecte: "مكوّن تم اكتشافه",
-  alimentsDetectes: "مكوّنات تم اكتشافها",
-  tapPourAjouter: "اضغط لإضافته إلى الوجبة",
-  nonTrouveDansBase: "غير موجود في القاعدة",
-  autrePhoto: "صورة أخرى",
-  reessayer: "إعادة المحاولة",
-
-  // Post-meal corrector details
-  tempsEcoule: "الوقت المنقضي",
-  hypoAlerte: "نقص السكر — تصرّف فوراً",
-  glycemieCritique: "نسبة سكر حرجة",
-  prendre15gSucre: "تناول 15غ من السكريات السريعة",
-  controler15min: "أعد القياس بعد 15 دقيقة",
-  pasInjection: "لا تحقن الأنسولين",
-  aucuneCorrectionNecessaire: "لا حاجة للتصحيح",
-  dansCible: "ضمن النطاق المستهدف",
-  pasInjectionSupp: "لا حاجة لحقنة إضافية.",
-  urgenceCorrectionImmediate: "طوارئ — تصحيح فوري",
-  seuilCritique: "عتبة حرجة",
-  correctionBrute: "التصحيح الخام",
-  controler45min: "قِس بعد 45 دقيقة. استشر طبيبك إذا استمر ≥ 3.0 غ/ل.",
-  hyperSevereInjection: "ارتفاع حاد — حقنة موصى بها",
-  controler45_60min: "قِس بعد 45–60 دقيقة.",
-  hyperInjection: "ارتفاع السكر — حقنة موصى بها",
-  auDessusDe: "أعلى من",
-  controler1h: "قِس بعد ساعة.",
-  glycemieMesuree: "السكر المقاس",
-  ecart: "الفرق",
-  iobDeduit: "IOB المخصوم",
-  correctionNette: "التصحيح الصافي",
-  verifierMedecin: "تحقق دائماً مع طبيبك قبل التصحيح.",
-
   // Greeting
   bonjour: "مرحباً",
 
@@ -318,83 +298,248 @@ const ar = {
   disclaimerFull: "الجرعات والقياسات المعروضة هي لأغراض إرشادية فقط ولا تشكل بأي حال استشارة طبية. المستخدم هو المسؤول الوحيد عن استخدام هذه المعلومات. في حالة الشك، اتصل فوراً بطبيبك أو فريقك الطبي. لا تغيّر علاجك أبداً بدون موافقة طبيب الغدد.",
   contactMedecin: "في حالة الشك، استشر طبيبك",
 
-  // Night mode
-  modeNocturne: "الوضع الليلي",
-  seuilsRenforces: "عتبات معززة",
-  glycemieNocturneAcceptable: "سكر الدم الليلي مقبول",
-  collationRecommandee: "وجبة خفيفة موصى بها",
-
-  // Velocity
-  chuteRapide: "انخفاض سريع",
-  baisseModerée: "انخفاض معتدل",
-  stable: "مستقر",
-  hausseModerée: "ارتفاع معتدل",
-  monteeRapide: "ارتفاع سريع",
-
-  // Hypo risk
-  risqueFaible: "خطر منخفض",
-  risqueModere: "خطر معتدل",
-  risqueEleve: "خطر مرتفع",
-  risqueCritique: "خطر حرج",
-  scoreRisqueHypo: "مؤشر خطر نقص السكر",
-
-  // Patterns
-  phenomeneAube: "ظاهرة الفجر",
-  hypoMatinale: "نقص سكر صباحي",
-  rebondSomogyi: "ارتداد سوموجي",
-  surCorrection: "تصحيح مفرط",
-  creneauProblematique: "فترة زمنية إشكالية",
-  empilementRecurrent: "تراكم متكرر",
-
-  // Dashboard
+  // V4 new keys
+  tabHome: "الرئيسية",
+  tabTimeline: "اليوم",
   derniereMesure: "آخر قياس",
   ilYA: "منذ",
-  iobRestant: "الأنسولين المتبقي",
-  actionsRapides: "إجراءات سريعة",
-  correctionSeule: "تصحيح فقط",
-  alertesActives: "التنبيهات النشطة",
-  etatActuel: "الحالة الحالية",
-  insulineActive: "الأنسولين النشط (IOB)",
-  encoreEnAction: "لا يزال نشطاً",
-  aucuneInsulineResiduelle: "لا أنسولين متبقي",
-  aucuneMesure: "لا يوجد قياس مسجل.",
-  commencezCalculer: "ابدأ بحساب وجبة.",
-  nouveauRepasBtn: "وجبة جديدة",
-  derniersEnregistrements: "آخر التسجيلات",
-  voirTout: "عرض الكل",
+  heures: "ساعات",
+  minutes: "دقائق",
+  ajouterGlycemie: "نسبة السكر",
+  ajouterRepas: "الوجبة",
+  ajouterInsuline: "الأنسولين",
+  ajouterActivite: "النشاط",
+  moyenneGL: "المتوسط",
+  mesures: "قياسات",
+  aujourdhui: "اليوم",
+  hier: "أمس",
+  pasDeRepasAujourdhui: "لم يتم تسجيل أي وجبة اليوم",
+  ajouterPremierRepas: "أضف وجبتك الأولى",
+  notifScheduled: "إشعارات مجدولة",
+  rappelControle: "قياس السكر المقرر",
+  rappelInjection: "تذكير الحقن",
+  insulineActive: "الأنسولين النشط",
+  mesurerMaintenant: "قياس الآن",
+  voirPlanning: "عرض الجدول",
 
-  // Journal context
-  contexte: "السياق",
-  stress: "التوتر",
-  sommeil: "النوم",
-  activitePhysique: "النشاط البدني",
-  aucune: "لا شيء",
-  legere: "خفيف",
-  moderee: "معتدل",
-  intense: "مكثف",
-  bon: "جيد",
-  mauvais: "سيئ",
-  normal: "عادي",
-  eleve_ctx: "مرتفع",
-  tresEleve: "مرتفع جداً",
+  // V4.2 — Injection tracking & correction
+  correctionLabel: "تصحيح",
+  basalLabel: "قاعدية",
+  manualLabel: "أخرى",
+  injecterCorrection: "تسجيل السكر + حقنة تصحيح",
+  correctionConfirmee: "سيتم تسجيل التصحيح في الجدول الزمني",
+  resumeInsulineJour: "ملخص الأنسولين اليومي",
+  enCours: "جارٍ",
+  restant: "متبقي",
+  etapes: "خطوات",
 
-  // PDF export
-  rapportMedecin: "تقرير الطبيب",
-  resumeExecutif: "الملخص التنفيذي",
-  profilGlycemique: "ملف السكر في الدم",
-  patternsAlertes: "الأنماط والتنبيهات",
-  donneesInsuliniques: "بيانات الأنسولين",
-  recommandations: "التوصيات",
-  periodeAnalysee: "الفترة المحللة",
-  nombreMesures: "عدد القياسات",
-  coefficientVariation: "معامل التباين",
-  suggestionsMedecin: "اقتراحات لمناقشتها مع طبيبك",
+  // V4.2 — Keto
+  ketoCategory: "كيتو ومنخفض الكربوهيدرات",
+  saladeMarocaineCategory: "سلطات مغربية",
 
-  // Dosage plan
-  planDosage: "خطة الجرعات",
-  dosePreuve: "جرعة اختبار",
-  pris: "تم الأخذ",
-  nonPris: "لم يؤخذ",
+  // V4.3 — Validation
+  glycTropBasse: "سكر الدم منخفض جداً (الحد الأدنى 0.3)",
+  glycTropHaute: "سكر الدم مرتفع جداً (الحد الأقصى 6.0)",
+  poidsHorsBornes: "الوزن خارج الحدود (15-300 كغ)",
+  ratioHorsBornes: "النسبة خارج الحدود (1-50)",
+  isfHorsBornes: "عامل الحساسية خارج الحدود (5-200)",
+  doseNegative: "الجرعة لا يمكن أن تكون سلبية",
+  doseAbsurde: "جرعة مرتفعة بشكل غير طبيعي (> 100)",
+  doseDepasseSeuil: "الجرعة تتجاوز حد الأمان",
+  ageHorsBornes: "العمر خارج الحدود (1-120)",
+  tailleHorsBornes: "الطول خارج الحدود (50-250 سم)",
+
+  // V4.3 — Export/Import
+  sauvegardeRestauration: "النسخ الاحتياطي والاستعادة",
+  exporter: "تصدير",
+  importer: "استيراد",
+  formatInvalide: "تنسيق ملف غير صالح",
+  importReussi: "تم الاستيراد بنجاح",
+  fichierCorrompu: "ملف تالف",
+
+  // V4.3 — Tendances
+  tendances: "الاتجاهات",
+  hypos: "نقص السكر",
+  tendance: "الاتجاه",
+  tempsDansCible: "الوقت في النطاق المستهدف",
+
+  // V4.3 — Profils horaires
+  profilsHoraires: "ملفات النسب حسب الوقت",
+  profilsHorairesDesc: "نسب مختلفة حسب وقت اليوم",
+  creneau: "الفترة",
+  matin: "صباح",
+  midi: "ظهر",
+  soir: "مساء",
+  nuit: "ليل",
+
+  // V4.3 — Sécurité dose
+  doseEleveeDetectee: "تم اكتشاف جرعة عالية",
+  annulerVerifier: "إلغاء والتحقق",
+  verifierParametres: "تحقق من إعداداتك",
+
+  // V4.3 — Error boundary
+  erreurInattendue: "خطأ غير متوقع",
+  reessayer: "إعادة المحاولة",
+  redemarrer: "إعادة تشغيل التطبيق",
+
+  // V4.3.1
+  saisieRapide: "إدخال سريع للسكر / الحقنة",
+
+  // V4.3.2
+  correcteurPostRepas: "مصحح ما بعد الوجبة",
+  tempsEcoule: "الوقت المنقضي منذ الوجبة",
+  glycemiePostRepas: "سكر ما بعد الوجبة",
+  insulineRestante: "الأنسولين المتبقي",
+  votreCible: "الهدف",
+  aucuneCorrection: "لا حاجة للتصحيح",
+  enregistrerCorrection: "تسجيل التصحيح في الجدول الزمني",
+  resumeEvolution: "تطور السكر",
+
+  // V4.4
+  prendrePhoto: "التقاط صورة للوجبة",
+  iaReconnaitraAliments: "الذكاء الاصطناعي سيتعرف على الأطعمة",
+  rechercherAliment: "البحث عن طعام...",
+  vider: "إفراغ",
+  digestionHabituelle: "الهضم المعتاد",
+
+  // Clinical response
+  cl_analyse: 'التحليل',
+  cl_recommandation: 'التوصية',
+  cl_vigilance: 'الحذر',
+  cl_prochaineEtape: 'الخطوة التالية',
+  cl_analyser: 'تحليل',
+
+  // Glycemia status
+  cl_hypoSevere: 'انخفاض حاد في السكر',
+  cl_hypo: 'انخفاض السكر',
+  cl_hypoProche: 'سكر منخفض',
+  cl_cible: 'في النطاق المستهدف',
+  cl_elevee: 'سكر مرتفع',
+  cl_haute: 'سكر مرتفع جداً',
+  cl_hyperSevere: 'ارتفاع حاد في السكر',
+  cl_sousCible: 'تحت المستهدف',
+
+  // Recommendation
+  cl_doseUnique: 'حقنة واحدة',
+  cl_doseFractionnee: 'حقنة مجزأة',
+  cl_immediat: 'فوري',
+  cl_differe: 'مؤجل',
+  cl_fractionne: 'مجزأ',
+  cl_bolusRepas: 'جرعة الوجبة',
+  cl_correction: 'التصحيح',
+  cl_bonusGras: 'إضافة الدهون',
+  cl_iobSoustraite: 'الأنسولين النشط المخصوم',
+
+  // Safety
+  cl_antiHypo: 'لا تحقن. تناول 15غ من السكر السريع.',
+  cl_hypoProcheDose: 'الجرعة مخفضة 50% (سكر منخفض).',
+  cl_antiStacking: 'أنسولين نشط. تم خصمه من التصحيح.',
+  cl_alerteTiming: 'آخر حقنة منذ أقل من ساعتين. توخ الحذر.',
+  cl_surdosage: 'الجرعة تتجاوز حد الأمان.',
+  cl_surCorrection: 'اتجاه نحو الانخفاض. تصحيح مخفض.',
+  cl_postKeto: 'نظام كيتو سابق: انتبه للارتفاعات المتأخرة.',
+  cl_activiteModere: 'نشاط معتدل: جرعة مخفضة 20%.',
+  cl_activiteIntense: 'نشاط مكثف: جرعة مخفضة 30%.',
+
+  // Next step
+  cl_recontrole: 'أعد قياس السكر خلال',
+  cl_recontroleResucrage: 'أعد القياس بعد {min} دقيقة من تناول السكر',
+  cl_minutes: 'د',
+
+  // IOB
+  cl_iobActive: 'الأنسولين النشط',
+  cl_unites: 'و',
+
+  // Context
+  cl_activite: 'النشاط البدني',
+  cl_aucune: 'لا شيء',
+  cl_legere: 'خفيف',
+  cl_moderee: 'معتدل',
+  cl_intense: 'مكثف',
+
+  // Trend
+  cl_tendance: 'الاتجاه',
+  cl_tendanceInconnue: 'غير معروف',
+
+  // Meal input
+  cl_modeExpert: 'كربوهيدرات مباشرة',
+  cl_modeAssiste: 'قاعدة الأغذية',
+  cl_glucidesTotal: 'إجمالي الكربوهيدرات (غ)',
+  cl_niveauGras: 'مستوى الدهون',
+
+  // Settings - new fields
+  cl_insulineBasale: 'الأنسولين القاعدي',
+  cl_insulineRapide: 'الأنسولين السريع',
+  cl_doseBasale: 'الجرعة القاعدية اليومية',
+  cl_profilPostKeto: 'نظام كيتو سابق',
+  cl_digestionLente: 'هضم بطيء معتاد',
+  cl_dureeAction: 'مدة تأثير الأنسولين السريع',
+
+  // Consultation
+  cl_accueil: 'الصفحة الرئيسية',
+  cl_journal: 'السجل',
+  cl_reglages: 'الإعدادات',
+
+  // Post-prandial
+  cl_postPrandialGood: 'تصحيح جيد',
+  cl_postPrandialUnder: 'تصحيح ناقص',
+  cl_postPrandialOver: 'تصحيح زائد',
+
+  // Hardcoded strings fix
+  cl_glucides: 'كربوهيدرات',
+  cl_gras: 'دهون',
+  enregistrerInjecter: '💉 تسجيل والحقن',
+  prendreUnePhoto: 'التقاط صورة',
+  choisirDepuisAlbum: 'اختيار من الألبوم',
+  nonTrouveDansBase: 'غير موجود في القاعدة',
+  fatAucun: 'لا شيء',
+  fatFaible: 'منخفض',
+  fatMoyen: 'متوسط',
+  fatEleve: 'مرتفع',
+  aucunAlimentReconnu: 'لم يتم التعرف على أي طعام',
+  essayerAutrePhoto: 'جرب صورة أخرى أو أضف يدويًا',
+  alimentsDetectes: 'أطعمة تم اكتشافها',
+  totalLipides: 'إجمالي الدهون',
+
+  // V5.7 — AI recognition enhancements
+  tapPourAjouter: 'انقر للإضافة إلى الوجبة',
+  analyseEnCours: 'جاري التحليل...',
+  estimationIA: 'تقدير الذكاء الاصطناعي',
+  valeurImplausible: 'قيم غير معتادة — تحقق من التقديرات',
+  ajouterAuRepas: 'إضافة إلى الوجبة',
+  sauvegarderAlimentPerso: 'حفظ كطعام مخصص',
+  poidsEstime: 'الوزن المقدر',
+  annuler: 'إلغاء',
+
+  // V5.7 — Extended injection plan
+  planInjection: 'خطة الحقن',
+  nouvelleConsultation: 'استشارة جديدة',
+  phaseTerminee: 'المرحلة مكتملة',
+  marquerFait: 'وضع علامة مكتمل',
+  phasesCompletees: 'مراحل مكتملة',
+  doseTotal: 'الجرعة الإجمالية',
+  dansXmin: 'في {0} دقيقة',
+  controleGlycemie: 'فحص السكر',
+
+  // V5.7 — Fat calculation
+  bonusGrasContinu: 'مكافأة الدهون المستمرة',
+  fatGramsLabel: 'غ دهون',
+
+  // V5.7 — Journal & timeline
+  estimationIAMarker: '(تقدير ذكاء اصطناعي)',
+  photoRepas: 'صورة الوجبة',
+  etendu3Phases: '(ممتد 3 مراحل)',
+  doseReelle: 'الجرعة الفعلية المحقونة',
+  confirmerEnregistrer: '💉 تأكيد',
+
+  // V5.7 — Glycemic prediction
+  predictionPostRepas: 'توقع ما بعد الوجبة',
+  glycemiePrevue: 'السكر المتوقع بعد ساعتين',
+  bilanJournalier: 'الحصيلة اليومية',
+  tempsEnCible: 'الوقت في النطاق',
+  moyenneGlycemie: 'متوسط السكر',
+  nbInjections: 'الحقن',
+  totalGlucidesJour: 'كربوهيدرات اليوم',
 };
 
 export default ar;
