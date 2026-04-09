@@ -529,6 +529,9 @@ const fr = {
   photoRepas: 'Photo repas',
   etendu3Phases: '(étendu 3 phases)',
   doseReelle: 'Dose réellement injectée',
+  notes: 'Notes',
+  optionnel: 'optionnel',
+  notesPlaceholder: 'Stress, maladie, contexte...',
   confirmerEnregistrer: '💉 Confirmer',
 
   // V5.7 — Glycemic prediction
