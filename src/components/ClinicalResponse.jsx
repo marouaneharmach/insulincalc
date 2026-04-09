@@ -76,7 +76,7 @@ function DoseBreakdown({ reasoning, t, isDark }) {
         <div key={key} className={`flex items-center justify-between text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           <span>{t(key)}</span>
           <span className={`font-medium tabular-nums ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-            {value > 0 ? `+${value}` : value} U
+            {value > 0 ? `+${Math.round(value * 100) / 100}` : Math.round(value * 100) / 100} U
           </span>
         </div>
       ))}

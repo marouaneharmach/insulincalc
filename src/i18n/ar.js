@@ -530,6 +530,9 @@ const ar = {
   photoRepas: 'صورة الوجبة',
   etendu3Phases: '(ممتد 3 مراحل)',
   doseReelle: 'الجرعة الفعلية المحقونة',
+  notes: 'ملاحظات',
+  optionnel: 'اختياري',
+  notesPlaceholder: 'توتر، مرض، سياق...',
   confirmerEnregistrer: '💉 تأكيد',
 
   // V5.7 — Glycemic prediction

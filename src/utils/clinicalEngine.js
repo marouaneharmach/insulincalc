@@ -577,8 +577,10 @@ export function computeDailySummary(journal, dateStr, targetMin, targetMax) {
     const dose = e.doseActual ?? e.doseReelle ?? e.doseInjected ?? 0;
     if (dose > 0) { totalDose += dose; injections++; }
     totalCarbs += e.totalGlucides ?? e.totalCarbs ?? 0;
-    if (e.glycPre > 0) glycReadings.push(e.glycPre);
-    if (e.glycPost > 0) glycReadings.push(e.glycPost);
+    const pre = parseFloat(e.glycPre);
+    const post = parseFloat(e.glycPost);
+    if (pre > 0) glycReadings.push(pre);
+    if (post > 0) glycReadings.push(post);
   }
 
   const avgGlycemia = glycReadings.length > 0
