@@ -5,7 +5,7 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { APP_VERSION } from './version';
 
-// ─── VERSION MANAGEMENT & CACHE BUSTING ──────────────────────────────────────
+// ─── LEGACY DATA MIGRATION ───────────────────────────────────────────────────
 const VERSION_KEY = 'insulincalc_v4_app_version';
 
 function handleVersionMigration() {
@@ -32,26 +32,6 @@ function handleVersionMigration() {
 
     // Update stored version
     localStorage.setItem(VERSION_KEY, APP_VERSION);
-
-    // Force clear service worker caches for update
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(registration => {
-          registration.unregister();
-          console.log('[InsulinCalc] Service Worker désinscrit pour mise à jour');
-        });
-      });
-    }
-
-    // Clear all browser caches
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => {
-          caches.delete(name);
-          console.log(`[InsulinCalc] Cache "${name}" supprimé`);
-        });
-      });
-    }
 
     console.log('[InsulinCalc] Migration v' + APP_VERSION + ' terminée. Données utilisateur préservées.');
   }

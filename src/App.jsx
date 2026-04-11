@@ -7,8 +7,9 @@ import { QTY_PROFILES } from './data/constants';
 import FOOD_DB from './data/foods';
 import { setFallbackHandler, scheduleSplitReminder, schedulePostMealReminder } from './utils/notifications';
 import { needsMigration, migrateAllEntries } from './utils/migration';
-import { APP_VERSION } from './version';
+import { APP_VERSION, BUILD_ID } from './version';
 import { recognizeFood, mapToLocalFoods } from './utils/foodRecognition';
+import { useAppVersioning } from './hooks/useAppVersioning';
 
 import DayTimeline from './components/DayTimeline';
 import Settings from './components/Settings';
@@ -21,6 +22,16 @@ import ConsultationScreen from './components/ConsultationScreen';
 export default function App() {
   const { theme, isDark, colors, toggleTheme } = useTheme();
   const { t, locale, setLocale, isRTL } = useI18n();
+  const {
+    diagnostics,
+    releaseNotes,
+    updateAvailable,
+    remoteVersion,
+    showWhatsNew,
+    checkForUpdates,
+    applyUpdate,
+    dismissWhatsNew,
+  } = useAppVersioning();
 
   const [onboarded, setOnboarded] = useLocalStorage('onboarded', false);
 
@@ -200,7 +211,7 @@ export default function App() {
       // Always schedule post-meal glycemia check (2h)
       schedulePostMealReminder(120);
     }
-  }, [maxDose, setJournal, notifEnabled]);
+  }, [lastPhotoThumbnail, maxDose, setJournal, notifEnabled]);
 
   if (!onboarded) {
     return (
@@ -229,7 +240,10 @@ export default function App() {
       {/* Header with version */}
       <div className={`px-4 py-2 flex items-center justify-between border-b ${isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-gray-100'}`}>
         <div>
-          <span className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>InsulinCalc <span className={`text-xs font-mono font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>v{APP_VERSION}</span></span>
+          <span className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+            InsulinCalc <span className={`text-xs font-mono font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>v{APP_VERSION}</span>
+          </span>
+          <p className={`text-[10px] font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>build {BUILD_ID}</p>
         </div>
         <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('appSubtitle')}</span>
       </div>
@@ -238,6 +252,46 @@ export default function App() {
       <div className={`px-4 py-1.5 text-center text-[10px] ${isDark ? 'bg-red-950/30 text-red-300 border-b border-red-900/30' : 'bg-red-50 text-red-700 border-b border-red-100'}`}>
         ⚕️ {t('disclaimerBanner')}
       </div>
+
+      {updateAvailable && (
+        <div className={`px-4 py-2 border-b ${isDark ? 'bg-amber-950/30 border-amber-900/40 text-amber-200' : 'bg-amber-50 border-amber-100 text-amber-800'}`}>
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{t('miseAJourDisponible')}</p>
+              <p className="text-[11px] opacity-80">
+                {t('miseAJourVersion', { version: remoteVersion?.version || diagnostics.version })}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={applyUpdate}
+              className="shrink-0 rounded-xl bg-teal-500 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-600"
+            >
+              {t('actualiserMaintenant')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showWhatsNew && (
+        <div className={`px-4 py-2 border-b ${isDark ? 'bg-teal-950/30 border-teal-900/40 text-teal-100' : 'bg-teal-50 border-teal-100 text-teal-800'}`}>
+          <div className="max-w-lg mx-auto flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{t('quoiDeNeuf')} · v{APP_VERSION}</p>
+              <ul className="mt-1 space-y-1 text-[11px] opacity-90">
+                {releaseNotes.map((note) => <li key={note}>• {note}</li>)}
+              </ul>
+            </div>
+            <button
+              type="button"
+              onClick={dismissWhatsNew}
+              className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold ${isDark ? 'bg-teal-900/60 text-teal-100' : 'bg-white text-teal-700'}`}
+            >
+              {t('fermer')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="max-w-lg mx-auto pb-24 px-0 sm:px-2">
@@ -312,6 +366,11 @@ export default function App() {
             postKeto={postKeto} setPostKeto={setPostKeto}
             slowDigestion={slowDigestion} setSlowDigestion={setSlowDigestion}
             dia={dia} setDia={setDia}
+            diagnostics={diagnostics}
+            updateAvailable={updateAvailable}
+            releaseNotes={releaseNotes}
+            onCheckForUpdates={checkForUpdates}
+            onApplyUpdate={applyUpdate}
             t={t} colors={colors} isRTL={isRTL}
           />
         )}

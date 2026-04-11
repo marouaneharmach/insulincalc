@@ -3,6 +3,7 @@ import { requestNotificationPermission } from '../utils/notifications';
 import { imcCategory } from '../utils/calculations';
 import DataExport from './DataExport';
 import TimeProfiles from './TimeProfiles';
+import VersionPanel from './VersionPanel';
 
 export default function Settings({
   ratio, setRatio, isf, setIsf,
@@ -22,6 +23,11 @@ export default function Settings({
   postKeto, setPostKeto,
   slowDigestion, setSlowDigestion,
   dia, setDia,
+  diagnostics,
+  updateAvailable,
+  releaseNotes,
+  onCheckForUpdates,
+  onApplyUpdate,
   t, colors
 }) {
   const [section, setSection] = useState('profil');
@@ -39,6 +45,7 @@ export default function Settings({
     { key: 'insulin', icon: '💉', label: t('parametresManuels') },
     { key: 'notif', icon: '🔔', label: t('notifications') },
     { key: 'display', icon: '🎨', label: t('apparence') },
+    { key: 'diagnostic', icon: '🧪', label: t('diagnosticTitre') },
   ];
 
   const handleRequestPermission = async () => {
@@ -337,6 +344,18 @@ export default function Settings({
             </div>
           </div>
         </div>
+      )}
+
+      {section === 'diagnostic' && (
+        <VersionPanel
+          diagnostics={diagnostics}
+          updateAvailable={updateAvailable}
+          releaseNotes={releaseNotes}
+          isDark={isDark}
+          t={t}
+          onCheckForUpdates={onCheckForUpdates}
+          onApplyUpdate={onApplyUpdate}
+        />
       )}
 
       {/* Data export/import */}

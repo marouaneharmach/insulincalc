@@ -1,0 +1,170 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`VersionPanel > rend le panneau de diagnostic sans régression visuelle 1`] = `
+<div
+  class="space-y-2"
+>
+  <div
+    class="rounded-2xl p-3 border shadow-sm bg-white border-gray-100"
+  >
+    <div
+      class="flex items-start justify-between gap-3"
+    >
+      <div>
+        <p
+          class="text-sm font-semibold text-slate-800"
+        >
+          Diagnostic
+        </p>
+        <p
+          class="text-xs text-slate-400"
+        >
+          Version, build, cache et disponibilité d’une mise à jour
+        </p>
+      </div>
+      <span
+        class="px-2 py-1 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700"
+      >
+        Nouvelle version disponible
+      </span>
+    </div>
+    <div
+      class="grid grid-cols-2 gap-3 mt-3"
+    >
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Version installée
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          6.0.1
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Build ID
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          abc1234
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Date du build
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          11/04/2026 11:00
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          État du service worker
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          waiting
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Version disponible
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          6.0.2
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Build distant
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          def5678
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Caches actifs
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          1
+        </p>
+      </div>
+      <div>
+        <label
+          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        >
+          Dernière vérification
+        </label>
+        <p
+          class="text-slate-700 text-sm font-medium"
+        >
+          11/04/2026 12:00
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex gap-2 mt-4"
+    >
+      <button
+        class="flex-1 py-2.5 rounded-xl text-sm font-medium transition bg-slate-100 text-slate-700 hover:bg-slate-200"
+        type="button"
+      >
+        Vérifier les mises à jour
+      </button>
+      <button
+        class="flex-1 py-2.5 rounded-xl text-sm font-medium transition bg-teal-500 text-white hover:bg-teal-600"
+        type="button"
+      >
+        Forcer la mise à jour
+      </button>
+    </div>
+  </div>
+  <div
+    class="rounded-2xl p-3 border shadow-sm bg-white border-gray-100"
+  >
+    <label
+      class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+    >
+      Quoi de neuf
+    </label>
+    <ul
+      class="space-y-1 text-sm text-slate-600"
+    >
+      <li>
+        • 
+        Suivi explicite de la version installée et du build.
+      </li>
+      <li>
+        • 
+        Détection d’une version distante plus récente.
+      </li>
+    </ul>
+  </div>
+</div>
+`;
