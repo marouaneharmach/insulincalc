@@ -34,7 +34,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
       const iob = calcIOB(dose, minutesElapsed, diaMinutes);
       return { ...entry, iob };
     });
-  }, [dayEntries]);
+  }, [dayEntries, dia]);
 
   // Total IOB right now
   const totalIOB = useMemo(() => {

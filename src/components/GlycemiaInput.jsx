@@ -27,7 +27,7 @@ export default function GlycemiaInput({
     if (!hour) {
       setHour(getCurrentTime());
     }
-  }, []);
+  }, [hour, setHour]);
 
   const handleGlycemiaChange = (e) => {
     let val = e.target.value;

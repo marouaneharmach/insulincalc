@@ -1,12 +1,22 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import VersionPanel from '../VersionPanel';
 
 describe('VersionPanel', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('rend le panneau de diagnostic sans régression visuelle', () => {
+    vi.spyOn(Date.prototype, 'toLocaleString').mockImplementation(function mockToLocaleString() {
+      return this.toISOString() === '2026-04-11T10:00:00.000Z'
+        ? '11/04/2026 11:00'
+        : '11/04/2026 12:00';
+    });
+
     const { container } = render(
       <VersionPanel
         diagnostics={{
