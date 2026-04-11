@@ -7,6 +7,7 @@ import {
   evaluatePostPrandial,
   FAT_FACTOR,
   ACTIVITY_REDUCTION,
+  SINGLE_INJECTION_WARNING_THRESHOLD,
 } from '../clinicalEngine.js';
 
 // ─── Task 18: evaluatePostPrandial ──────────────────────────────────────────
@@ -110,7 +111,7 @@ describe('ACTIVITY_REDUCTION', () => {
 describe('applySafetyRules', () => {
   const baseContext = {
     glycemia: 1.10, doseSuggeree: 4.0, correction: 0, iobTotal: 0,
-    trend: '?', activity: 'aucune', postKeto: false, maxDose: 10,
+    trend: '?', activity: 'aucune', postKeto: false,
     lastInjectionMinutesAgo: null,
   };
 
@@ -137,10 +138,10 @@ describe('applySafetyRules', () => {
     expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'alerte-timing' }));
   });
 
-  it('blocks overdose', () => {
-    const r = applySafetyRules({ ...baseContext, doseSuggeree: 12, maxDose: 10 });
-    expect(r.blocked).toBe(true);
-    expect(r.risks).toContainEqual(expect.objectContaining({ type: 'surdosage' }));
+  it('does not block a high dose by threshold alone', () => {
+    const r = applySafetyRules({ ...baseContext, doseSuggeree: 32 });
+    expect(r.blocked).toBe(false);
+    expect(r.adjustedDose).toBe(32);
   });
 
   it('reduces correction for falling trend', () => {
@@ -298,8 +299,21 @@ describe('analyzeAndRecommend', () => {
       glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'aucun',
       activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: 90, slowDigestion: false,
-      postKeto: false, maxDose: 10,
+      postKeto: false,
     });
     expect(r.nextStep.checkTime).toBe(60);
+  });
+
+  it('adds a non-blocking warning above the single-injection baseline', () => {
+    const r = analyzeAndRecommend({
+      glycemia: 1.30, trend: '→', totalCarbs: 320, fatLevel: 'aucun',
+      activity: 'aucune', ratio: 10, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
+      postKeto: false,
+    });
+    expect(r.recommendation.blocked).toBe(false);
+    expect(r.recommendation.split.type).toBe('unique');
+    expect(r.recommendation.dose).toBeGreaterThan(SINGLE_INJECTION_WARNING_THRESHOLD);
+    expect(r.vigilance.warnings).toContainEqual(expect.objectContaining({ type: 'dose-elevee' }));
   });
 });

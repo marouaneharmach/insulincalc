@@ -8,7 +8,6 @@ import VersionPanel from './VersionPanel';
 export default function Settings({
   ratio, setRatio, isf, setIsf,
   targetGMin, setTargetGMin, targetGMax, setTargetGMax, targetGMid,
-  maxDose, setMaxDose,
   patientName, setPatientName,
   weight, setWeight, height, setHeight, age, setAge, sex, setSex,
   imc,
@@ -237,17 +236,6 @@ export default function Settings({
             </div>
             <div className={`text-center text-xs font-medium p-1.5 rounded-xl ${isDark ? 'bg-emerald-900/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
               🎯 {targetGMin.toFixed(1)} — {targetGMax.toFixed(1)} g/L (correction → {targetGMid.toFixed(2)})
-            </div>
-          </div>
-          <div className={cardClass}>
-            <label className={`${labelClass} !text-red-400`}>🛡️ {t('seuilAlerte')}</label>
-            <div className="flex items-center gap-3">
-              <input type="range" min={5} max={50} step={1} value={maxDose}
-                onChange={e => setMaxDose(Number(e.target.value))}
-                className="flex-1 accent-red-500" />
-              <span className={`text-sm font-bold min-w-[50px] text-center px-2 py-0.5 rounded-xl ${isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-600'}`}>
-                {maxDose}U
-              </span>
             </div>
           </div>
           <TimeProfiles

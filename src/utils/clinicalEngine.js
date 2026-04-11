@@ -30,6 +30,8 @@ export const ACTIVITY_REDUCTION = {
   intense: 0.70,
 };
 
+export const SINGLE_INJECTION_WARNING_THRESHOLD = 25;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -128,11 +130,10 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  * Rules evaluated in order:
  *  1. Anti-hypo       : glycemia < 0.70 → blocked, dose = 0 (early return)
  *  2. Hypo-proche     : 0.70 ≤ glycemia < 0.90 → total dose × 50% (risk)
- *  3. Surdosage       : adjustedDose > maxDose → blocked (risk)
- *  4. Sur-correction  : falling trend AND correction > 0 → subtract round05(correction×0.5) (warning)
- *  5. Anti-stacking   : iobTotal > 2 AND correction > 0 (warning)
- *  6. Alerte-timing   : lastInjectionMinutesAgo < 120 (warning)
- *  7. Post-keto       : postKeto flag (warning)
+ *  3. Sur-correction  : falling trend AND correction > 0 → subtract round05(correction×0.5) (warning)
+ *  4. Anti-stacking   : iobTotal > 2 AND correction > 0 (warning)
+ *  5. Alerte-timing   : lastInjectionMinutesAgo < 120 (warning)
+ *  6. Post-keto       : postKeto flag (warning)
  *
  * @param {object} ctx
  * @param {number}      ctx.glycemia
@@ -142,7 +143,6 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  * @param {string|null} ctx.trend               - '↑','↗','→','↘','↓','?' or null
  * @param {string}      ctx.activity
  * @param {boolean}     ctx.postKeto
- * @param {number}      ctx.maxDose             - Maximum allowed single dose (units)
  * @param {number|null} ctx.lastInjectionMinutesAgo
  * @returns {{
  *   blocked: boolean,
@@ -153,7 +153,7 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  */
 export function applySafetyRules({
   glycemia, doseSuggeree, correction, iobTotal, trend,
-  postKeto, maxDose, lastInjectionMinutesAgo,
+  postKeto, lastInjectionMinutesAgo,
 }) {
   const risks = [];
   const warnings = [];
@@ -178,16 +178,7 @@ export function applySafetyRules({
     });
   }
 
-  // Rule 3 — Surdosage: adjusted dose exceeds maximum allowed
-  if (adjustedDose > maxDose) {
-    risks.push({
-      type: 'surdosage',
-      message: `Dose calculée (${adjustedDose} U) dépasse le maximum autorisé (${maxDose} U) — Injection bloquée.`,
-    });
-    return { blocked: true, adjustedDose, risks, warnings };
-  }
-
-  // Rule 4 — Sur-correction: falling trend with active correction
+  // Rule 3 — Sur-correction: falling trend with active correction
   const trendIsKnown = trend != null && trend !== '?';
   if (trendIsKnown && FALLING_TRENDS.has(trend) && correction > 0) {
     const reduction = round05(correction * 0.5);
@@ -198,7 +189,7 @@ export function applySafetyRules({
     });
   }
 
-  // Rule 5 — Anti-stacking: high IOB with active correction
+  // Rule 4 — Anti-stacking: high IOB with active correction
   if (iobTotal > 2 && correction > 0) {
     warnings.push({
       type: 'anti-stacking',
@@ -206,7 +197,7 @@ export function applySafetyRules({
     });
   }
 
-  // Rule 6 — Timing warning: too soon after last injection
+  // Rule 5 — Timing warning: too soon after last injection
   if (lastInjectionMinutesAgo != null && lastInjectionMinutesAgo < 120) {
     warnings.push({
       type: 'alerte-timing',
@@ -214,7 +205,7 @@ export function applySafetyRules({
     });
   }
 
-  // Rule 7 — Post-keto warning
+  // Rule 6 — Post-keto warning
   if (postKeto) {
     warnings.push({
       type: 'post-keto',
@@ -386,7 +377,6 @@ function computeCheckTime(glycemiaStatus, hasTimingWarning) {
  * @param {number|null} inputs.lastInjectionMinutesAgo
  * @param {boolean}     inputs.slowDigestion
  * @param {boolean}     inputs.postKeto
- * @param {number}      inputs.maxDose
  * @returns {{
  *   analysis:       { glycemiaStatus: string, iob: number, trend: string, totalCarbs: number, fatLevel: string },
  *   recommendation: { dose: number, timing: string, split: object, blocked: boolean, reasoning: string[] },
@@ -398,7 +388,7 @@ export function analyzeAndRecommend(inputs) {
   const {
     glycemia, trend, totalCarbs, fatLevel, activity,
     ratio, isf, targetMin, targetMax, iobTotal,
-    lastInjectionMinutesAgo, slowDigestion, postKeto, maxDose,
+    lastInjectionMinutesAgo, slowDigestion, postKeto,
     totalFatGrams,
   } = inputs;
 
@@ -417,16 +407,22 @@ export function analyzeAndRecommend(inputs) {
     correction: doseResult.correction,
     iobTotal,
     trend,
-    activity,
     postKeto,
-    maxDose,
     lastInjectionMinutesAgo,
   });
 
-  const { blocked, adjustedDose, risks, warnings } = safetyResult;
+  const { blocked, adjustedDose, risks, warnings: safetyWarnings } = safetyResult;
 
   // ── Step 4: determine split ────────────────────────────────────────────────
   const split = determineSplit(adjustedDose, fatLevel, slowDigestion, totalCarbs);
+  const warnings = [...safetyWarnings];
+
+  if (!blocked && split.type === 'unique' && adjustedDose > SINGLE_INJECTION_WARNING_THRESHOLD) {
+    warnings.push({
+      type: 'dose-elevee',
+      message: `Dose élevée (${adjustedDose} U) sans fractionnement. Au-delà de ${SINGLE_INJECTION_WARNING_THRESHOLD} U, vérifier si un plan fractionné est plus adapté.`,
+    });
+  }
 
   // ── Step 5: build reasoning ────────────────────────────────────────────────
   const reasoning = [];

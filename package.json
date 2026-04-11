@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "ci": "npm run lint && npm run test:regression && npm run test && npm run build",
     "test": "vitest run",
-    "test:regression": "vitest run src/__tests__/spec-compliance.test.js src/__tests__/v57-enhancements.test.js src/utils/__tests__/clinicalEngine.test.js src/utils/__tests__/migration.test.js src/utils/__tests__/updateManager.test.js src/components/__tests__/VersionPanel.test.jsx",
+    "test:regression": "vitest run src/__tests__/spec-compliance.test.js src/__tests__/v57-enhancements.test.js src/utils/__tests__/clinicalEngine.test.js src/utils/__tests__/dosePlan.test.js src/utils/__tests__/migration.test.js src/utils/__tests__/updateManager.test.js src/components/__tests__/VersionPanel.test.jsx src/components/__tests__/DayTimeline.test.jsx",
     "test:watch": "vitest"
   },
   "dependencies": {

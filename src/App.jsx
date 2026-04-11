@@ -16,7 +16,6 @@ import Settings from './components/Settings';
 import BottomNav3 from './components/BottomNav3';
 import Onboarding from './components/Onboarding';
 import PdfExport from './components/PdfExport';
-import OverdoseDialog from './components/OverdoseDialog';
 import ConsultationScreen from './components/ConsultationScreen';
 
 export default function App() {
@@ -45,7 +44,6 @@ export default function App() {
   const [targetGMin, setTargetGMin] = useLocalStorage('targetGMin', 1.0);
   const [targetGMax, setTargetGMax] = useLocalStorage('targetGMax', 1.2);
   const targetGMid = Math.round(((targetGMin + targetGMax) / 2) * 100) / 100;
-  const [maxDose, setMaxDose] = useLocalStorage('maxDose', 10);
 
   // Profile
   const [height, setHeight] = useLocalStorage('height', '');
@@ -77,9 +75,6 @@ export default function App() {
 
   // Time-based profiles
   const [timeProfiles, setTimeProfiles] = useLocalStorage('timeProfiles', []);
-
-  // Overdose dialog
-  const [overdoseDialog, setOverdoseDialog] = useState(null);
 
   // In-app notification fallback (for Safari private browsing, etc.)
   const [inAppNotif, setInAppNotif] = useState(null);
@@ -180,19 +175,13 @@ export default function App() {
       })(),
       ...entry,
       doseReelle: entry.doseReelle ?? entry.doseSuggeree,
+      doseActual: entry.doseActual ?? entry.doseReelle ?? entry.doseSuggeree,
       glycPost: null,
       photoThumbnail: lastPhotoThumbnail || null,
     };
     setLastPhotoThumbnail(null); // reset after save
 
-    // Overdose check
-    if (fullEntry.doseSuggeree > maxDose) {
-      setOverdoseDialog({ dose: fullEntry.doseSuggeree, callback: () => {
-        setJournal(prev => [fullEntry, ...prev].slice(0, 200));
-      }});
-    } else {
-      setJournal(prev => [fullEntry, ...prev].slice(0, 200));
-    }
+    setJournal(prev => [fullEntry, ...prev].slice(0, 200));
 
     // Schedule notifications
     if (notifEnabled) {
@@ -211,7 +200,7 @@ export default function App() {
       // Always schedule post-meal glycemia check (2h)
       schedulePostMealReminder(120);
     }
-  }, [lastPhotoThumbnail, maxDose, setJournal, notifEnabled]);
+  }, [lastPhotoThumbnail, setJournal, notifEnabled]);
 
   if (!onboarded) {
     return (
@@ -300,7 +289,6 @@ export default function App() {
             glycemia={glycemia} setGlycemia={setGlycemia}
             ratio={ratio} isf={isf}
             targetGMin={targetGMin} targetGMax={targetGMax}
-            maxDose={maxDose}
             postKeto={postKeto} slowDigestion={slowDigestion} dia={dia}
             journal={journal}
             selections={selectionsMap}
@@ -348,7 +336,6 @@ export default function App() {
             targetGMin={targetGMin} setTargetGMin={setTargetGMin}
             targetGMax={targetGMax} setTargetGMax={setTargetGMax}
             targetGMid={targetGMid}
-            maxDose={maxDose} setMaxDose={setMaxDose}
             patientName={patientName} setPatientName={setPatientName}
             weight={weight} setWeight={setWeight}
             height={height} setHeight={setHeight}
@@ -378,17 +365,6 @@ export default function App() {
 
       {/* Bottom navigation */}
       <BottomNav3 tab={tab} setTab={setTab} t={t} />
-
-      {/* Overdose safety dialog */}
-      {overdoseDialog && (
-        <OverdoseDialog
-          dose={overdoseDialog.dose}
-          maxDose={maxDose}
-          onConfirm={() => { overdoseDialog.callback(); setOverdoseDialog(null); }}
-          onCancel={() => setOverdoseDialog(null)}
-          isDark={isDark}
-        />
-      )}
 
       {/* In-app notification toast (fallback for Safari/private browsing) */}
       {inAppNotif && (

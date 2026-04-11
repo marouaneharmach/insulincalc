@@ -11,6 +11,7 @@ import {
   calculateDose,
   determineSplit,
   applySafetyRules,
+  SINGLE_INJECTION_WARNING_THRESHOLD,
 } from '../utils/clinicalEngine';
 import { calcIOB } from '../utils/iobCurve';
 
@@ -33,8 +34,8 @@ describe('Spec §4.2 — Default clinical parameters', () => {
     expect(1.2).toBe(1.2);
   });
 
-  it('maxDose default should be 10 U', () => {
-    expect(10).toBe(10);
+  it('single injection warning baseline should be 25 U', () => {
+    expect(SINGLE_INJECTION_WARNING_THRESHOLD).toBe(25);
   });
 
   it('DIA default should be 4.5h (270 min)', () => {
@@ -130,7 +131,7 @@ describe('Spec §3.5 — Safety rules', () => {
     const result = applySafetyRules({
       glycemia: 0.60, doseSuggeree: 4.0, correction: 0,
       iobTotal: 0, trend: '?', postKeto: false,
-      maxDose: 10, lastInjectionMinutesAgo: null,
+      lastInjectionMinutesAgo: null,
     });
     expect(result.blocked).toBe(true);
     expect(result.risks.length).toBeGreaterThan(0);
@@ -140,25 +141,26 @@ describe('Spec §3.5 — Safety rules', () => {
     const result = applySafetyRules({
       glycemia: 0.80, doseSuggeree: 4.0, correction: 0,
       iobTotal: 0, trend: '?', postKeto: false,
-      maxDose: 10, lastInjectionMinutesAgo: null,
+      lastInjectionMinutesAgo: null,
     });
     expect(result.adjustedDose).toBe(2.0);
   });
 
-  it('overdose: dose > maxDose blocks', () => {
+  it('high dose alone does not block injection', () => {
     const result = applySafetyRules({
       glycemia: 1.50, doseSuggeree: 15.0, correction: 0,
       iobTotal: 0, trend: '?', postKeto: false,
-      maxDose: 10, lastInjectionMinutesAgo: null,
+      lastInjectionMinutesAgo: null,
     });
-    expect(result.blocked).toBe(true);
+    expect(result.blocked).toBe(false);
+    expect(result.adjustedDose).toBe(15);
   });
 
   it('anti-stacking warning when IOB > 2 and correction > 0', () => {
     const result = applySafetyRules({
       glycemia: 2.00, doseSuggeree: 4.0, correction: 1.5,
       iobTotal: 3.0, trend: '?', postKeto: false,
-      maxDose: 10, lastInjectionMinutesAgo: null,
+      lastInjectionMinutesAgo: null,
     });
     expect(result.warnings.some(w =>
       w.message.includes('insuline active') || w.message.includes('stacking') || w.message.includes('empilement')
@@ -169,7 +171,7 @@ describe('Spec §3.5 — Safety rules', () => {
     const result = applySafetyRules({
       glycemia: 1.50, doseSuggeree: 4.0, correction: 0,
       iobTotal: 0, trend: '?', postKeto: false,
-      maxDose: 10, lastInjectionMinutesAgo: 60,
+      lastInjectionMinutesAgo: 60,
     });
     expect(result.warnings.some(w =>
       w.message.includes('injection') || w.message.includes('min')
@@ -180,7 +182,7 @@ describe('Spec §3.5 — Safety rules', () => {
     const result = applySafetyRules({
       glycemia: 1.50, doseSuggeree: 4.0, correction: 0,
       iobTotal: 0, trend: '?', postKeto: true,
-      maxDose: 10, lastInjectionMinutesAgo: null,
+      lastInjectionMinutesAgo: null,
     });
     expect(result.warnings.some(w =>
       w.message.includes('cétose') || w.message.includes('keto') || w.message.includes('post-cétose')

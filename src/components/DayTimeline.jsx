@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { calcIOB } from '../utils/iobCurve';
 import { evaluatePostPrandial, computeDailySummary } from '../utils/clinicalEngine';
 import GlycEvolutionChart from './GlycEvolutionChart';
+import { getActualDose, getSplitPlanTotal, getSuggestedDose, scaleDosePlan } from '../utils/dosePlan';
 
 function glycColor(v) {
   if (!v || isNaN(v)) return '#94A3B8';
@@ -15,6 +16,10 @@ function glycColor(v) {
 export default function DayTimeline({ journal, setJournal, targetGMin, targetGMax, t, isDark, locale, dia }) {
   const dateLocale = locale === 'ar' ? 'ar-MA' : 'fr-FR';
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const formatDose = (value) => {
+    const dose = Number(value) || 0;
+    return Number.isInteger(dose) ? String(dose) : dose.toFixed(1);
+  };
 
   // Get entries for selected date
   const dayEntries = useMemo(() => {
@@ -27,8 +32,8 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const entriesWithIOB = useMemo(() => {
     const now = Date.now();
     return dayEntries.map(entry => {
-      if ((!entry.doseActual || entry.doseActual <= 0) && (!entry.doseReelle || entry.doseReelle <= 0)) return { ...entry, iob: 0 };
-      const dose = entry.doseActual || entry.doseReelle || 0;
+      const dose = getActualDose(entry);
+      if (dose <= 0) return { ...entry, iob: 0 };
       const minutesElapsed = (now - new Date(entry.date).getTime()) / 60000;
       const diaMinutes = (dia || 4.5) * 60;
       const iob = calcIOB(dose, minutesElapsed, diaMinutes);
@@ -50,7 +55,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
     let injectionCount = 0;
 
     dayEntries.forEach(e => {
-      const dose = e.doseActual || e.doseReelle || 0;
+      const dose = getActualDose(e);
       if (dose > 0) {
         totalDose += dose;
         injectionCount++;
@@ -140,7 +145,20 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
   const saveDose = (entryId) => {
     const d = parseFloat(doseValue);
     if (isNaN(d) || d < 0) return;
-    setJournal(prev => prev.map(e => e.id === entryId ? { ...e, doseActual: d, doseReelle: d } : e));
+    setJournal(prev => prev.map(e => {
+      if (e.id !== entryId) return e;
+      const scaledPlan = scaleDosePlan(e, getSplitPlanTotal(e), d);
+      return {
+        ...e,
+        doseActual: d,
+        doseReelle: d,
+        bolusType: scaledPlan.bolusType,
+        splitImmediate: scaledPlan.splitImmediate,
+        splitDelayed: scaledPlan.splitDelayed,
+        splitDelayMinutes: scaledPlan.splitDelayMinutes,
+        splitPhases: scaledPlan.splitPhases,
+      };
+    }));
     setEditingDose(null);
     setDoseValue('');
   };
@@ -525,11 +543,14 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                       )}
                       {/* Dose — with suggested vs actual comparison */}
                       {(() => {
-                        const dose = entry.doseActual || entry.doseReelle || 0;
-                        const suggeree = entry.doseSuggeree || entry.doseSuggested || 0;
+                        const dose = getActualDose(entry);
+                        const suggeree = getSuggestedDose(entry);
+                        const planTotal = getSplitPlanTotal(entry);
+                        const totalToDisplay = planTotal > 0 ? planTotal : dose;
+                        const delta = dose > 0 && suggeree > 0 ? dose - suggeree : 0;
                         if (dose <= 0 && suggeree <= 0) return null;
                         return (
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="mb-2 space-y-1">
                             {editingDose === entry.id ? (
                               <div className="flex items-center gap-1">
                                 <span className="text-xs text-blue-500">💉</span>
@@ -543,30 +564,41 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                   className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1">
-                                {suggeree > 0 && dose > 0 && suggeree !== dose ? (
-                                  <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose)); }}
-                                    className="text-xs text-blue-500 hover:underline flex items-center gap-1">
-                                    💉 <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{t('doseSuggeree') || 'Suggérée'}: {suggeree}U</span>
-                                    <span className="mx-0.5">→</span>
-                                    <span className="font-bold">{t('reelle') || 'Réelle'}: {dose}U</span>
-                                    {dose > suggeree && <span className="text-amber-500 text-[10px]">+{(dose - suggeree).toFixed(1)}</span>}
-                                    {dose < suggeree && <span className="text-green-500 text-[10px]">{(dose - suggeree).toFixed(1)}</span>}
-                                  </button>
-                                ) : (
-                                  <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose || suggeree)); }}
-                                    className="text-xs text-blue-500 hover:underline">
-                                    💉 <span className="font-bold">{dose || suggeree}U</span>
-                                    {entry.bolusType === 'etendu' &&
-                                      <span className="ml-1 text-indigo-500">(étendu 3 phases)</span>
-                                    }
-                                    {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') &&
-                                      <span className="ml-1 text-amber-500">(fractionné)</span>
-                                    }
-                                  </button>
-                                )}
+                              <div className="flex items-start justify-between gap-2">
+                                <button
+                                  onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose || suggeree)); }}
+                                  className="text-left text-blue-500 hover:underline"
+                                >
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs">💉</span>
+                                    <span className="text-sm font-bold">
+                                      {t('doseReellePrise') || 'Dose réellement prise'}: {formatDose(dose || suggeree)}U
+                                    </span>
+                                    {entry.bolusType === 'etendu' && (
+                                      <span className="text-[10px] font-medium text-indigo-500">(étendu)</span>
+                                    )}
+                                    {(entry.bolusType === 'dual' || entry.bolusType === 'fractionne') && (
+                                      <span className="text-[10px] font-medium text-amber-500">(fractionné)</span>
+                                    )}
+                                  </div>
+                                  {suggeree > 0 && (
+                                    <div className={`mt-0.5 text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                      {t('doseSuggeree') || 'Dose suggérée'}: {formatDose(suggeree)}U
+                                      {dose > 0 && suggeree !== dose && (
+                                        <span className={delta > 0 ? 'text-amber-500' : 'text-emerald-500'}>
+                                          {' '}· écart {delta > 0 ? '+' : ''}{formatDose(delta)}U
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {(entry.bolusType === 'etendu' || entry.bolusType === 'fractionne' || entry.bolusType === 'dual') && totalToDisplay > 0 && (
+                                    <div className={`mt-0.5 text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                      {t('planInjection') || 'Plan d’injection'}: {formatDose(totalToDisplay)}U au total
+                                    </div>
+                                  )}
+                                </button>
                                 <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(dose || suggeree)); }}
-                                  className={`ml-1 w-6 h-6 rounded-md flex items-center justify-center text-sm transition ${isDark ? 'text-slate-500 hover:text-blue-400 hover:bg-slate-700' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
+                                  className={`w-6 h-6 rounded-md flex items-center justify-center text-sm transition ${isDark ? 'text-slate-500 hover:text-blue-400 hover:bg-slate-700' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
                                   title={t('modifierDose') || 'Modifier la dose'}>
                                   ✏️
                                 </button>
@@ -598,7 +630,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                     : (isDark ? 'text-indigo-300' : 'text-indigo-600')
                                   }`}
                                 >
-                                  {phase.units}u — {phase.label} ({timeStr})
+                                  {formatDose(phase.units)}u — {phase.label} ({timeStr})
                                   {!phase.done && <span className="ml-1 opacity-60">(tap)</span>}
                                 </button>
                               </div>
@@ -613,7 +645,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                           <div className="flex items-center gap-2">
                             <span className="text-sm">✅</span>
                             <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                              {entry.splitImmediate}u — {entry.heure || new Date(entry.date).toLocaleTimeString(dateLocale, {hour:'2-digit',minute:'2-digit'})}
+                              {formatDose(entry.splitImmediate)}u — {entry.heure || new Date(entry.date).toLocaleTimeString(dateLocale, {hour:'2-digit',minute:'2-digit'})}
                             </p>
                           </div>
                           {/* Step 2: Delayed */}
@@ -625,12 +657,12 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                   e.id === entry.id ? { ...e, splitDone2: !e.splitDone2 } : e
                                 ));
                               }}
-                              className={`text-xs ${entry.splitDone2
+                            className={`text-xs ${entry.splitDone2
                                 ? (isDark ? 'text-teal-400' : 'text-teal-600')
                                 : (isDark ? 'text-purple-300' : 'text-purple-600')
                               }`}
                             >
-                              {entry.splitDelayed}u — +{entry.splitDelayMinutes}min
+                              {formatDose(entry.splitDelayed)}u — +{entry.splitDelayMinutes}min
                               {!entry.splitDone2 && (
                                 <span className="ml-1 opacity-60">(tap pour marquer fait)</span>
                               )}
@@ -774,9 +806,9 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                                 className="text-xs px-1.5 py-1 bg-gray-200 text-gray-600 rounded-lg">✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(entry.doseActual || entry.doseReelle || 0)); }}
+                            <button onClick={() => { setEditingDose(entry.id); setDoseValue(String(getActualDose(entry))); }}
                               className="text-right flex items-center gap-1">
-                              <p className="text-lg font-bold text-blue-500">{entry.doseActual || entry.doseReelle || 0}U</p>
+                              <p className="text-lg font-bold text-blue-500">{formatDose(getActualDose(entry))}U</p>
                               <span className={`w-7 h-7 rounded-md flex items-center justify-center text-sm transition ${isDark ? 'text-slate-500 hover:text-blue-400 hover:bg-slate-700' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
                                 title={t('modifierDose') || 'Modifier la dose'}>✏️</span>
                             </button>
@@ -790,7 +822,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                             <p className="text-[10px] text-blue-400">IOB: {entry.iob.toFixed(1)}U</p>
                             <div className="flex-1 h-1 rounded-full bg-blue-200/30 overflow-hidden">
                               <div className="h-full rounded-full bg-blue-400 transition-all"
-                                style={{ width: `${Math.min(100, (entry.iob / entry.doseActual) * 100)}%` }} />
+                                style={{ width: `${Math.min(100, (entry.iob / Math.max(getActualDose(entry), 0.1)) * 100)}%` }} />
                             </div>
                           </div>
                         </div>

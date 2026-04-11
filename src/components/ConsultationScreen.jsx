@@ -6,7 +6,7 @@ import ContextInput from './ContextInput';
 import ClinicalResponse from './ClinicalResponse';
 import { analyzeAndRecommend } from '../utils/clinicalEngine';
 import { calcTotalIOB } from '../utils/iobCurve';
-import OverdoseDialog from './OverdoseDialog';
+import { scaleDosePlan } from '../utils/dosePlan';
 
 // Approximate fat grams per portion for each qualitative level
 const FAT_GRAMS_APPROX = { aucun: 0, faible: 3, moyen: 10, 'élevé': 20 };
@@ -14,7 +14,7 @@ const FAT_GRAMS_APPROX = { aucun: 0, faible: 3, moyen: 10, 'élevé': 20 };
 export default function ConsultationScreen({
   // From App state
   glycemia, setGlycemia, ratio, isf, targetGMin, targetGMax,
-  maxDose, postKeto, slowDigestion, dia,
+  postKeto, slowDigestion, dia,
   journal, selections, foods, customFoods, toggleFood, updateMult,
   timeProfiles, onSaveToJournal, onPhotoMeal, onSaveCustomFood, setTab, t, isRTL, isDark,
 }) {
@@ -28,7 +28,6 @@ export default function ConsultationScreen({
   const [fatLevel, setFatLevel] = useState('aucun');
   const [manualCarbs, setManualCarbs] = useState(0);
   const [result, setResult] = useState(null);
-  const [showOverdoseDialog, setShowOverdoseDialog] = useState(false);
   const [actualDose, setActualDose] = useState('');
   const [notes, setNotes] = useState('');
   const resultRef = useRef(null);
@@ -135,7 +134,7 @@ export default function ConsultationScreen({
       ratio: activeParams.ratio, isf: activeParams.isf / 100,
       targetMin: targetGMin, targetMax: targetGMax,
       iobTotal, lastInjectionMinutesAgo,
-      slowDigestion, postKeto, maxDose,
+      slowDigestion, postKeto,
       totalFatGrams: manualCarbs > 0 ? null : totalFatGrams,
     });
     setResult(r);
@@ -143,11 +142,6 @@ export default function ConsultationScreen({
 
   const handleSave = () => {
     if (!result) return;
-    // Check for overdose
-    if (result.recommendation.dose > maxDose) {
-      setShowOverdoseDialog(true);
-      return;
-    }
     doSave();
   };
 
@@ -157,31 +151,16 @@ export default function ConsultationScreen({
     const splitResult = result.recommendation.split;
     const doseSug = result.recommendation.dose;
     const doseReel = !isNaN(parseFloat(actualDose)) ? parseFloat(actualDose) : doseSug;
-
-    // Recalculate split proportionally if actual dose differs from suggested
-    const ratio05 = (v) => Math.round(v * 2) / 2; // round to 0.5U
-    let splitImm = splitResult.immediate;
-    let splitDel = splitResult.delayed;
-    let splitPh = splitResult.phases || null;
-
-    if (doseReel !== doseSug && doseSug > 0) {
-      const scale = doseReel / doseSug;
-      if (splitResult.type === 'fractionne') {
-        splitImm = ratio05(splitResult.immediate * scale);
-        splitDel = ratio05(doseReel - splitImm);
-      } else if (splitResult.type === 'etendu' && splitResult.phases) {
-        splitPh = splitResult.phases.map((p, i, arr) => {
-          if (i < arr.length - 1) {
-            return { ...p, units: ratio05(p.units * scale), done: p.delayMinutes === 0 };
-          }
-          // Last phase gets the remainder to avoid rounding drift
-          const usedSoFar = arr.slice(0, i).reduce((s, pp) => s + ratio05(pp.units * scale), 0);
-          return { ...p, units: ratio05(doseReel - usedSoFar), done: p.delayMinutes === 0 };
-        });
-        splitImm = splitPh[0].units;
-        splitDel = doseReel - splitImm;
-      }
-    }
+    const scaledPlan = scaleDosePlan({
+      bolusType: splitResult.type,
+      splitImmediate: splitResult.immediate,
+      splitDelayed: splitResult.delayed,
+      splitDelayMinutes: splitResult.delayMinutes,
+      splitPhases: splitResult.phases?.map((phase) => ({
+        ...phase,
+        done: phase.delayMinutes === 0,
+      })) ?? null,
+    }, doseSug, doseReel);
 
     const journalEntry = {
       glycPre: gVal, tendance: trend, heure: hour,
@@ -197,11 +176,12 @@ export default function ConsultationScreen({
       iobAuMoment: parseFloat(iobTotal.toFixed(1)),
       doseSuggeree: doseSug,
       doseReelle: doseReel,
-      bolusType: splitResult.type,
-      splitImmediate: splitImm,
-      splitDelayed: splitDel,
-      splitDelayMinutes: splitResult.delayMinutes,
-      splitPhases: splitPh,
+      doseActual: doseReel,
+      bolusType: scaledPlan.bolusType,
+      splitImmediate: scaledPlan.splitImmediate,
+      splitDelayed: scaledPlan.splitDelayed,
+      splitDelayMinutes: scaledPlan.splitDelayMinutes,
+      splitPhases: scaledPlan.splitPhases,
       activitePhysique: activity,
       alertes: [...result.vigilance.risks, ...result.vigilance.warnings],
       notes: notes.trim(),
@@ -214,7 +194,6 @@ export default function ConsultationScreen({
     setActivity('aucune');
     setFatLevel('aucun');
     setManualCarbs(0);
-    setShowOverdoseDialog(false);
     setActualDose('');
     setNotes('');
 
@@ -288,16 +267,6 @@ export default function ConsultationScreen({
                 </button>
               </div>
             </div>
-          )}
-
-          {showOverdoseDialog && (
-            <OverdoseDialog
-              dose={result?.recommendation?.dose}
-              maxDose={maxDose}
-              onConfirm={() => doSave()}
-              onCancel={() => setShowOverdoseDialog(false)}
-              isDark={isDark}
-            />
           )}
     </div>
   );
