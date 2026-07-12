@@ -137,7 +137,9 @@ export default function ClinicalResponse({ result, t, isDark = true }) {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/15 border border-red-500/30">
             <span className="text-red-400 text-base leading-none mt-0.5">🚫</span>
             <p className={`text-sm font-medium leading-snug ${isDark ? 'text-red-300' : 'text-red-600'}`}>
-              {recommendation.reasoning?.text?.[0] ?? t('cl_injectionBloquee') ?? 'Injection bloquée'}
+              {/* Show the blocking safety-rule message, not the first reasoning
+                  line (which is the meal bolus detail, unrelated to the block) */}
+              {vigilance?.risks?.[0]?.message ?? t('cl_injectionBloquee')}
             </p>
           </div>
         ) : (

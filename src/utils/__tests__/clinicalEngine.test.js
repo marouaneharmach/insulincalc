@@ -152,6 +152,24 @@ describe('applySafetyRules', () => {
     expect(r.warnings).toContainEqual(expect.objectContaining({ type: 'sur-correction' }));
   });
 
+  it('bases falling-trend reduction on NET correction (IOB already deducted), not raw', () => {
+    // Raw correction 4.0 U but IOB covers 3.9 U → only 0.1 U of correction is
+    // actually in the dose. The reduction must not eat into the meal bolus.
+    const r = applySafetyRules({
+      ...baseContext, glycemia: 3.0, doseSuggeree: 3.0,
+      correction: 4.0, correctionNette: 0.1, iobTotal: 3.9, trend: '↓',
+    });
+    // round05(0.1 * 0.5) = 0 → dose unchanged (nothing meaningful to remove)
+    expect(r.adjustedDose).toBeGreaterThanOrEqual(2.9);
+  });
+
+  it('falls back to raw correction when correctionNette is not provided', () => {
+    const r = applySafetyRules({
+      ...baseContext, glycemia: 1.80, doseSuggeree: 5.0, correction: 1.0, trend: '↓',
+    });
+    expect(r.adjustedDose).toBe(4.5);
+  });
+
   it('ignores trend when unknown', () => {
     const r = applySafetyRules({
       ...baseContext, glycemia: 1.80, doseSuggeree: 5.0, correction: 1.0, trend: '?',

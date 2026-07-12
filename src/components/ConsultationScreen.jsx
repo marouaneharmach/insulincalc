@@ -6,6 +6,7 @@ import ContextInput from './ContextInput';
 import ClinicalResponse from './ClinicalResponse';
 import { analyzeAndRecommend } from '../utils/clinicalEngine';
 import { calcTotalIOB } from '../utils/iobCurve';
+import { getActiveProfile } from '../utils/timeProfileDefaults';
 import { scaleDosePlan } from '../utils/dosePlan';
 
 // Approximate fat grams per portion for each qualitative level
@@ -101,15 +102,12 @@ export default function ConsultationScreen({
 
   // Get active time profile ratio/isf
   const activeParams = useMemo(() => {
+    // Match by slot id (matin/midi/soir/nuit) via getActiveProfile — the stored
+    // profiles have no startH/endH fields, so the old inline filter never matched.
     const h = parseInt(hour.split(':')[0], 10);
-    if (timeProfiles && timeProfiles.length > 0) {
-      const match = timeProfiles.find(p => {
-        if (p.startH <= p.endH) return h >= p.startH && h < p.endH;
-        return h >= p.startH || h < p.endH; // wraps midnight
-      });
-      if (match) return { ratio: match.ratio || ratio, isf: match.isf || isf };
-    }
-    return { ratio, isf };
+    const hourOverride = Number.isInteger(h) ? h : undefined;
+    const profile = getActiveProfile(timeProfiles, ratio, isf, hourOverride);
+    return { ratio: profile.ratio, isf: profile.isf };
   }, [hour, timeProfiles, ratio, isf]);
 
   // Convert selections object map {id: {mult}} to array [{food, mult}] for MealInput

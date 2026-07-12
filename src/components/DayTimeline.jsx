@@ -686,7 +686,7 @@ export default function DayTimeline({ journal, setJournal, targetGMin, targetGMa
                             )}
                           </p>
                           {glycPre > 0 && (() => {
-                            const feedback = evaluatePostPrandial(glycPre, glycPost, 1.00, 1.80);
+                            const feedback = evaluatePostPrandial(glycPre, glycPost, targetGMin, targetGMax);
                             if (!feedback) return null;
                             const feedbackColors = {
                               good: isDark ? 'text-green-400 bg-green-900/20' : 'text-green-600 bg-green-50',

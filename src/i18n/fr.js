@@ -561,6 +561,12 @@ const fr = {
   moyenneGlycemie: 'Moyenne glycémie',
   nbInjections: 'Injections',
   totalGlucidesJour: 'Glucides du jour',
+
+  // Plan étendu 3 phases (ExtendedPlan) + blocage injection
+  planEtendu: 'Plan étendu 4h',
+  controlerGlycemieAvant: 'Contrôler glycémie avant injection',
+  phasesTerminees: 'phases terminées',
+  cl_injectionBloquee: 'Injection bloquée par règle de sécurité.',
 };
 
 export default fr;

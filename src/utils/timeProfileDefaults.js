@@ -3,11 +3,13 @@
  * Extracted from TimeProfiles.jsx to avoid fast-refresh warnings
  * (mixing component and non-component exports in the same file).
  */
-export function getActiveProfile(timeProfiles, globalRatio, globalIsf) {
+export function getActiveProfile(timeProfiles, globalRatio, globalIsf, hourOverride) {
   if (!timeProfiles || timeProfiles.every(p => !p.ratio && !p.isf)) {
     return { ratio: globalRatio, isf: globalIsf, slot: null };
   }
-  const h = new Date().getHours();
+  const h = Number.isInteger(hourOverride) && hourOverride >= 0 && hourOverride <= 23
+    ? hourOverride
+    : new Date().getHours();
   let slotId;
   if (h >= 6 && h < 11) slotId = 'matin';
   else if (h >= 11 && h < 16) slotId = 'midi';

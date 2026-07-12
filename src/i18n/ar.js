@@ -562,6 +562,12 @@ const ar = {
   moyenneGlycemie: 'متوسط السكر',
   nbInjections: 'الحقن',
   totalGlucidesJour: 'كربوهيدرات اليوم',
+
+  // خطة ممتدة على 3 مراحل (ExtendedPlan) + حظر الحقن
+  planEtendu: 'خطة ممتدة 4 ساعات',
+  controlerGlycemieAvant: 'افحص السكر قبل الحقن',
+  phasesTerminees: 'مراحل منتهية',
+  cl_injectionBloquee: 'تم حظر الحقن بموجب قاعدة أمان.',
 };
 
 export default ar;

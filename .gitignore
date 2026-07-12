@@ -47,3 +47,6 @@ design-philosophy.md
 insulin-calculator-v7.jsx
 DEPLOYMENT_GUIDE.md
 QUICKSTART.txt
+
+# Claude Code local worktrees
+.claude/worktrees/

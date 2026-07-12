@@ -130,7 +130,7 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  * Rules evaluated in order:
  *  1. Anti-hypo       : glycemia < 0.70 → blocked, dose = 0 (early return)
  *  2. Hypo-proche     : 0.70 ≤ glycemia < 0.90 → total dose × 50% (risk)
- *  3. Sur-correction  : falling trend AND correction > 0 → subtract round05(correction×0.5) (warning)
+ *  3. Sur-correction  : falling trend AND correctionNette > 0 → subtract round05(correctionNette×0.5) (warning)
  *  4. Anti-stacking   : iobTotal > 2 AND correction > 0 (warning)
  *  5. Alerte-timing   : lastInjectionMinutesAgo < 120 (warning)
  *  6. Post-keto       : postKeto flag (warning)
@@ -139,6 +139,8 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  * @param {number}      ctx.glycemia
  * @param {number}      ctx.doseSuggeree
  * @param {number}      ctx.correction          - Raw correction component (before IOB)
+ * @param {number}      [ctx.correctionNette]   - Net correction actually included in the dose
+ *                                                (after IOB deduction); defaults to ctx.correction
  * @param {number}      ctx.iobTotal
  * @param {string|null} ctx.trend               - '↑','↗','→','↘','↓','?' or null
  * @param {string}      ctx.activity
@@ -152,9 +154,13 @@ const FALLING_TRENDS = new Set(['↓', '↘']);
  * }}
  */
 export function applySafetyRules({
-  glycemia, doseSuggeree, correction, iobTotal, trend,
+  glycemia, doseSuggeree, correction, correctionNette, iobTotal, trend,
   postKeto, lastInjectionMinutesAgo,
 }) {
+  // The suggested dose only ever contains the NET correction (IOB already
+  // deducted in calculateDose) — reducing by the raw correction would eat
+  // into the meal bolus.
+  const netCorrection = correctionNette ?? correction;
   const risks = [];
   const warnings = [];
 
@@ -180,8 +186,8 @@ export function applySafetyRules({
 
   // Rule 3 — Sur-correction: falling trend with active correction
   const trendIsKnown = trend != null && trend !== '?';
-  if (trendIsKnown && FALLING_TRENDS.has(trend) && correction > 0) {
-    const reduction = round05(correction * 0.5);
+  if (trendIsKnown && FALLING_TRENDS.has(trend) && netCorrection > 0) {
+    const reduction = round05(netCorrection * 0.5);
     adjustedDose = Math.max(0, adjustedDose - reduction);
     warnings.push({
       type: 'sur-correction',
@@ -405,6 +411,7 @@ export function analyzeAndRecommend(inputs) {
     glycemia,
     doseSuggeree: doseResult.doseSuggeree,
     correction: doseResult.correction,
+    correctionNette: doseResult.correctionNette,
     iobTotal,
     trend,
     postKeto,

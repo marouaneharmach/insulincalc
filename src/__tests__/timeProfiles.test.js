@@ -25,6 +25,29 @@ describe('[V4.3] TimeProfiles — getActiveProfile', () => {
     expect(result.slot).toBeNull();
   });
 
+  it("respecte l'heure explicite (hourOverride) plutôt que l'heure courante", () => {
+    const profiles = [
+      { id: 'matin', label: '🌅 Matin', ratio: 8, isf: 40 },
+      { id: 'midi', label: '☀️ Midi', ratio: 12, isf: 60 },
+      { id: 'soir', label: '🌙 Soir', ratio: 15, isf: 70 },
+      { id: 'nuit', label: '🌑 Nuit', ratio: 10, isf: 50 },
+    ];
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-25T08:30:00')); // heure système = matin
+
+    const result = getActiveProfile(profiles, globalRatio, globalIsf, 13); // heure saisie = midi
+    expect(result.slot).toBe('midi');
+    expect(result.ratio).toBe(12);
+    expect(result.isf).toBe(60);
+
+    // hourOverride invalide → retombe sur l'heure système
+    const fallback = getActiveProfile(profiles, globalRatio, globalIsf, NaN);
+    expect(fallback.slot).toBe('matin');
+
+    vi.useRealTimers();
+  });
+
   it('retourne le profil matin entre 6h et 11h', () => {
     const profiles = [
       { id: 'matin', label: '🌅 Matin', ratio: 8, isf: 40 },
