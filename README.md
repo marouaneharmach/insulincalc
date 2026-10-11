@@ -69,6 +69,8 @@ La clé n'est jamais écrite dans le dépôt : elle est lue au build depuis les 
 
 Ordre de priorité à l'exécution : clé saisie dans Réglages (appareil) > clé de l'environnement de build > aucune (la reconnaissance photo est alors désactivée et Réglages l'indique). En développement local, copiez `.env.example` en `.env.local` (ignoré par git).
 
+**Vérifier la reconnaissance photo avec la vraie clé** : Actions → « AI smoke (reconnaissance photo réelle) » → Run workflow. Le workflow `ai-smoke.yml` construit l'application avec les secrets du dépôt, charge une photo de test (`e2e/fixtures/pizza.jpg`) dans l'interface et vérifie que le fournisseur renvoie bien une pizza (une requête vision facturée). Le même parcours tourne dans la CI normale avec un fournisseur simulé (`e2e/ai-photo.spec.ts`).
+
 **Avertissement** : toute variable `VITE_*` est incluse dans le bundle publié, donc lisible par quiconque ouvre le site. Usage personnel assumé : fixez un plafond de dépense chez le fournisseur, limitez la clé au modèle utilisé et régénérez-la si elle a transité par un canal non sûr. Pour un site partagé, passez par un proxy côté serveur.
 
 ## Données et confidentialité
