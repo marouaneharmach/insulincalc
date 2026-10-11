@@ -5,7 +5,7 @@ async function completeOnboarding(page: Page) {
   await page.getByRole('button', { name: /Suivant/i }).click();
   await page.getByRole('button', { name: /Suivant/i }).click();
   await page.getByText(/Je comprends que cet outil/i).click();
-  await page.getByRole('button', { name: /Commencer/i }).click();
+  await page.getByRole('button', { name: /Terminer|Commencer/i }).click();
   await expect(page.getByRole('button', { name: /Analyser/i })).toBeVisible();
 }
 
@@ -15,7 +15,7 @@ test.describe('InsulinCalc v7', () => {
     const glyc = page.getByPlaceholder('1.10');
     await glyc.fill('1.45');
     await page.getByRole('button', { name: /Glucides/i }).first().click();
-    await page.getByPlaceholder('0').first().fill('60');
+    await page.getByLabel(/Glucides totaux/i).fill('60');
     await page.getByRole('button', { name: /Analyser/i }).click();
     await expect(page.getByText(/Recommandation/i).first()).toBeVisible();
     await expect(page.getByText(/Injecter/i).first()).toBeVisible();
@@ -43,7 +43,7 @@ test.describe('InsulinCalc v7', () => {
     await expect(page.getByText(/Plafond de dose/i).first()).toBeVisible();
     await page.getByRole('button', { name: /Apparence/i }).click();
     await page.getByRole('button', { name: /العربية|Arabe/i }).click();
-    await expect(page.locator('html, [dir="rtl"]').first()).toBeVisible();
+    await expect(page.locator('[dir="rtl"]').first()).toBeVisible();
     await expect(page.getByText(/الإعدادات|التقارير/).first()).toBeVisible();
   });
 
@@ -52,7 +52,7 @@ test.describe('InsulinCalc v7', () => {
     await page.getByRole('button', { name: /Journal/i }).click();
     await page.getByRole('button', { name: /Saisie rapide/i }).click();
     await page.getByLabel(/Glycémie/i).first().fill('1.33');
-    await page.getByRole('button', { name: /^Enregistrer$/i }).click();
+    await page.getByRole('button', { name: /Enregistrer/i }).last().click();
     await expect(page.getByText('1.33 g/L')).toBeVisible();
     await page.reload();
     await page.getByRole('button', { name: /Journal/i }).click();
