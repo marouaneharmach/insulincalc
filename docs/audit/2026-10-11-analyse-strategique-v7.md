@@ -16,12 +16,12 @@ Cinq constats structurants ressortent de l'audit :
 | # | Constat | Gravité | Effet patient |
 |---|---------|---------|---------------|
 | 1 | **Régression fonctionnelle massive lors de la migration v6.0.0** : score de risque hypo, mode nocturne, vitesse glycémique, détection de 6 patterns, tableau de bord, rapport médical 5 pages et ~100 tests ont été supprimés du dépôt (commit `5dd472f`). Seule la fonctionnalité F6 (profils horaires) de la spec endocrinologique du 3 avril a survécu. | Critique | Perte des garde-fous nocturnes et anti-empilement conçus pour éviter les hypoglycémies matinales |
-| 2 | **Clé API Groq embarquée dans le bundle livré** et photos de repas envoyées à un tiers américain sans consentement explicite ni politique de confidentialité. | Critique | Exposition de données de santé, abus de la clé, non-conformité 09-08 / RGPD |
+| 2 | **Clé API Groq embarquée dans le bundle livré** sur un site public. Usage personnel confirmé le 11/10/2026 : pas d'enjeu de consentement ni de conformité, mais toute personne qui ouvre le site peut extraire la clé et consommer le quota gratuit. | Faible | Reconnaissance photo bloquée si le quota est épuisé par un tiers |
 | 3 | **Incohérences de données silencieuses** : journées calculées en UTC (décalage à Casablanca), identifiants mixtes nombre/chaîne qui excluent des entrées du PDF, journal plafonné à 200 entrées (environ 6 semaines), migration v4→v5 jamais exécutée en production. | Haute | Statistiques fausses, rapport médecin incomplet, perte d'historique |
 | 4 | **Rappels d'injection différée non fiables** : basés sur `setTimeout` en page, ils meurent dès que le téléphone se verrouille. C'est pourtant le rappel le plus critique de l'application (2e partie du bolus fractionné). | Haute | Oubli de la 2e injection → hyperglycémie post-prandiale |
 | 5 | **Dette d'architecture** qui freine toute évolution : composant racine à 25 états et 40 props transmises, deux schémas de journal (v4/v5) cohabitant, deux modèles d'IOB, 5 composants et un store entiers morts, zéro TypeScript, zéro attribut d'accessibilité. | Moyenne | Vélocité en baisse, risque de bug à chaque ajout |
 
-**Recommandation** : geler les nouvelles fonctionnalités pendant un lot « sécurisation » de 2 à 3 semaines (constats 1 à 4), puis engager une refonte des fondations (TypeScript, store, IndexedDB, i18n, accessibilité, E2E) avant d'aborder l'excellence clinique (AGP, GMI, mode Ramadan, profils d'insuline, import CGM). Le détail est en section 6.
+**Recommandation** : geler les nouvelles fonctionnalités pendant un lot « sécurisation » de 2 à 3 semaines (constats 1, 3 et 4), puis engager une refonte des fondations (TypeScript, store, IndexedDB, i18n, accessibilité, E2E) avant d'aborder l'excellence clinique (AGP, GMI, mode Ramadan, profils d'insuline, import CGM). Le détail est en section 6.
 
 ---
 
@@ -127,8 +127,8 @@ Ce qui est conforme aux bonnes pratiques :
 
 | Point | État | Standard |
 |-------|------|----------|
-| Clé Groq | `VITE_GROQ_API_KEY` injectée au build, donc lisible dans `index-*.js` par quiconque ouvre les outils de développement. Déjà signalé dans le changelog 6.0.2, non traité. | OWASP ASVS V2/V6 : aucun secret côté client |
-| Photos de repas | Envoyées à api.groq.com (États-Unis) sans écran de consentement, sans politique de confidentialité, sans mention dans le disclaimer. | Loi 09-08 (CNDP, transfert hors Maroc), RGPD art. 9 et 44 |
+| Clé Groq | `VITE_GROQ_API_KEY` injectée au build, donc lisible dans `index-*.js` par quiconque ouvre les outils de développement. Déjà signalé dans le changelog 6.0.2, non traité. **Usage personnel (décision du 11/10/2026)** : le risque se limite à l'épuisement du quota gratuit par un tiers. Correctif léger : saisir la clé dans Réglages (stockée localement) au lieu de l'injecter au build. | OWASP ASVS V2/V6 : aucun secret côté client |
+| Photos de repas | Envoyées à api.groq.com (États-Unis) sans écran de consentement ni politique de confidentialité. **Sans objet en usage personnel** : l'utilisateur envoie ses propres données. À réactiver uniquement si l'application est partagée. | Loi 09-08 (CNDP, transfert hors Maroc), RGPD art. 9 et 44 |
 | Dépendance morte vulnérable | `clarifai-nodejs-grpc` (1 critique) inutilisée depuis le passage à Groq. | OpenSSF Scorecard |
 | CSP | Aucune `Content-Security-Policy`, même en `<meta>`. Scripts et polices externes (Google Fonts) chargés à chaque visite, ce qui casse aussi le premier rendu hors ligne. | OWASP, PWA checklist |
 | Verrouillage | Aucun code PIN / biométrie (WebAuthn) alors que le journal contient nom, âge, glycémies, doses. | MASVS-STORAGE |
@@ -235,8 +235,8 @@ Effort indicatif pour un développeur confirmé à temps plein. Chaque lot se te
 
 | # | Action | Fichiers | Critère d'acceptation |
 |---|--------|----------|-----------------------|
-| 0.1 | Révoquer la clé Groq exposée ; déployer un proxy serverless (`functions/vision-proxy`) avec quota et CORS restreint ; supprimer `VITE_GROQ_API_KEY` du build et du workflow | `foodRecognition.js`, `.github/workflows/deploy.yml` | Aucun secret dans `build/` ; reconnaissance photo fonctionnelle via proxy |
-| 0.2 | Écran de consentement avant le premier envoi de photo + politique de confidentialité (FR/AR) accessible depuis Réglages | `MealInput.jsx`, nouveau `PrivacyNotice.jsx` | Consentement persisté, révocable |
+| 0.1 | Retirer la clé du build : champ « Clé API Groq » dans Réglages (localStorage, lu à l'exécution), suppression de `VITE_GROQ_API_KEY` du workflow, régénération de la clé actuelle. Le proxy serverless n'est nécessaire que si l'application est un jour partagée. | `foodRecognition.js`, `Settings.jsx`, `.github/workflows/deploy.yml` | Aucun secret dans `build/` ; reconnaissance photo fonctionnelle avec la clé saisie |
+| 0.2 | ~~Écran de consentement et politique de confidentialité~~ Sans objet en usage personnel (décision du 11/10/2026). À prévoir uniquement en cas de partage de l'application. | — | — |
 | 0.3 | Supprimer `clarifai-nodejs-grpc` ; `npm audit fix` pour Vite | `package.json` | `npm audit --omit=dev` = 0 |
 | 0.4 | Dates locales : utilitaire `localDateKey(date)` ; remplacer les 5 usages de `toISOString().split('T')` | `DayTimeline.jsx`, `clinicalEngine.js` | Test : saisie à 00 h 30 Africa/Casablanca rangée le bon jour |
 | 0.5 | Identifiants : filtrer et trier par `date`, jamais par `id` ; générer des ULID partout | `PdfExport.jsx`, `DataExport.jsx`, `DayTimeline.jsx`, `App.jsx` | Injection manuelle visible dans le PDF |
@@ -289,7 +289,9 @@ Réintégrer depuis `git show 5dd472f^:...` et adapter au schéma v5/v7, avec co
 | 3.8 | Mode pédiatrique / aidant (profils multiples, verrouillage parental des réglages) | ISPAD |
 | 3.9 | Base aliments : valeurs lipides/protéines réelles en grammes (remplace l'approximation `FAT_GRAMS_APPROX`), portions photo, favoris et repas composés | — |
 
-### Lot 4 — Produit, conformité, distribution (continu) — **P2/P3**
+### Lot 4 — Produit, conformité, distribution (conditionnel) — **hors périmètre en usage personnel**
+
+Décision du 11/10/2026 : l'application reste un outil personnel. Ce lot ne s'applique que si elle est un jour partagée avec d'autres patients ; il est conservé pour mémoire.
 
 - **Posture réglementaire** : décider explicitement entre (a) outil personnel/éducatif open source avec disclaimer renforcé, ou (b) produit distribué aux patients. En (b), un calculateur de bolus est un dispositif médical logiciel (EU MDR règle 11, classe IIa/IIb ; FDA « device software function »). Prévoir alors dossier IEC 62304, ISO 14971, IEC 62366-1, revue clinique par un diabétologue, et déclaration auprès de la DMP au Maroc.
 - **Conformité données** : registre des traitements, politique de confidentialité, déclaration CNDP (loi 09-08) si collecte, hébergement de santé si synchronisation cloud.
@@ -314,8 +316,8 @@ Réintégrer depuis `git show 5dd472f^:...` et adapter au schéma v5/v7, avec co
 
 | Décision | Options | Recommandation |
 |----------|---------|----------------|
-| Hébergement du proxy vision | Cloudflare Workers (gratuit, edge) / Vercel / GitHub Pages impossible | Cloudflare Workers, déjà esquissé dans l'historique (`worker/wrangler.toml`) |
-| Posture produit | Personnel / public | Clarifier maintenant : conditionne les lots 4 et la profondeur du dossier qualité |
+| Hébergement du proxy vision | Cloudflare Workers / Vercel / aucun | Aucun en usage personnel : clé saisie dans Réglages (lot 0.1). Cloudflare Workers si partage ultérieur |
+| Posture produit | Personnel / public | **Décidé le 11/10/2026 : usage personnel.** Le lot 4 sort du périmètre ; la confidentialité se limite à la sauvegarde chiffrée optionnelle (lot 2.2) |
 | TypeScript | Migration complète / partielle (`domain/` seulement) | Complète, par couches, sur le lot 2 |
 | Stockage | Rester localStorage / IndexedDB | IndexedDB (Dexie) dès le lot 2 ; prérequis AGP 90 jours |
 | Notifications | PWA Push / Capacitor natif | PWA + planning persisté au lot 0 ; Capacitor si distribution store |
@@ -327,7 +329,7 @@ Réintégrer depuis `git show 5dd472f^:...` et adapter au schéma v5/v7, avec co
 | Réf | Sévérité | Description | Localisation |
 |-----|----------|-------------|--------------|
 | A1 | Critique | Fonctions cliniques F1–F5, F9, F10 supprimées lors de la migration racine | commit `5dd472f` |
-| A2 | Critique | Clé API Groq dans le bundle client ; photos envoyées sans consentement | `src/utils/foodRecognition.js:5`, `.github/workflows/deploy.yml` |
+| A2 | Faible (usage personnel) | Clé API Groq dans le bundle client d'un site public : quota consommable par un tiers | `src/utils/foodRecognition.js:5`, `.github/workflows/deploy.yml` |
 | A3 | Haute | Rappels d'injection différée perdus à la fermeture ; icône inexistante | `src/utils/notifications.js:23,96` |
 | A4 | Haute | Jour calculé en UTC | `src/components/DayTimeline.jsx:18,78,81,84`, `src/utils/clinicalEngine.js:573` |
 | A5 | Haute | Identifiants mixtes ; filtre PDF et tri import par `id` | `src/components/PdfExport.jsx:38`, `src/components/DataExport.jsx:64`, `src/components/DayTimeline.jsx:885` |
