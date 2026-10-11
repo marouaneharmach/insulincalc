@@ -11,7 +11,7 @@ Application web progressive (PWA) d'aide au calcul des doses d'insuline rapide e
 - **Rapports** : temps en cible selon le consensus international (0,70 à 1,80 g/L), TBR/TAR par niveau, moyenne, variabilité (CV), GMI, profil glycémique ambulatoire (AGP), tendances détectées (aube, hypo matinale, Somogyi, créneaux problématiques, empilement), pistes d'ajustement ratio / ISF / basale à discuter avec le médecin, export CSV et impression.
 - **Import CSV** des capteurs LibreView et Dexcom Clarity.
 - **Rappels persistés** (2e injection, phases, contrôle post-repas, recontrôle hypo, basale quotidienne) affichés même après fermeture de l'application.
-- **Reconnaissance photo** des repas (Groq, Llama 4 Scout) avec clé API saisie dans Réglages et stockée uniquement sur l'appareil.
+- **Reconnaissance photo** des repas via un fournisseur OpenAI-compatible (OpenRouter par défaut, Groq en alternative, modèle Llama 4 Scout). La clé vient de l'environnement de build (secret GitHub Actions) ou, à défaut, d'une saisie dans Réglages stockée uniquement sur l'appareil.
 - **Accessibilité** : zoom autorisé, textes ≥ 12 px, contrastes AA, étiquettes et rôles ARIA, thème clair / sombre / système, arabe avec RTL.
 
 ## Architecture
@@ -56,9 +56,24 @@ Node 22 recommandé. Le fichier `.npmrc` active `legacy-peer-deps`.
 - `deploy.yml` : mêmes contrôles puis publication sur GitHub Pages à chaque push sur `main`.
 - Le service worker, `version.json` et le manifeste sont générés au build ; la mise à jour peut être forcée depuis Réglages → Diagnostic.
 
+### Clé d'IA fournie par l'environnement (reconnaissance photo)
+
+La clé n'est jamais écrite dans le dépôt : elle est lue au build depuis les secrets et variables du dépôt GitHub (Settings → Secrets and variables → Actions) et injectée par `deploy.yml` dans les variables `VITE_*` lues par `src/app/aiConfig.ts`.
+
+| Nom GitHub | Type | Variable de build | Rôle |
+|---|---|---|---|
+| `OPENROUTER_API_KEY` | secret | `VITE_OPENROUTER_API_KEY` | Clé OpenRouter (préfixe `sk-or-`) |
+| `OPENROUTER_MODEL` | variable, optionnel | `VITE_OPENROUTER_MODEL` | Modèle vision OpenRouter (défaut `meta-llama/llama-4-scout`) |
+| `GROQ_API_KEY` | secret, optionnel | `VITE_GROQ_API_KEY` | Clé Groq (préfixe `gsk_`), alternative |
+| `AI_PROVIDER` | variable, optionnel | `VITE_AI_PROVIDER` | `openrouter` ou `groq` quand les deux clés existent |
+
+Ordre de priorité à l'exécution : clé saisie dans Réglages (appareil) > clé de l'environnement de build > aucune (la reconnaissance photo est alors désactivée et Réglages l'indique). En développement local, copiez `.env.example` en `.env.local` (ignoré par git).
+
+**Avertissement** : toute variable `VITE_*` est incluse dans le bundle publié, donc lisible par quiconque ouvre le site. Usage personnel assumé : fixez un plafond de dépense chez le fournisseur, limitez la clé au modèle utilisé et régénérez-la si elle a transité par un canal non sûr. Pour un site partagé, passez par un proxy côté serveur.
+
 ## Données et confidentialité
 
-Toutes les données restent sur l'appareil (IndexedDB et localStorage). Aucune donnée n'est envoyée à un serveur, à l'exception des photos de repas transmises à l'API Groq si vous renseignez votre propre clé. La clé n'est jamais incluse dans le build ni dans les sauvegardes.
+Toutes les données restent sur l'appareil (IndexedDB et localStorage). Aucune donnée n'est envoyée à un serveur, à l'exception des photos de repas transmises au fournisseur d'IA configuré (OpenRouter ou Groq) lorsqu'une clé est disponible. Une clé saisie dans Réglages reste sur l'appareil et n'est jamais incluse dans les sauvegardes ; une clé fournie par l'environnement de build est, elle, présente dans le bundle publié (voir l'avertissement ci-dessus).
 
 ## Références cliniques
 
