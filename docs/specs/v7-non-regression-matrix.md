@@ -25,6 +25,7 @@
 | Clé d'IA : priorité Réglages > environnement > aucune, fournisseur déduit du préfixe, modèle, en-têtes OpenRouter | `src/app/__tests__/aiConfig.test.ts` |
 | Reconnaissance photo : appel OpenRouter / Groq (URL, en-têtes, modèle), `AI_KEY_MISSING`, erreurs HTTP, réponses mal formées | `src/__tests__/foodRecognition.provider.test.js` |
 | Réglages : statut de la clé d'IA sans afficher la clé d'environnement | `Settings.test.jsx` |
+| Parcours photo complet (upload, appel fournisseur, résultats) avec OpenRouter simulé ; reconnaissance réelle via `ai-smoke.yml` | `e2e/ai-photo.spec.ts` |
 
 ## Portes de CI
 

@@ -1,0 +1,42 @@
+name: AI smoke (reconnaissance photo réelle)
+
+# Lancement manuel uniquement : construit l'application avec la clé des secrets du dépôt
+# puis envoie réellement une photo de test au fournisseur d'IA (OpenRouter). Coût : une requête vision.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      AI_SMOKE: '1'
+      VITE_OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      VITE_OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+      VITE_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      VITE_AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Vérifier la présence d'une clé
+        run: |
+          if [ -z "$VITE_OPENROUTER_API_KEY" ] && [ -z "$VITE_GROQ_API_KEY" ]; then
+            echo "::error::Aucune clé : ajoutez le secret OPENROUTER_API_KEY (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          echo "Clé présente (valeur masquée)."
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Reconnaissance photo réelle
+        run: npx playwright test e2e/ai-photo.spec.ts --trace off --reporter=list
