@@ -160,3 +160,7 @@ Open source - libre d'utilisation et de modification pour usage personnel ou mé
 ## Support
 
 Pour tout problème ou suggestion, consultez la documentation du code ou créez une issue sur le repository GitHub.
+
+## Documentation d'audit
+
+- `docs/audit/2026-10-11-analyse-strategique-v7.md` : analyse approfondie de la v6.0.2 (clinique, données, sécurité, UX, architecture) et feuille de route v7 priorisée.
