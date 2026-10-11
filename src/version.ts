@@ -1,8 +1,13 @@
-export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '7.0.0';
+export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '7.0.1';
 export const BUILD_ID: string = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'local';
 export const BUILD_DATE: string = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : new Date(0).toISOString();
 
 export const RELEASE_NOTES: Record<string, string[]> = {
+  '7.0.1': [
+    'Reconnaissance photo : fournisseur OpenRouter (défaut) ou Groq, clé fournie par l’environnement de build (secrets GitHub) sans saisie dans l’application.',
+    'Réglages : statut de la clé d’IA (environnement, appareil, aucune) avec fournisseur et modèle ; une clé saisie sur l’appareil garde la priorité.',
+    'Dependabot regroupé (React, outils, actions) ; React 19.3.',
+  ],
   '7.0.0': [
     'Garde-fous cliniques restaurés : mode nuit, anti-empilement, score de risque hypo, vitesse glycémique, détection de tendances.',
     'Journal illimité sur IndexedDB, journées en heure locale, identifiants uniques, sauvegarde complète validée.',

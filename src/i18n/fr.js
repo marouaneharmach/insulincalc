@@ -770,9 +770,7 @@ const fr = {
   profilInsulineDesc: "Détermine la courbe d'insuline active (durée et pic).",
   profilInsulineAuto: "Détecté depuis le nom",
   diaLabel: "Durée d'action (DIA)",
-  cleApiGroq: "Clé API Groq (reconnaissance photo)",
-  cleApiGroqDesc: "Stockée uniquement sur cet appareil, jamais dans l'application publiée. Créez-la gratuitement sur console.groq.com.",
-  cleApiGroqManquante: "Ajoutez votre clé API Groq dans Réglages pour activer la reconnaissance photo.",
+  cleApiGroqManquante: "Aucune clé d'IA disponible : ajoutez une clé dans Réglages ou dans l'environnement de build pour activer la reconnaissance photo.",
   themeSysteme: "Système",
   themeClair: "Clair",
   themeSombre: "Sombre",
@@ -834,6 +832,11 @@ const fr = {
   glycemieSaisieHint: "Saisie en g/L : une valeur en mg/dL (≥ 30) est convertie automatiquement.",
   modeSaisie: "Mode de saisie",
   erreurReconnaissance: "Erreur de reconnaissance",
+  cleApiIa: "Clé API IA (OpenRouter ou Groq)",
+  cleApiIaDesc: "Optionnel : une clé saisie ici reste sur cet appareil et prend le pas sur la clé de l'environnement de build. Préfixe sk-or- pour OpenRouter, gsk_ pour Groq.",
+  cleApiEnvironnement: "Clé fournie par l'environnement de build : {provider}, modèle {model}.",
+  cleApiAppareil: "Clé enregistrée sur cet appareil : {provider}, modèle {model}.",
+  cleApiAucune: "Aucune clé disponible : la reconnaissance photo est désactivée.",
 };
 
 export default fr;

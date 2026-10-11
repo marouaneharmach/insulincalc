@@ -22,6 +22,9 @@
 | Parité FR / AR des clés i18n | `i18n.test.js`, `v57-enhancements.test.js` |
 | Détection de version distante, diagnostic | `updateManager.test.js`, `VersionPanel.test.jsx` |
 | Parcours complet (onboarding → consultation → journal), hypo, rapports, arabe, persistance après rechargement | `e2e/app.spec.ts` |
+| Clé d'IA : priorité Réglages > environnement > aucune, fournisseur déduit du préfixe, modèle, en-têtes OpenRouter | `src/app/__tests__/aiConfig.test.ts` |
+| Reconnaissance photo : appel OpenRouter / Groq (URL, en-têtes, modèle), `AI_KEY_MISSING`, erreurs HTTP, réponses mal formées | `src/__tests__/foodRecognition.provider.test.js` |
+| Réglages : statut de la clé d'IA sans afficher la clé d'environnement | `Settings.test.jsx` |
 
 ## Portes de CI
 

@@ -17,6 +17,7 @@ import {
   missedReminders, acknowledgeReminder,
 } from './app/notificationService';
 import { recognizeFood, mapToLocalFoods, compressImage } from './utils/foodRecognition';
+import { resolveAiConfig } from './app/aiConfig';
 import { APP_VERSION, BUILD_ID } from './version';
 
 import DayTimeline from './components/DayTimeline';
@@ -78,6 +79,7 @@ export default function App() {
 
   // Clé API (stockée uniquement sur l'appareil)
   const [groqApiKey, setGroqApiKey] = useLocalStorage('groqApiKey', '');
+  const aiConfig = useMemo(() => resolveAiConfig(groqApiKey), [groqApiKey]);
 
   const [timeProfiles, setTimeProfiles] = useLocalStorage('timeProfiles', []);
   const [selData, setSelData] = useLocalStorage('selections', []);
@@ -156,14 +158,14 @@ export default function App() {
   // ─── Photo ──────────────────────────────────────────────────────────────────
   const [lastPhotoThumbnail, setLastPhotoThumbnail] = useState(null);
   const handlePhotoMeal = useCallback(async (file) => {
-    if (!groqApiKey) throw new Error(t('cleApiGroqManquante'));
+    if (!aiConfig.apiKey) throw new Error(t('cleApiGroqManquante'));
     const thumb = await compressImage(file, 80);
     const reader = new FileReader();
     reader.onloadend = () => setLastPhotoThumbnail(reader.result);
     reader.readAsDataURL(thumb);
-    const results = await recognizeFood(file, groqApiKey);
+    const results = await recognizeFood(file, aiConfig);
     return mapToLocalFoods(results, allFoods);
-  }, [allFoods, groqApiKey, t]);
+  }, [allFoods, aiConfig, t]);
 
   const selectionsMap = useMemo(() => {
     const map = {};
@@ -393,7 +395,7 @@ export default function App() {
             fastingEnabled={fastingEnabled} setFastingEnabled={setFastingEnabled}
             fastingSuhoorReductionPct={fastingSuhoorReductionPct} setFastingSuhoorReductionPct={setFastingSuhoorReductionPct}
             fastingBasalReductionPct={fastingBasalReductionPct} setFastingBasalReductionPct={setFastingBasalReductionPct}
-            groqApiKey={groqApiKey} setGroqApiKey={setGroqApiKey}
+            groqApiKey={groqApiKey} setGroqApiKey={setGroqApiKey} aiConfig={aiConfig}
             diagnostics={diagnostics} updateAvailable={updateAvailable} releaseNotes={releaseNotes}
             onCheckForUpdates={checkForUpdates} onApplyUpdate={applyUpdate}
             t={t} colors={colors} isRTL={isRTL}

@@ -9,7 +9,7 @@ const appVersion = pkg.version
 const buildId = (process.env.GITHUB_SHA || process.env.VITE_BUILD_ID || 'local').slice(0, 7)
 const buildDate = process.env.BUILD_DATE || new Date().toISOString()
 // Politique de sécurité injectée uniquement au build (le serveur de dev Vite a besoin de scripts inline).
-const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.groq.com; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.groq.com https://openrouter.ai; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 
 function createVersionManifest() {
   return JSON.stringify(
@@ -154,7 +154,7 @@ function versionArtifactsPlugin() {
     transformIndexHtml(html) {
       return html
         .replace(
-          '<meta name="version" content="7.0.0" />',
+          /<meta name="version" content="[^"]*" \/>/,
           `<meta name="version" content="${appVersion}" />`,
         )
         .replace(

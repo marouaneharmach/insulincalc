@@ -44,6 +44,12 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Clés d'IA fournies par l'environnement (Settings → Secrets and variables → Actions). Jamais dans le dépôt.
+          VITE_OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          VITE_OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          VITE_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          VITE_AI_PROVIDER: ${{ vars.AI_PROVIDER }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

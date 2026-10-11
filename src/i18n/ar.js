@@ -771,9 +771,7 @@ const ar = {
   profilInsulineDesc: "يحدد منحنى الأنسولين النشط (المدة والذروة).",
   profilInsulineAuto: "مكتشف من الاسم",
   diaLabel: "مدة المفعول (DIA)",
-  cleApiGroq: "مفتاح Groq API (التعرف على الصور)",
-  cleApiGroqDesc: "يُخزن على هذا الجهاز فقط وليس في التطبيق المنشور. أنشئه مجاناً على console.groq.com.",
-  cleApiGroqManquante: "أضف مفتاح Groq API في الإعدادات لتفعيل التعرف على الصور.",
+  cleApiGroqManquante: "لا يوجد مفتاح ذكاء اصطناعي: أضف مفتاحاً في الإعدادات أو في بيئة البناء لتفعيل التعرف على الصور.",
   themeSysteme: "النظام",
   themeClair: "فاتح",
   themeSombre: "داكن",
@@ -835,6 +833,11 @@ const ar = {
   glycemieSaisieHint: "الإدخال بالغرام/لتر: تُحوَّل القيمة بالملغ/دل (≥ 30) تلقائياً.",
   modeSaisie: "طريقة الإدخال",
   erreurReconnaissance: "خطأ في التعرف",
+  cleApiIa: "مفتاح API للذكاء الاصطناعي (OpenRouter أو Groq)",
+  cleApiIaDesc: "اختياري: المفتاح المدخل هنا يبقى على هذا الجهاز ويتقدم على مفتاح بيئة البناء. البادئة sk-or- لـ OpenRouter و gsk_ لـ Groq.",
+  cleApiEnvironnement: "مفتاح مقدم من بيئة البناء: {provider}، النموذج {model}.",
+  cleApiAppareil: "مفتاح محفوظ على هذا الجهاز: {provider}، النموذج {model}.",
+  cleApiAucune: "لا يوجد مفتاح متاح: التعرف على الصور معطل.",
 };
 
 export default ar;

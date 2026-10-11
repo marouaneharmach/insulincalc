@@ -1,9 +1,7 @@
-// V5.5 — Groq + Llama 4 Scout Vision Food Recognition
-// Free, ultra-fast inference via Groq API
-// Model: meta-llama/llama-4-scout-17b-16e-instruct (current Groq vision model)
-
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+// v7.0.1 — Reconnaissance photo via un fournisseur OpenAI-compatible (OpenRouter ou Groq).
+// La configuration (fournisseur, clé, modèle) vient de src/app/aiConfig.ts :
+// clé saisie dans Réglages, sinon clé fournie par l'environnement de build.
+import { AI_PROVIDERS, providerHeaders, resolveAiConfig } from '../app/aiConfig';
 
 /**
  * Compress image to JPEG, max 800px
@@ -59,23 +57,23 @@ CRITICAL rules:
  * Recognize food via Groq API (Llama 3.2 Vision)
  * Uses OpenAI-compatible chat completions endpoint
  */
-export async function recognizeFood(imageFile, apiKey) {
-  const GROQ_API_KEY = (apiKey || '').trim();
-  if (!GROQ_API_KEY) {
-    throw new Error('GROQ_KEY_MISSING');
+export async function recognizeFood(imageFile, configOrKey) {
+  const config = typeof configOrKey === 'string' || configOrKey == null
+    ? resolveAiConfig(configOrKey)
+    : configOrKey;
+  if (!config?.apiKey) {
+    throw new Error('AI_KEY_MISSING');
   }
+  const providerLabel = AI_PROVIDERS[config.provider]?.label ?? config.provider;
 
   const compressed = await compressImage(imageFile);
   const base64 = await blobToBase64(compressed);
 
-  const response = await fetch(GROQ_URL, {
+  const response = await fetch(config.url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-    },
+    headers: providerHeaders(config, typeof window !== 'undefined' ? window.location.origin : ''),
     body: JSON.stringify({
-      model: VISION_MODEL,
+      model: config.model,
       messages: [
         {
           role: 'user',
@@ -99,19 +97,19 @@ export async function recognizeFood(imageFile, apiKey) {
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
     if (response.status === 429) {
-      throw new Error('Quota Groq dépassé. Réessayez dans quelques secondes (30 req/min gratuit).');
+      throw new Error(`Quota ${providerLabel} dépassé. Réessayez dans quelques secondes.`);
     }
-    if (response.status === 401) {
-      throw new Error('Clé API Groq invalide. Vérifiez sur console.groq.com');
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`Clé API ${providerLabel} invalide ou non autorisée.`);
     }
-    throw new Error(`Erreur Groq ${response.status}: ${errText.slice(0, 200)}`);
+    throw new Error(`Erreur ${providerLabel} ${response.status}: ${errText.slice(0, 200)}`);
   }
 
   const data = await response.json();
   const textContent = data.choices?.[0]?.message?.content || '';
 
   if (!textContent) {
-    throw new Error('Réponse vide de Groq');
+    throw new Error(`Réponse vide de ${providerLabel}`);
   }
 
   let parsed;
@@ -137,7 +135,7 @@ export async function recognizeFood(imageFile, apiKey) {
       estimatedFat: f.estimatedFat ?? null,
       estimatedWeight: f.estimatedWeight ?? null,
       estimatedGI: f.estimatedGI || null,
-      id: `groq_${i}_${Date.now()}`
+      id: `ai_${config.provider}_${i}_${Date.now()}`
     }));
 }
 

@@ -66,11 +66,27 @@ describe('Settings', () => {
   });
 
   it('clé API saisie localement', () => {
-    render(<Harness />);
+    render(<Harness aiConfig={{ provider: 'openrouter', apiKey: '', model: 'meta-llama/llama-4-scout', url: '', source: 'none' }} />);
     fireEvent.click(screen.getByRole('button', { name: rx(fr.sauvegardeRestauration) }));
-    const key = screen.getByLabelText(rx(fr.cleApiGroq.split(' ')[0]));
+    expect(screen.getByRole('status').textContent).toContain(fr.cleApiAucune);
+    const key = screen.getByLabelText(rx(fr.cleApiIa));
     fireEvent.change(key, { target: { value: ' gsk_test ' } });
     expect(key.value).toBe('gsk_test');
     expect(key.getAttribute('type')).toBe('password');
+  });
+
+  it('clé fournie par l’environnement de build : statut affiché, champ vide', () => {
+    render(<Harness aiConfig={{ provider: 'openrouter', apiKey: 'sk-or-v1-env', model: 'meta-llama/llama-4-scout', url: '', source: 'environment' }} />);
+    fireEvent.click(screen.getByRole('button', { name: rx(fr.sauvegardeRestauration) }));
+    const status = screen.getByRole('status').textContent;
+    expect(status).toContain(t('cleApiEnvironnement', { provider: 'OpenRouter', model: 'meta-llama/llama-4-scout' }));
+    expect(status).not.toContain('sk-or-v1-env');
+    expect(screen.getByLabelText(rx(fr.cleApiIa)).value).toBe('');
+  });
+
+  it('clé enregistrée sur l’appareil : statut Groq', () => {
+    render(<Harness groqApiKey="gsk_device" aiConfig={{ provider: 'groq', apiKey: 'gsk_device', model: 'm', url: '', source: 'settings' }} />);
+    fireEvent.click(screen.getByRole('button', { name: rx(fr.sauvegardeRestauration) }));
+    expect(screen.getByRole('status').textContent).toContain(t('cleApiAppareil', { provider: 'Groq', model: 'm' }));
   });
 });

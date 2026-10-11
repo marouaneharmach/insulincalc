@@ -10,6 +10,7 @@ import CgmImport from './CgmImport';
 import TimeProfiles from './TimeProfiles';
 import VersionPanel from './VersionPanel';
 import Switch from './ui/Switch';
+import { AI_PROVIDERS } from '../app/aiConfig';
 
 function Range({ id, label, value, onChange, min, max, step, format, accent = 'accent-teal-600', isDark }) {
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
@@ -35,7 +36,7 @@ export default function Settings({
   postKeto, setPostKeto, slowDigestion, setSlowDigestion, dia, setDia,
   maxDoseU, setMaxDoseU, nightModeEnabled, setNightModeEnabled, nightStart, setNightStart, nightEnd, setNightEnd, nightCorrectionMin, setNightCorrectionMin,
   fastingEnabled, setFastingEnabled, fastingSuhoorReductionPct, setFastingSuhoorReductionPct, fastingBasalReductionPct, setFastingBasalReductionPct,
-  groqApiKey, setGroqApiKey,
+  groqApiKey, setGroqApiKey, aiConfig,
   diagnostics, updateAvailable, releaseNotes, onCheckForUpdates, onApplyUpdate, t, colors,
 }) {
   const [section, setSection] = useState('profil');
@@ -308,12 +309,19 @@ export default function Settings({
           <DataExport journal={journal} onImportJournal={onImportJournal} onImportProfile={onImportProfile} t={t} isDark={isDark} locale={locale} />
           <CgmImport journal={journal} onImport={onImportJournal} t={t} isDark={isDark} />
           <div className={cardClass}>
-            <label htmlFor={`${ids}-groq`} className={labelClass}>🔑 {t('cleApiGroq')}</label>
+            <label htmlFor={`${ids}-groq`} className={labelClass}>🔑 {t('cleApiIa')}</label>
             <div className="flex gap-2">
-              <input id={`${ids}-groq`} type={showKey ? 'text' : 'password'} value={groqApiKey} onChange={(e) => setGroqApiKey(e.target.value.trim())} autoComplete="off" spellCheck={false} className={inputClass} aria-describedby={`${ids}-groq-hint`} placeholder="gsk_…" />
+              <input id={`${ids}-groq`} type={showKey ? 'text' : 'password'} value={groqApiKey} onChange={(e) => setGroqApiKey(e.target.value.trim())} autoComplete="off" spellCheck={false} className={inputClass} aria-describedby={`${ids}-groq-hint`} placeholder="sk-or-… / gsk_…" />
               <button type="button" onClick={() => setShowKey((v) => !v)} aria-pressed={showKey} aria-label={showKey ? 'Masquer' : 'Afficher'} className={`px-3 rounded-xl text-sm ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-gray-100 text-gray-700'}`}>{showKey ? '🙈' : '👁'}</button>
             </div>
-            <p id={`${ids}-groq-hint`} className={`text-xs mt-1 ${subtle}`}>{t('cleApiGroqDesc')}</p>
+            <p id={`${ids}-groq-hint`} className={`text-xs mt-1 ${subtle}`}>{t('cleApiIaDesc')}</p>
+            <p role="status" className={`text-xs mt-1 font-medium ${aiConfig?.source === 'none' ? (isDark ? 'text-amber-300' : 'text-amber-700') : (isDark ? 'text-emerald-300' : 'text-emerald-700')}`}>
+              {aiConfig?.source === 'environment'
+                ? `🔒 ${t('cleApiEnvironnement', { provider: AI_PROVIDERS[aiConfig.provider]?.label ?? aiConfig.provider, model: aiConfig.model })}`
+                : aiConfig?.source === 'settings'
+                  ? `✅ ${t('cleApiAppareil', { provider: AI_PROVIDERS[aiConfig.provider]?.label ?? aiConfig.provider, model: aiConfig.model })}`
+                  : `⚠️ ${t('cleApiAucune')}`}
+            </p>
           </div>
           <p className={`text-xs px-1 ${subtle}`}>💾 {storageMode === 'indexeddb' ? 'IndexedDB' : 'localStorage'} · {journal.length} {t('entrees') || 'entrées'}</p>
         </div>

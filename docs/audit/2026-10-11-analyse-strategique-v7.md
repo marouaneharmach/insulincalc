@@ -9,7 +9,7 @@
 
 ## État de mise en œuvre (v7.0.0, 11 octobre 2026)
 
-Les lots 0, 1, 2 et 3 ont été implémentés dans la version 7.0.0 (voir `docs/changelog/v7.0.0.md` et `docs/specs/v7-non-regression-matrix.md`). Le lot 4 reste hors périmètre en usage personnel. Les écarts assumés par rapport à la feuille de route : la migration TypeScript couvre le domaine et la couche données (l'interface React reste en JSX), l'i18n conserve le mécanisme maison (pas d'i18next) avec des clés identiques aux codes du moteur, et le rapport médecin s'imprime via le navigateur (pas de PDF vectoriel).
+Les lots 0, 1, 2 et 3 ont été implémentés dans la version 7.0.0 (voir `docs/changelog/v7.0.0.md` et `docs/specs/v7-non-regression-matrix.md`). La version 7.0.1 (`docs/changelog/v7.0.1.md`) ajoute OpenRouter comme fournisseur d'IA et déplace la clé vers l'environnement de build (secrets GitHub Actions), la saisie dans Réglages restant possible et prioritaire. Le lot 4 reste hors périmètre en usage personnel. Les écarts assumés par rapport à la feuille de route : la migration TypeScript couvre le domaine et la couche données (l'interface React reste en JSX), l'i18n conserve le mécanisme maison (pas d'i18next) avec des clés identiques aux codes du moteur, et le rapport médecin s'imprime via le navigateur (pas de PDF vectoriel).
 
 ---
 
