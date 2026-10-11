@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   determineSplit,
   analyzeAndRecommend,
-} from '../utils/clinicalEngine';
+} from '../domain/engine/clinicalEngine';
 
 // ─── determineSplit — basic behavior (unchanged) ─────────────────────────────
 
@@ -152,7 +152,7 @@ describe('analyzeAndRecommend — extended plan', () => {
     fatLevel: 'élevé',
     activity: 'aucune',
     ratio: 10,
-    isf: 0.5,
+    isfMgdl: 50,
     targetMin: 0.8,
     targetMax: 1.3,
     iobTotal: 0,
@@ -175,7 +175,7 @@ describe('analyzeAndRecommend — extended plan', () => {
 
   it('includes reasoning about fat bonus', () => {
     const result = analyzeAndRecommend(baseInputs);
-    const hasFatReasoning = result.recommendation.reasoning.text.some(r => r.includes('gras'));
+    const hasFatReasoning = result.recommendation.reasoning.bonusGras > 0;
     expect(hasFatReasoning).toBe(true);
   });
 

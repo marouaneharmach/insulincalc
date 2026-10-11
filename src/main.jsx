@@ -4,41 +4,19 @@ import './index.css';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { APP_VERSION } from './version';
+import { needsMigration } from './data/migrations';
 
-// ─── LEGACY DATA MIGRATION ───────────────────────────────────────────────────
+// Le journal est migré par useJournal (IndexedDB) ; ici on ne trace que la version installée.
 const VERSION_KEY = 'insulincalc_v4_app_version';
-
-function handleVersionMigration() {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
-
-  if (storedVersion !== APP_VERSION) {
-    console.log(`[InsulinCalc] Mise à jour ${storedVersion || 'initial'} → ${APP_VERSION}`);
-
-    // Journal migration: add new fields to existing entries if needed
-    try {
-      const journalStr = localStorage.getItem('insulincalc_v4_journal');
-      if (journalStr) {
-        const journal = JSON.parse(journalStr);
-        const migrated = journal.map(entry => ({
-          ...entry,
-          injectionType: entry.injectionType || (entry.mealType === 'injection' ? 'manual' : undefined),
-          correctionDetails: entry.correctionDetails || undefined,
-        }));
-        localStorage.setItem('insulincalc_v4_journal', JSON.stringify(migrated));
-      }
-    } catch (e) {
-      console.warn('[InsulinCalc] Journal migration error:', e);
-    }
-
-    // Update stored version
+try {
+  const stored = localStorage.getItem(VERSION_KEY);
+  if (stored !== APP_VERSION) {
+    if (needsMigration(stored)) console.info(`[InsulinCalc] Mise à niveau ${stored || 'initiale'} → ${APP_VERSION}`);
     localStorage.setItem(VERSION_KEY, APP_VERSION);
-
-    console.log('[InsulinCalc] Migration v' + APP_VERSION + ' terminée. Données utilisateur préservées.');
   }
+} catch {
+  /* stockage indisponible */
 }
-
-// Run migration before rendering
-handleVersionMigration();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

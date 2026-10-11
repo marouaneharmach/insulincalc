@@ -8,6 +8,8 @@ const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf
 const appVersion = pkg.version
 const buildId = (process.env.GITHUB_SHA || process.env.VITE_BUILD_ID || 'local').slice(0, 7)
 const buildDate = process.env.BUILD_DATE || new Date().toISOString()
+// Politique de sécurité injectée uniquement au build (le serveur de dev Vite a besoin de scripts inline).
+const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.groq.com; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 
 function createVersionManifest() {
   return JSON.stringify(
@@ -17,9 +19,7 @@ function createVersionManifest() {
       buildId,
       buildDate,
       notes: [
-        'Version visible dans l’application et dans le build.',
-        'Détection explicite des nouvelles versions disponibles.',
-        'Mise à jour forcée depuis le diagnostic sans purge manuelle du navigateur.',
+        'v7 : garde-fous cliniques restaurés, journal IndexedDB, rapports AGP, mode Ramadan, rappels persistés.',
       ],
     },
     null,
@@ -124,6 +124,16 @@ self.addEventListener('message', (event) => {
   }
 });
 
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = clientsList.find((c) => 'focus' in c);
+    if (existing) return existing.focus();
+    return self.clients.openWindow('./');
+  })());
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (isAppShellRequest(event.request)) {
@@ -144,12 +154,12 @@ function versionArtifactsPlugin() {
     transformIndexHtml(html) {
       return html
         .replace(
-          '<meta name="version" content="6.0.0" />',
+          '<meta name="version" content="7.0.0" />',
           `<meta name="version" content="${appVersion}" />`,
         )
         .replace(
           '</head>',
-          `    <link rel="manifest" href="./manifest.webmanifest?v=${buildId}" />\n  </head>`,
+          `    <meta http-equiv="Content-Security-Policy" content="${CSP}" />\n    <link rel="manifest" href="./manifest.webmanifest?v=${buildId}" />\n  </head>`,
         )
     },
     generateBundle() {
@@ -182,5 +192,26 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('/src/data/foods')) return 'foods';
+          if (id.includes('/src/i18n/fr') || id.includes('/src/i18n/ar')) return 'i18n';
+          if (id.includes('node_modules/dexie')) return 'dexie';
+          return undefined;
+        },
+      },
+    },
+  },
+  test: {
+    environment: 'node',
+    coverage: {
+      provider: 'v8',
+      include: ['src/domain/**/*.ts', 'src/data/**/*.ts'],
+      exclude: ['**/__tests__/**'],
+      thresholds: { lines: 85, functions: 85, branches: 75, statements: 85 },
+      reporter: ['text', 'html'],
+    },
+    exclude: ['e2e/**', 'node_modules/**', 'build/**'],
   },
 })

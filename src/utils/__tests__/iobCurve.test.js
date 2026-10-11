@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcIOB, calcTotalIOB } from '../iobCurve.js';
+import { calcIOB, calcTotalIOB } from '../../domain/insulin/iob';
 
 describe('calcIOB – Walsh model', () => {
   const DIA = 270; // 4h30 default

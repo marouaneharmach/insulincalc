@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getActiveProfile } from '../utils/timeProfileDefaults';
+import { getActiveProfile } from '../domain/timeProfiles';
 
 describe('[V4.3] TimeProfiles — getActiveProfile', () => {
   const globalRatio = 10;

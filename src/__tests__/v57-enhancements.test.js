@@ -15,11 +15,12 @@ import {
   computeFatFactor,
   calculateDose,
   analyzeAndRecommend,
-  predictPostMealGlycemia,
-  computeDailySummary,
   round05,
   FAT_FACTOR,
-} from '../utils/clinicalEngine';
+} from '../domain/engine/clinicalEngine';
+import { predictGlucose } from '../domain/engine/prediction';
+import { computeDailySummary } from '../domain/analytics/daily';
+import { localDateKey } from '../domain/time';
 import { deriveFatLevel, mapToLocalFoods } from '../utils/foodRecognition';
 import fr from '../i18n/fr';
 import ar from '../i18n/ar';
@@ -137,7 +138,7 @@ describe('Phase D — computeFatFactor', () => {
 
 describe('Phase D — calculateDose with totalFatGrams', () => {
   const base = {
-    totalCarbs: 60, glycemia: 1.2, ratio: 10, isf: 0.5,
+    totalCarbs: 60, glycemia: 1.2, ratio: 10, isfMgdl: 50,
     targetMax: 1.3, iobTotal: 0, fatLevel: 'aucun', activity: 'aucune',
   };
 
@@ -168,7 +169,7 @@ describe('Phase D — analyzeAndRecommend with totalFatGrams', () => {
   const base = {
     glycemia: 1.5, trend: '→', totalCarbs: 80,
     fatLevel: 'élevé', activity: 'aucune',
-    ratio: 10, isf: 0.5,
+    ratio: 10, isfMgdl: 50,
     targetMin: 0.8, targetMax: 1.3,
     iobTotal: 0, lastInjectionMinutesAgo: null,
     slowDigestion: false, postKeto: false, maxDose: 30,
@@ -227,34 +228,35 @@ describe('Phase E — i18n v5.7 keys', () => {
 describe('Phase F — predictPostMealGlycemia', () => {
   it('predicts target when dose matches carb bolus perfectly', () => {
     // 60g carbs / ratio 10 = 6U needed, glycemia at target
-    const r = predictPostMealGlycemia({ glycemia: 1.2, totalCarbs: 60, dose: 6, isf: 0.5, ratio: 10 });
-    expect(r.predicted).toBeCloseTo(1.2, 1);
+    const r = predictGlucose({ velocity: null, iobTotal: 0, glycemia: 1.2, totalCarbs: 60, dose: 6, isfMgdl: 50, ratio: 10 });
+    expect(r.predicted).toBeGreaterThanOrEqual(1.0);
+    expect(r.predicted).toBeLessThanOrEqual(1.8);
     expect(r.zone).toBe('cible');
   });
 
   it('predicts rise when no insulin given', () => {
-    const r = predictPostMealGlycemia({ glycemia: 1.0, totalCarbs: 60, dose: 0, isf: 0.5, ratio: 10 });
+    const r = predictGlucose({ velocity: null, iobTotal: 0, glycemia: 1.0, totalCarbs: 60, dose: 0, isfMgdl: 50, ratio: 10 });
     expect(r.predicted).toBeGreaterThan(1.0);
     expect(r.delta).toBeGreaterThan(0);
   });
 
   it('predicts hypo when too much insulin', () => {
-    const r = predictPostMealGlycemia({ glycemia: 1.0, totalCarbs: 30, dose: 10, isf: 0.5, ratio: 10 });
+    const r = predictGlucose({ velocity: null, iobTotal: 0, glycemia: 1.0, totalCarbs: 30, dose: 10, isfMgdl: 50, ratio: 10 });
     // carbBolus = 3U, dose = 10U, netEffect = 7 * 0.5 = 3.5, predicted = 1.0 - 3.5 = -2.5
     expect(r.predicted).toBeLessThan(0.7);
     expect(r.zone).toBe('hypo');
   });
 
   it('classifies zones correctly', () => {
-    const hypo = predictPostMealGlycemia({ glycemia: 0.6, totalCarbs: 0, dose: 1, isf: 0.5, ratio: 10 });
+    const hypo = predictGlucose({ velocity: null, iobTotal: 0, glycemia: 0.6, totalCarbs: 0, dose: 1, isfMgdl: 50, ratio: 10 });
     expect(hypo.zone).toBe('hypo');
 
-    const cible = predictPostMealGlycemia({ glycemia: 1.2, totalCarbs: 50, dose: 5, isf: 0.5, ratio: 10 });
+    const cible = predictGlucose({ velocity: null, iobTotal: 0, glycemia: 1.2, totalCarbs: 50, dose: 5, isfMgdl: 50, ratio: 10 });
     expect(cible.zone).toBe('cible');
   });
 
   it('returns delta showing direction of change', () => {
-    const r = predictPostMealGlycemia({ glycemia: 1.5, totalCarbs: 80, dose: 8, isf: 0.5, ratio: 10 });
+    const r = predictGlucose({ velocity: null, iobTotal: 0, glycemia: 1.5, totalCarbs: 80, dose: 8, isfMgdl: 50, ratio: 10 });
     expect(typeof r.delta).toBe('number');
   });
 });
@@ -262,7 +264,7 @@ describe('Phase F — predictPostMealGlycemia', () => {
 // ─── Phase F: computeDailySummary ───────────────────────────────────────────
 
 describe('Phase F — computeDailySummary', () => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey(new Date());
 
   it('returns zeros for empty journal', () => {
     const s = computeDailySummary([], today, 0.8, 1.3);
@@ -276,9 +278,9 @@ describe('Phase F — computeDailySummary', () => {
 
   it('computes correct stats for multiple entries', () => {
     const journal = [
-      { date: `${today}T08:00:00Z`, glycPre: 1.1, glycPost: 1.4, doseReelle: 5, totalGlucides: 60 },
-      { date: `${today}T12:00:00Z`, glycPre: 1.3, glycPost: 1.8, doseReelle: 7, totalGlucides: 80 },
-      { date: `${today}T19:00:00Z`, glycPre: 0.9, glycPost: 1.2, doseReelle: 4, totalGlucides: 50 },
+      { date: `${today}T08:00:00`, glycPre: 1.1, glycPost: 1.4, doseReelle: 5, totalGlucides: 60 },
+      { date: `${today}T12:00:00`, glycPre: 1.3, glycPost: 1.8, doseReelle: 7, totalGlucides: 80 },
+      { date: `${today}T19:00:00`, glycPre: 0.9, glycPost: 1.2, doseReelle: 4, totalGlucides: 50 },
     ];
     const s = computeDailySummary(journal, today, 0.8, 1.3);
     expect(s.totalDose).toBe(16);
@@ -294,7 +296,7 @@ describe('Phase F — computeDailySummary', () => {
 
   it('filters entries by date', () => {
     const journal = [
-      { date: `${today}T08:00:00Z`, glycPre: 1.1, doseReelle: 5, totalGlucides: 60 },
+      { date: `${today}T08:00:00`, glycPre: 1.1, doseReelle: 5, totalGlucides: 60 },
       { date: '2025-01-01T08:00:00Z', glycPre: 1.5, doseReelle: 8, totalGlucides: 100 },
     ];
     const s = computeDailySummary(journal, today, 0.8, 1.3);
@@ -304,7 +306,7 @@ describe('Phase F — computeDailySummary', () => {
 
   it('timeInRange is 100% when all readings in target', () => {
     const journal = [
-      { date: `${today}T08:00:00Z`, glycPre: 1.0, glycPost: 1.2, doseReelle: 5, totalGlucides: 60 },
+      { date: `${today}T08:00:00`, glycPre: 1.0, glycPost: 1.2, doseReelle: 5, totalGlucides: 60 },
     ];
     const s = computeDailySummary(journal, today, 0.8, 1.3);
     expect(s.timeInRange).toBe(100);
@@ -312,7 +314,7 @@ describe('Phase F — computeDailySummary', () => {
 
   it('timeInRange is 0% when all readings out of target', () => {
     const journal = [
-      { date: `${today}T08:00:00Z`, glycPre: 2.0, glycPost: 2.5, doseReelle: 5, totalGlucides: 60 },
+      { date: `${today}T08:00:00`, glycPre: 2.0, glycPost: 2.5, doseReelle: 5, totalGlucides: 60 },
     ];
     const s = computeDailySummary(journal, today, 0.8, 1.3);
     expect(s.timeInRange).toBe(0);
@@ -331,7 +333,7 @@ describe('Integration — AI food to dose with prediction', () => {
       totalFatGrams: 18, // AI-estimated fat
       activity: 'aucune',
       ratio: 10,
-      isf: 0.5,
+      isfMgdl: 50,
       targetMin: 0.8,
       targetMax: 1.3,
       iobTotal: 0,
@@ -347,7 +349,7 @@ describe('Integration — AI food to dose with prediction', () => {
     expect(result.prediction.predicted).toBeGreaterThan(0);
 
     // Fat bonus should exist (18g * 0.009 = 0.162, bonus = 7 * 0.162 ≈ 1.13)
-    const hasFatReasoning = result.recommendation.reasoning.text.some(r => r.includes('gras'));
+    const hasFatReasoning = result.recommendation.reasoning.bonusGras > 0;
     expect(hasFatReasoning).toBe(true);
   });
 
@@ -360,7 +362,7 @@ describe('Integration — AI food to dose with prediction', () => {
       totalFatGrams: 35,
       activity: 'aucune',
       ratio: 10,
-      isf: 0.5,
+      isfMgdl: 50,
       targetMin: 0.8,
       targetMax: 1.3,
       iobTotal: 0,

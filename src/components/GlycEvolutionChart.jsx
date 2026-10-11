@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
+import { formatDate } from '../domain/time';
 
+/** Couleur des points du graphique (graphique, non textuel). */
 function glycColor(v) {
   if (v < 0.7) return '#EF4444';
   if (v < 1.0) return '#F97316';
@@ -8,7 +10,21 @@ function glycColor(v) {
   return '#EF4444';
 }
 
-export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, isDark, t }) {
+/** Classe de texte avec contraste AA (≥ 4,5:1) selon la zone glycémique et le thème. */
+function glycTextClass(v, isDark) {
+  if (v < 0.7 || v > 2.5) return isDark ? 'text-red-400' : 'text-red-700';
+  if (v < 1.0) return isDark ? 'text-orange-400' : 'text-orange-700';
+  if (v <= 1.8) return isDark ? 'text-emerald-400' : 'text-emerald-700';
+  return isDark ? 'text-amber-400' : 'text-amber-700';
+}
+
+/** Traduction avec repli : `t` renvoie la clé elle-même lorsqu'elle est absente. */
+function tr(t, key, fallback) {
+  const value = t?.(key);
+  return value && value !== key ? value : fallback;
+}
+
+export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, isDark, t, locale = 'fr' }) {
   const chartEntries = useMemo(() => {
     return journal
       .filter(e => e.glycPre && parseFloat(e.glycPre) > 0)
@@ -31,7 +47,7 @@ export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, is
 
   // Chart dimensions
   const w = 360, h = 200;
-  const padL = 35, padR = 10, padT = 15, padB = 25;
+  const padL = 36, padR = 10, padT = 15, padB = 26;
   const chartW = w - padL - padR;
   const chartH = h - padT - padB;
 
@@ -71,41 +87,67 @@ export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, is
 
   // Date labels
   const dateLabels = chartEntries.map(e => {
-    const d = e.date || '';
-    try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }); }
-    catch { return ''; }
+    const d = e.date ? new Date(e.date) : null;
+    return d && !Number.isNaN(d.getTime())
+      ? formatDate(d, locale, { day: '2-digit', month: '2-digit' })
+      : '';
   });
+  const lastIdx = chartEntries.length - 1;
+  const midIdx = Math.floor(chartEntries.length / 2);
+
+  const labelMoyenne = t('moyenne') || 'Moyenne';
+  const labelEnCible = t('enCible') || 'En cible';
+  const labelDoseMoy = t('doseMoyenne') || 'Dose moy.';
+  const labelMesures = t('mesures') || 'mesures';
+  const labelUParRepas = tr(t, 'uParRepas', 'U/repas');
+  const labelPre = tr(t, 'preRepas', 'Pré-repas');
+  const labelPost = tr(t, 'postRepas', 'Post-repas');
+  const labelDoses = t('dosesChart') || 'Doses';
+  const unitGL = t('uniteGL') || 'g/L';
+  const chartTitle = t('resumeEvolution') || 'Évolution glycémique';
+  const chartSummary = `${chartTitle} — ${labelMoyenne} ${stats.avg.toFixed(2)} ${unitGL}, ${labelEnCible} ${stats.tirPct} %, ${stats.count} ${labelMesures}`;
 
   const cardClass = `rounded-2xl p-3 border shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`;
+  const tileClass = `text-center p-1.5 rounded-xl ${isDark ? 'bg-slate-700/50' : 'bg-gray-50'}`;
+  const tileLabelClass = `text-xs uppercase ${isDark ? 'text-slate-400' : 'text-gray-500'}`;
+  const tileSubClass = `text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`;
+  const legendClass = isDark ? 'text-slate-400' : 'text-slate-500';
+  const axisFill = isDark ? '#94a3b8' : '#64748b';
+  const tirClass = stats.tirPct >= 70
+    ? (isDark ? 'text-emerald-400' : 'text-emerald-700')
+    : stats.tirPct >= 50
+      ? (isDark ? 'text-amber-400' : 'text-amber-700')
+      : (isDark ? 'text-red-400' : 'text-red-700');
 
   return (
-    <div className={cardClass}>
-      <p className={`text-xs uppercase tracking-wider font-semibold mb-2 ${isDark ? 'text-teal-400' : 'text-teal-600'}`}>
-        📊 {t('resumeEvolution') || 'Évolution glycémique'}
-      </p>
+    <section className={cardClass} aria-label={chartTitle}>
+      <h3 className={`text-xs uppercase tracking-wider font-semibold mb-2 ${isDark ? 'text-teal-400' : 'text-teal-700'}`}>
+        📊 {chartTitle}
+      </h3>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className={`text-center p-1.5 rounded-xl ${isDark ? 'bg-slate-700/50' : 'bg-gray-50'}`}>
-          <p className={`text-[9px] uppercase ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>Moyenne</p>
-          <p className="text-sm font-bold" style={{ color: glycColor(stats.avg) }}>{stats.avg.toFixed(2)}</p>
-          <p className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-gray-400'}`}>g/L</p>
+        <div className={tileClass}>
+          <p className={tileLabelClass}>{labelMoyenne}</p>
+          <p className={`text-sm font-bold ${glycTextClass(stats.avg, isDark)}`}>{stats.avg.toFixed(2)}</p>
+          <p className={tileSubClass}>{unitGL}</p>
         </div>
-        <div className={`text-center p-1.5 rounded-xl ${isDark ? 'bg-slate-700/50' : 'bg-gray-50'}`}>
-          <p className={`text-[9px] uppercase ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>Dans cible</p>
-          <p className={`text-sm font-bold ${stats.tirPct >= 70 ? 'text-emerald-500' : stats.tirPct >= 50 ? 'text-amber-500' : 'text-red-500'}`}>{stats.tirPct}%</p>
-          <p className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-gray-400'}`}>{stats.count} mes.</p>
+        <div className={tileClass}>
+          <p className={tileLabelClass}>{labelEnCible}</p>
+          <p className={`text-sm font-bold ${tirClass}`}>{stats.tirPct}%</p>
+          <p className={tileSubClass}>{stats.count} {labelMesures}</p>
         </div>
-        <div className={`text-center p-1.5 rounded-xl ${isDark ? 'bg-slate-700/50' : 'bg-gray-50'}`}>
-          <p className={`text-[9px] uppercase ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>Dose moy.</p>
-          <p className="text-sm font-bold text-blue-500">{stats.avgDose.toFixed(1)}</p>
-          <p className={`text-[9px] ${isDark ? 'text-slate-600' : 'text-gray-400'}`}>U/repas</p>
+        <div className={tileClass}>
+          <p className={tileLabelClass}>{labelDoseMoy}</p>
+          <p className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>{stats.avgDose.toFixed(1)}</p>
+          <p className={tileSubClass}>{labelUParRepas}</p>
         </div>
       </div>
 
       {/* SVG Chart */}
       <div className="overflow-x-auto">
-        <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ minWidth: 300 }}>
+        <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ minWidth: 300 }} role="img" aria-label={chartSummary}>
+          <title>{chartSummary}</title>
           {/* Target range band */}
           <rect x={padL} y={yTargetMax} width={chartW} height={targetH}
             fill={isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.1)'}
@@ -117,8 +159,8 @@ export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, is
             <g key={v}>
               <line x1={padL} y1={yG(v)} x2={w - padR} y2={yG(v)}
                 stroke={isDark ? '#1e293b' : '#e2e8f0'} strokeWidth="0.5" />
-              <text x={padL - 4} y={yG(v) + 3} textAnchor="end"
-                fill={isDark ? '#475569' : '#94a3b8'} fontSize="8">{v.toFixed(1)}</text>
+              <text x={padL - 4} y={yG(v) + 4} textAnchor="end"
+                fill={axisFill} fontSize="11">{v.toFixed(1)}</text>
             </g>
           ))}
 
@@ -152,9 +194,9 @@ export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, is
           })}
 
           {/* X-axis date labels (first, middle, last) */}
-          {[0, Math.floor(chartEntries.length / 2), chartEntries.length - 1].map(idx => (
-            <text key={`lbl${idx}`} x={padL + idx * xStep} y={h - 4}
-              textAnchor="middle" fill={isDark ? '#475569' : '#94a3b8'} fontSize="7">
+          {[[0, 'start'], [midIdx, 'middle'], [lastIdx, 'end']].map(([idx, anchor]) => (
+            <text key={`lbl${idx}`} x={padL + idx * xStep} y={h - 5}
+              textAnchor={anchor} fill={axisFill} fontSize="11">
               {dateLabels[idx]}
             </text>
           ))}
@@ -162,20 +204,20 @@ export default function GlycEvolutionChart({ journal, targetGMin, targetGMax, is
       </div>
 
       {/* Legend */}
-      <div className="flex justify-center gap-4 mt-1">
-        <span className="flex items-center gap-1 text-[10px]">
+      <ul className="flex justify-center gap-4 mt-1 list-none p-0 m-0" aria-hidden="true">
+        <li className="flex items-center gap-1 text-xs">
           <span className="w-3 h-0.5 bg-emerald-500 rounded inline-block" />
-          <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Pré-repas</span>
-        </span>
-        <span className="flex items-center gap-1 text-[10px]">
+          <span className={legendClass}>{labelPre}</span>
+        </li>
+        <li className="flex items-center gap-1 text-xs">
           <span className="w-3 h-0.5 bg-orange-500 rounded inline-block" style={{ borderBottom: '1px dashed' }} />
-          <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Post-repas</span>
-        </span>
-        <span className="flex items-center gap-1 text-[10px]">
+          <span className={legendClass}>{labelPost}</span>
+        </li>
+        <li className="flex items-center gap-1 text-xs">
           <span className="w-2 h-2 bg-purple-400/40 rounded-sm inline-block" />
-          <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>Doses</span>
-        </span>
-      </div>
-    </div>
+          <span className={legendClass}>{labelDoses}</span>
+        </li>
+      </ul>
+    </section>
   );
 }

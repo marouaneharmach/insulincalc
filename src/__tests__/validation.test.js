@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateGlycemia, validateWeight, validateRatio, validateIsf, validateDose, validateAge, validateHeight, LIMITS } from '../utils/validation';
+import { validateGlycemia, validateWeight, validateRatio, validateIsf, validateDose, validateAge, validateHeight, LIMITS } from '../domain/validation';
 
 describe('[V4.3] Validation — Glycémie', () => {
   it('accepte glycémie valide dans la plage', () => {

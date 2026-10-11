@@ -50,3 +50,8 @@ QUICKSTART.txt
 
 # Claude Code local worktrees
 .claude/worktrees/
+
+# Test artifacts
+coverage
+playwright-report
+test-results
