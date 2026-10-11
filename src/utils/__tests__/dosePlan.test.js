@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getActualDose, getSplitPlanTotal, getSuggestedDose, scaleDosePlan } from '../dosePlan';
+import { getActualDose, getSplitPlanTotal, getSuggestedDose, scaleDosePlan } from '../../domain/engine/dosePlan';
 
 describe('dosePlan helpers', () => {
   it('returns canonical suggested and actual doses', () => {

@@ -4,167 +4,168 @@ exports[`VersionPanel > rend le panneau de diagnostic sans régression visuelle 
 <div
   class="space-y-2"
 >
-  <div
+  <section
+    aria-label="Diagnostic"
     class="rounded-2xl p-3 border shadow-sm bg-white border-gray-100"
   >
     <div
       class="flex items-start justify-between gap-3"
     >
       <div>
-        <p
+        <h3
           class="text-sm font-semibold text-slate-800"
         >
           Diagnostic
-        </p>
+        </h3>
         <p
-          class="text-xs text-slate-400"
+          class="text-xs text-slate-500"
         >
           Version, build, cache et disponibilité d’une mise à jour
         </p>
       </div>
       <span
-        class="px-2 py-1 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700"
+        class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800"
+        role="status"
       >
         Nouvelle version disponible
       </span>
     </div>
-    <div
+    <dl
       class="grid grid-cols-2 gap-3 mt-3"
     >
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Version installée
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           6.0.1
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Build ID
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           abc1234
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Date du build
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           11/04/2026 11:00
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           État du service worker
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           waiting
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Version disponible
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           6.0.2
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Build distant
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           def5678
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Caches actifs
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           1
-        </p>
+        </dd>
       </div>
       <div>
-        <label
-          class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+        <dt
+          class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
         >
           Dernière vérification
-        </label>
-        <p
+        </dt>
+        <dd
           class="text-slate-700 text-sm font-medium"
         >
           11/04/2026 12:00
-        </p>
+        </dd>
       </div>
-    </div>
+    </dl>
     <div
       class="flex gap-2 mt-4"
     >
       <button
-        class="flex-1 py-2.5 rounded-xl text-sm font-medium transition bg-slate-100 text-slate-700 hover:bg-slate-200"
+        class="flex-1 py-2.5 rounded-xl text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-teal-500 bg-slate-100 text-slate-700 hover:bg-slate-200"
         type="button"
       >
         Vérifier les mises à jour
       </button>
       <button
-        class="flex-1 py-2.5 rounded-xl text-sm font-medium transition bg-teal-500 text-white hover:bg-teal-600"
+        class="flex-1 py-2.5 rounded-xl text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-teal-500 bg-teal-600 text-white hover:bg-teal-700"
         type="button"
       >
         Forcer la mise à jour
       </button>
     </div>
-  </div>
-  <div
+  </section>
+  <section
+    aria-label="Quoi de neuf"
     class="rounded-2xl p-3 border shadow-sm bg-white border-gray-100"
   >
-    <label
-      class="text-[10px] uppercase tracking-wider font-semibold mb-1 block text-slate-400"
+    <h3
+      class="text-xs uppercase tracking-wider font-semibold mb-1 block text-slate-500"
     >
       Quoi de neuf
-    </label>
+    </h3>
     <ul
-      class="space-y-1 text-sm text-slate-600"
+      class="list-disc list-inside space-y-1 text-sm text-slate-600"
     >
       <li>
-        • 
         Suivi explicite de la version installée et du build.
       </li>
       <li>
-        • 
         Détection d’une version distante plus récente.
       </li>
     </ul>
-  </div>
+  </section>
 </div>
 `;

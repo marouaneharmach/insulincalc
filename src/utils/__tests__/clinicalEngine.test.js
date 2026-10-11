@@ -8,7 +8,7 @@ import {
   FAT_FACTOR,
   ACTIVITY_REDUCTION,
   SINGLE_INJECTION_WARNING_THRESHOLD,
-} from '../clinicalEngine.js';
+} from '../../domain/engine/clinicalEngine';
 
 // ─── Task 18: evaluatePostPrandial ──────────────────────────────────────────
 
@@ -37,7 +37,7 @@ describe('evaluatePostPrandial', () => {
 
 describe('calculateDose', () => {
   const baseParams = {
-    totalCarbs: 60, glycemia: 1.10, ratio: 15, isf: 0.60,
+    totalCarbs: 60, glycemia: 1.10, ratio: 15, isfMgdl: 60,
     targetMax: 1.20, iobTotal: 0, fatLevel: 'aucun', activity: 'aucune',
   };
 
@@ -242,7 +242,7 @@ describe('analyzeAndRecommend', () => {
   it('returns all 4 sections', () => {
     const r = analyzeAndRecommend({
       glycemia: 1.40, trend: '→', totalCarbs: 60, fatLevel: 'faible',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false, maxDose: 10,
     });
@@ -256,7 +256,7 @@ describe('analyzeAndRecommend', () => {
   it('blocks for hypo', () => {
     const r = analyzeAndRecommend({
       glycemia: 0.55, trend: '↓', totalCarbs: 0, fatLevel: 'aucun',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false, maxDose: 10,
     });
@@ -267,7 +267,7 @@ describe('analyzeAndRecommend', () => {
   it('analysis section contains expected fields', () => {
     const r = analyzeAndRecommend({
       glycemia: 1.10, trend: '→', totalCarbs: 45, fatLevel: 'moyen',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false, maxDose: 10,
     });
@@ -281,7 +281,7 @@ describe('analyzeAndRecommend', () => {
   it('classifies hypo-severe correctly', () => {
     const r = analyzeAndRecommend({
       glycemia: 0.50, trend: '↓', totalCarbs: 0, fatLevel: 'aucun',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false, maxDose: 10,
     });
@@ -293,7 +293,7 @@ describe('analyzeAndRecommend', () => {
   it('applies split for high-fat meal', () => {
     const r = analyzeAndRecommend({
       glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'élevé',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false, maxDose: 10,
     });
@@ -304,7 +304,7 @@ describe('analyzeAndRecommend', () => {
   it('sets checkTime to 30 for hypo-proche', () => {
     const r = analyzeAndRecommend({
       glycemia: 0.82, trend: '→', totalCarbs: 30, fatLevel: 'aucun',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false, maxDose: 10,
     });
@@ -315,7 +315,7 @@ describe('analyzeAndRecommend', () => {
   it('sets checkTime to 60 when timing warning present', () => {
     const r = analyzeAndRecommend({
       glycemia: 1.10, trend: '→', totalCarbs: 60, fatLevel: 'aucun',
-      activity: 'aucune', ratio: 15, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 15, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: 90, slowDigestion: false,
       postKeto: false,
     });
@@ -325,7 +325,7 @@ describe('analyzeAndRecommend', () => {
   it('adds a non-blocking warning above the single-injection baseline', () => {
     const r = analyzeAndRecommend({
       glycemia: 1.30, trend: '→', totalCarbs: 320, fatLevel: 'aucun',
-      activity: 'aucune', ratio: 10, isf: 0.60, targetMin: 1.00, targetMax: 1.20,
+      activity: 'aucune', ratio: 10, isfMgdl: 60, targetMin: 1.00, targetMax: 1.20,
       iobTotal: 0, lastInjectionMinutesAgo: null, slowDigestion: false,
       postKeto: false,
     });

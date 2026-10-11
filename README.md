@@ -1,166 +1,69 @@
-# InsulinCalc - Calculateur d'insuline pour diabète de type 1
+# InsulinCalc v7
 
-Une application web progressive (PWA) pour calculer les doses d'insuline en fonction des aliments marocains et du profil glycémique du patient.
+Application web progressive (PWA) d'aide au calcul des doses d'insuline rapide et de suivi glycémique pour le diabète de type 1, pensée pour l'alimentation marocaine, bilingue français / arabe. **Outil personnel d'aide à la décision : il ne remplace ni un dispositif médical certifié ni l'avis de l'équipe soignante.**
 
-## Déploiement sur GitHub Pages
+## Fonctionnalités
 
-### Prérequis
-- Compte GitHub avec un repository
-- Git installé localement
+- **Calcul de dose** : bolus repas (ratio), correction (ISF en mg/dL), bonus lipides, activité, profils horaires, fractionnement (repas gras, plan étendu 3 phases sur 4 h).
+- **Garde-fous cliniques** : blocage sous 0,70 g/L, demi-dose 0,70 à 0,90, mode nuit (correction bloquée sous le seuil, réduite de moitié au-dessus), anti-empilement (plafond de correction après injection récente, cumul 24 h, IOB), score de risque hypoglycémique à six facteurs, vitesse glycémique mesurée, plafond de dose avec confirmation, jours de maladie, jeûne du Ramadan (IDF-DAR 2021).
+- **Insuline active (IOB)** selon le profil du produit (NovoRapid, Humalog, Apidra, Fiasp, Lyumjev, humaine) avec DIA ajustable.
+- **Journal** illimité sur IndexedDB : repas, corrections, basale, hypoglycémies traitées, mesures, lectures capteur ; journées en heure locale ; glycémie post-repas et verdict ; modification des doses ; sauvegarde complète et restauration validées.
+- **Rapports** : temps en cible selon le consensus international (0,70 à 1,80 g/L), TBR/TAR par niveau, moyenne, variabilité (CV), GMI, profil glycémique ambulatoire (AGP), tendances détectées (aube, hypo matinale, Somogyi, créneaux problématiques, empilement), pistes d'ajustement ratio / ISF / basale à discuter avec le médecin, export CSV et impression.
+- **Import CSV** des capteurs LibreView et Dexcom Clarity.
+- **Rappels persistés** (2e injection, phases, contrôle post-repas, recontrôle hypo, basale quotidienne) affichés même après fermeture de l'application.
+- **Reconnaissance photo** des repas (Groq, Llama 4 Scout) avec clé API saisie dans Réglages et stockée uniquement sur l'appareil.
+- **Accessibilité** : zoom autorisé, textes ≥ 12 px, contrastes AA, étiquettes et rôles ARIA, thème clair / sombre / système, arabe avec RTL.
 
-### Étapes de déploiement
+## Architecture
 
-1. **Créer un repository GitHub**
-   - Allez sur https://github.com/new
-   - Nommez le repository `insulincalc` (ou le nom de votre choix)
-   - Créez le repository
-
-2. **Cloner le repository localement**
-   ```bash
-   git clone https://github.com/votre-username/insulincalc.git
-   cd insulincalc
-   ```
-
-3. **Copier les fichiers du projet**
-   - Copiez tous les fichiers du dossier `/mnt/calc-glycemie/` dans votre repository local :
-     - `index.html`
-     - `manifest.json`
-     - `sw.js`
-     - `icon.svg`
-
-4. **Commiter et pusher**
-   ```bash
-   git add .
-   git commit -m "Initial commit: InsulinCalc PWA app"
-   git push origin main
-   ```
-
-5. **Activer GitHub Pages**
-   - Allez dans les paramètres du repository (Settings > Pages)
-   - Sélectionnez `main` comme branche source
-   - Définissez le dossier racine comme `/` (root)
-   - Sauvegardez
-
-6. **Accéder à l'application**
-   - L'application sera accessible à : `https://votre-username.github.io/insulincalc/`
-   - Attendez quelques minutes que GitHub Pages génère le site
-
-### Déploiement alternatif (Netlify)
-
-1. **Créer un compte Netlify** : https://netlify.com
-2. **Connecter votre repository GitHub** ou draggez-déposez le dossier
-3. **Définir la branche de déploiement** : `main`
-4. **L'application sera en ligne immédiatement**
-
-## Architecture du projet
-
-### Fichiers principaux
-
-- **index.html** (79 KB)
-  - Application React complète sans build step
-  - Inclut tous les composants et la logique
-  - CDN React, ReactDOM et Babel Standalone
-  - Service worker registration
-
-- **manifest.json** (2.4 KB)
-  - Configuration PWA
-  - Icônes en SVG data URI
-  - Métadonnées d'installation
-
-- **sw.js** (2.7 KB)
-  - Service Worker pour offline-first
-  - Cache des ressources critiques
-  - Stratégies: network-first pour HTML, cache-first pour assets
-
-- **icon.svg** (1.8 KB)
-  - Icône de l'application avec thème syringe/insuline
-  - Couleurs alignées avec le design (#0ea5e9 sur #07090f)
-
-## Caractéristiques PWA
-
-### Installation
-- Installez sur Android via "Ajouter à l'écran d'accueil"
-- Installez sur iOS via le bouton Partager > Ajouter à l'écran d'accueil
-- Accès standalone sans barre d'adresse
-
-### Offline First
-- Fonctionne complètement offline après première visite
-- Cache des ressources CDN
-- Synchronisation automatique au retour en ligne
-
-### Responsive Design
-- Optimisée pour mobile (viewport meta)
-- Desktop et tablet supportés
-- Couleurs adaptées au thème dark (#07090f)
-
-## Fonctionnalités principales
-
-### 1. Sélection d'aliments (Repas)
-- Catégories marocaines (tajines, pains, légumes, fruits, etc.)
-- Index glycémique (IG) et graisses par aliment
-- Multiplicateurs de quantité personnalisés
-- Recherche par nom ou note
-
-### 2. Saisie des paramètres (Saisie)
-- Glycémie actuelle (g/L)
-- Poids corporel (kg) avec suggestions basées sur formules
-- Zones glycémiques interactives
-- Calcul des paramètres insuline (TDD, ratio, ISF)
-
-### 3. Calcul de dose (Résultat)
-- Bolus standard ou dual-wave selon les graisses
-- Correction de glycémie
-- Bonus de graisses
-- Calendrier d'injections avec timeline
-
-### 4. Correction post-repas
-- IOB (Insuline On Board) calculé
-- Correction adaptée aux seuils de glycémie
-- Alertes d'hypoglycémie et hyperglycémie sévère
-
-### 5. Paramètres avancés (Params)
-- Ratio insuline/glucides (ICR) 1 U / Xg
-- Facteur de sensibilité (ISF) en mg/dL
-- Glycémie cible (1.0-1.8 g/L)
-- Vitesse de digestion (rapide/normal/lent)
-
-## Calculs utilisés
-
-### Bolus de repas
 ```
-Bolus = (Glucides totaux) / (Ratio ICR)
+src/
+  domain/      moteur clinique et analyses en TypeScript strict (fonctions pures, codes i18n, aucune dépendance React)
+    engine/    calculateDose, applySafetyRules, determineSplit, analyzeAndRecommend, hypoRisk, velocity, prediction, dosePlan
+    insulin/   profils d'action, IOB (modèle de Walsh)
+    analytics/ métriques consensus, AGP, journée, patterns, analyse de traitement (F8)
+    import/    CSV capteurs (LibreView, Dexcom, générique)
+    ramadan.ts, time.ts (heure locale), units.ts, journal.ts (accesseurs), ids.ts, validation.js
+  data/        schémas zod, migrations idempotentes v4 → v5 → v7, dépôt Dexie (IndexedDB), rappels persistés
+  app/         service de rappels (service worker / Notification / in-app)
+  hooks/       useJournal (IndexedDB), useLocalStorage, useTheme (système), useNow, useAppVersioning
+  components/  écrans React (JSX) : Consultation, Journal, Rapports, Réglages, Onboarding, primitives ui/
+  i18n/        dictionnaires fr.js / ar.js (clés identiques aux codes du moteur)
+e2e/           scénarios Playwright
+docs/          audits, changelogs, spécifications, matrice de non-régression
 ```
 
-### Correction de glycémie
-```
-Correction = (Glycémie - Cible) × 10 / (ISF)
+Conventions : glycémies en g/L dans le domaine (1,20 g/L = 120 mg/dL), ISF en mg/dL par unité, ratio en g de glucides par unité, dates ISO avec décalage local, identifiants chaîne.
+
+## Développement
+
+```bash
+npm ci
+npm run dev            # serveur de développement
+npm run lint           # ESLint (JS/JSX + TypeScript)
+npm run typecheck      # tsc --noEmit
+npm test               # vitest (unitaires + composants)
+npm run test:coverage  # couverture (seuil 85 % sur domain/ et data/)
+npm run test:e2e       # Playwright (construit puis sert l'application)
+npm run build          # build de production dans build/
 ```
 
-### Bonus de graisses
-```
-Bonus = (Bolus repas) × (Facteur graisses)
-```
+Node 22 recommandé. Le fichier `.npmrc` active `legacy-peer-deps`.
 
-### IOB (Insuline On Board)
-```
-IOB = (Insuline injectée) × (1 - minElapsed / tailDuration)
-```
+## Déploiement
 
-## Notes de sécurité
+- `ci.yml` : lint, typage, régression, tests avec couverture, build et E2E sur chaque pull request et branche.
+- `deploy.yml` : mêmes contrôles puis publication sur GitHub Pages à chaque push sur `main`.
+- Le service worker, `version.json` et le manifeste sont générés au build ; la mise à jour peut être forcée depuis Réglages → Diagnostic.
 
-- **Discréditive** : L'application est à titre informatif uniquement
-- **Consultez votre médecin** : Tous les calculs doivent être validés avec l'endocrinologue
-- **Pas de données stockées** : Aucune donnée n'est envoyée à un serveur
-- **Offline-safe** : Fonctionne complètement en local
+## Données et confidentialité
+
+Toutes les données restent sur l'appareil (IndexedDB et localStorage). Aucune donnée n'est envoyée à un serveur, à l'exception des photos de repas transmises à l'API Groq si vous renseignez votre propre clé. La clé n'est jamais incluse dans le build ni dans les sauvegardes.
+
+## Références cliniques
+
+Consensus international Time in Range (Battelino 2019), ADA Standards of Care 2025, ISPAD 2022, IDF-DAR 2021, GMI (Bergenstal 2018), modèle d'IOB de Walsh. Voir `docs/audit/2026-10-11-analyse-strategique-v7.md` pour l'analyse complète et la feuille de route.
 
 ## Licence
 
-Open source - libre d'utilisation et de modification pour usage personnel ou médical.
-
-## Support
-
-Pour tout problème ou suggestion, consultez la documentation du code ou créez une issue sur le repository GitHub.
-
-## Documentation d'audit
-
-- `docs/audit/2026-10-11-analyse-strategique-v7.md` : analyse approfondie de la v6.0.2 (clinique, données, sécurité, UX, architecture) et feuille de route v7 priorisée.
+Open source, usage personnel ou médical sous votre responsabilité.

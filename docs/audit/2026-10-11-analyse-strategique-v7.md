@@ -7,6 +7,12 @@
 
 ---
 
+## État de mise en œuvre (v7.0.0, 11 octobre 2026)
+
+Les lots 0, 1, 2 et 3 ont été implémentés dans la version 7.0.0 (voir `docs/changelog/v7.0.0.md` et `docs/specs/v7-non-regression-matrix.md`). Le lot 4 reste hors périmètre en usage personnel. Les écarts assumés par rapport à la feuille de route : la migration TypeScript couvre le domaine et la couche données (l'interface React reste en JSX), l'i18n conserve le mécanisme maison (pas d'i18next) avec des clés identiques aux codes du moteur, et le rapport médecin s'imprime via le navigateur (pas de PDF vectoriel).
+
+---
+
 ## 0. Résumé exécutif
 
 InsulinCalc est une PWA React/Vite solide dans ses fondations : moteur clinique isolé en fonctions pures, 450 tests verts, lint propre, build reproductible avec versionnement du service worker, bilingue FR/AR, base de 445 aliments marocains. Le niveau est nettement supérieur à la moyenne des calculateurs amateurs.

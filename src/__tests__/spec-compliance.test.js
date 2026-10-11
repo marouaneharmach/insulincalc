@@ -12,8 +12,8 @@ import {
   determineSplit,
   applySafetyRules,
   SINGLE_INJECTION_WARNING_THRESHOLD,
-} from '../utils/clinicalEngine';
-import { calcIOB } from '../utils/iobCurve';
+} from '../domain/engine/clinicalEngine';
+import { calcIOB } from '../domain/insulin/iob';
 
 // ─── Spec §4.2 — Default clinical parameters ────────────────────────────────
 
@@ -67,7 +67,7 @@ describe('Spec §3.4 — Dose calculation', () => {
   it('simple meal: 60g carbs, ratio 15 → 4.0U', () => {
     const result = calculateDose({
       glycemia: 1.10, totalCarbs: 60, fatLevel: 'aucun',
-      ratio: 15, isf: 0.60, targetMax: 1.20,
+      ratio: 15, isfMgdl: 60, targetMax: 1.20,
       iobTotal: 0, activity: 'aucune',
     });
     expect(result.doseSuggeree).toBe(4.0);
@@ -76,7 +76,7 @@ describe('Spec §3.4 — Dose calculation', () => {
   it('correction only: glycemia 2.00, 0g carbs → (2.00-1.20)/0.60 = 1.33 → 1.5U', () => {
     const result = calculateDose({
       glycemia: 2.00, totalCarbs: 0, fatLevel: 'aucun',
-      ratio: 15, isf: 0.60, targetMax: 1.20,
+      ratio: 15, isfMgdl: 60, targetMax: 1.20,
       iobTotal: 0, activity: 'aucune',
     });
     expect(result.doseSuggeree).toBe(1.5);
@@ -85,7 +85,7 @@ describe('Spec §3.4 — Dose calculation', () => {
   it('IOB subtracts from correction only, not meal bolus', () => {
     const result = calculateDose({
       glycemia: 2.00, totalCarbs: 60, fatLevel: 'aucun',
-      ratio: 15, isf: 0.60, targetMax: 1.20,
+      ratio: 15, isfMgdl: 60, targetMax: 1.20,
       iobTotal: 1.0, activity: 'aucune',
     });
     // bolusRepas = 60/15 = 4.0
@@ -98,7 +98,7 @@ describe('Spec §3.4 — Dose calculation', () => {
   it('fat bonus applies to meal bolus', () => {
     const result = calculateDose({
       glycemia: 1.10, totalCarbs: 60, fatLevel: 'élevé',
-      ratio: 15, isf: 0.60, targetMax: 1.20,
+      ratio: 15, isfMgdl: 60, targetMax: 1.20,
       iobTotal: 0, activity: 'aucune',
     });
     // bolusRepas = 4.0, bonusGras = 4.0 * 0.27 = 1.08
@@ -109,7 +109,7 @@ describe('Spec §3.4 — Dose calculation', () => {
   it('activity reduction applies to total dose', () => {
     const result = calculateDose({
       glycemia: 1.10, totalCarbs: 60, fatLevel: 'aucun',
-      ratio: 15, isf: 0.60, targetMax: 1.20,
+      ratio: 15, isfMgdl: 60, targetMax: 1.20,
       iobTotal: 0, activity: 'moderee',
     });
     // bolusRepas = 4.0, activity 20% → 4.0 * 0.80 = 3.2 → round05 = 3.0
@@ -162,9 +162,7 @@ describe('Spec §3.5 — Safety rules', () => {
       iobTotal: 3.0, trend: '?', postKeto: false,
       lastInjectionMinutesAgo: null,
     });
-    expect(result.warnings.some(w =>
-      w.message.includes('insuline active') || w.message.includes('stacking') || w.message.includes('empilement')
-    )).toBe(true);
+    expect(result.warnings.some(w => w.code === 'SAFETY_ANTI_STACKING')).toBe(true);
   });
 
   it('timing alert when last injection < 2h ago', () => {
@@ -173,9 +171,7 @@ describe('Spec §3.5 — Safety rules', () => {
       iobTotal: 0, trend: '?', postKeto: false,
       lastInjectionMinutesAgo: 60,
     });
-    expect(result.warnings.some(w =>
-      w.message.includes('injection') || w.message.includes('min')
-    )).toBe(true);
+    expect(result.warnings.some(w => w.code === 'SAFETY_TIMING')).toBe(true);
   });
 
   it('post-keto flag triggers warning', () => {
@@ -184,9 +180,7 @@ describe('Spec §3.5 — Safety rules', () => {
       iobTotal: 0, trend: '?', postKeto: true,
       lastInjectionMinutesAgo: null,
     });
-    expect(result.warnings.some(w =>
-      w.message.includes('cétose') || w.message.includes('keto') || w.message.includes('post-cétose')
-    )).toBe(true);
+    expect(result.warnings.some(w => w.code === 'SAFETY_POST_KETO')).toBe(true);
   });
 });
 

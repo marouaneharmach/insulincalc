@@ -2,7 +2,6 @@
 // Free, ultra-fast inference via Groq API
 // Model: meta-llama/llama-4-scout-17b-16e-instruct (current Groq vision model)
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
@@ -60,9 +59,10 @@ CRITICAL rules:
  * Recognize food via Groq API (Llama 3.2 Vision)
  * Uses OpenAI-compatible chat completions endpoint
  */
-export async function recognizeFood(imageFile) {
+export async function recognizeFood(imageFile, apiKey) {
+  const GROQ_API_KEY = (apiKey || '').trim();
   if (!GROQ_API_KEY) {
-    throw new Error('Clé API Groq manquante (VITE_GROQ_API_KEY). Créez-en une gratuitement sur console.groq.com');
+    throw new Error('GROQ_KEY_MISSING');
   }
 
   const compressed = await compressImage(imageFile);
