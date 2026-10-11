@@ -9,6 +9,9 @@ updates:
       # React et ses typages doivent toujours être mis à jour ensemble (versions identiques exigées).
       react:
         patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      # vitest et ses extensions (@vitest/coverage-v8, …) partagent la même majeure : mis à jour ensemble.
+      vitest:
+        patterns: ['vitest', '@vitest/*']
       dev-tooling:
         dependency-type: development
         exclude-patterns: ['@types/react', '@types/react-dom']
